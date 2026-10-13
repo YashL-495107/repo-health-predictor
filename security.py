@@ -26,7 +26,7 @@ TIMEOUT = 20
 MAX_DEPS = 500
 MAX_DETAIL = 10  # fetch summaries/fixed versions for at most this many advisories
 
-LEVELS = ["Not assessed", "No known issues found", "Elevated", "High"]
+LEVELS = ["Not assessed", "No unpatched issues found", "Elevated", "High"]
 
 
 # ------------------------------------------------------------------ manifest parsing
@@ -260,7 +260,7 @@ def action_verdict(maintenance_label: str, risk_level: str, flagged: bool = Fals
     if dead and risky:
         return ("Replace it", "Known security problems AND no active maintainers, so fixes are unlikely to arrive.")
     if dead:
-        return ("Plan to migrate", "No known issues found, but nobody is maintaining it, so future problems won't be fixed.")
+        return ("Plan to migrate", "No unpatched issues found, but nobody is maintaining it, so future problems won't be fixed.")
     if flagged and not risky:
         return ("Use with caution", "Offensive-security or malware-related terms were found. Such repos can be legitimate "
                 "research or defensive tools but are dual-use: review the code before running it.")
@@ -271,8 +271,8 @@ def action_verdict(maintenance_label: str, risk_level: str, flagged: bool = Fals
     if risk_level == "Not assessed":
         return ("Maintenance looks fine, security not assessed", "The security sources could not be checked. This is not a safety guarantee.")
     if slow:
-        return ("Watch it", "No known issues found, but activity is slowing down.")
-    return ("Actively maintained, no known issues found",
+        return ("Watch it", "No unpatched issues found, but activity is slowing down.")
+    return ("Actively maintained, no unpatched issues found",
             "This is NOT a safety guarantee: we do not detect malware or malicious intent.")
 
 
