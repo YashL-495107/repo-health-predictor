@@ -21,11 +21,10 @@ from github_client import GitHubClient, GitHubError, RateLimitError
 from security import OSV_VULN, action_verdict, osv_scan, parse_package_lock
 
 MAX_PACKAGES = 40
-# light check: <=180d active, <=365d slowing, else inactive
-ACTIVE_DAYS, SLOW_DAYS = 180, 365
+ACTIVE_DAYS, SLOW_DAYS = 180, 730
 RANK = ["Replace it", "Review urgently", "Upgrade or review", "Plan to migrate", "Watch it",
         "Not enough data", "Maintenance looks fine, security not assessed",
-        "Actively maintained, no known issues found"]
+        "Actively maintained, no unpatched issues found"]
 
 EXAMPLE = "requests==2.19.0\nflask==2.0.0\nurllib3==1.25.0\nPyYAML==5.3\njinja2==2.10\nnumpy>=1.24\n"
 
@@ -226,7 +225,7 @@ def audit(text: str, token: str = "", progress=None, max_packages: int = MAX_PAC
             level = "Not assessed"
         else:
             level = "High" if len(
-                ids) >= 3 else "Elevated" if ids else "No known issues found"
+                ids) >= 3 else "Elevated" if ids else "No unpatched issues found"
         label = light_label(gh["days"] if gh else None,
                             gh["archived"] if gh else False, reg.get("deprecated"))
         fix = min_safe_version(d["name"], d["version"], ids) if ids else None

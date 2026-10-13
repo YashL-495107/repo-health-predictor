@@ -88,8 +88,9 @@ if go:
     with st.expander("How to read this, and what it cannot tell you"):
         st.markdown(
             "- **Vulnerabilities** come from OSV.dev and only for exact versions. *No advisories found does not mean safe.*\n"
-            "- **Maintenance** is a light check: last commit within 180 days = active, within 365 = slowing, older = inactive; "
-            "archived or deprecated packages count as inactive. The full five-factor score is on the main page.\n"
+            "- **Maintenance** is a light check: last commit within 180 days = active, within 730 (2 years) = slowing, older = inactive. "
+            "Stable, finished libraries can look quiet without being abandoned. Archived or deprecated packages count as inactive. "
+            "The full five-factor score is on the main page.\n"
             "- **Upgrade to at least** is approximate: it is the highest fixing version among the first five advisories, compared by "
             "its numeric parts. Always read the advisory.\n"
             f"- Up to {MAX_PACKAGES} packages are checked per run. We do not detect malware or malicious intent."
