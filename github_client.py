@@ -67,6 +67,9 @@ class GitHubClient:
             raise GitHubError(
                 f"Could not reach GitHub (network problem): {e}") from e
 
+        if r.status_code in allow:
+            return r
+
         if r.status_code in (403, 429):
             if r.headers.get("X-RateLimit-Remaining") == "0" or r.status_code == 429:
                 reset = int(r.headers.get("X-RateLimit-Reset", "0") or 0)
@@ -213,6 +216,7 @@ def fetch_features(client: GitHubClient, owner: str, repo: str) -> dict:
         "stars": meta.get("stargazers_count", 0),
         "forks": meta.get("forks_count", 0),
         "created_at": meta.get("created_at"),
+        "topics": meta.get("topics") or [],
         "archived": bool(meta.get("archived")),
         "is_fork": bool(meta.get("fork")),
         "has_issues": has_issues,

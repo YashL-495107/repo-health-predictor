@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 
 from github_client import GitHubClient, GitHubError, fetch_features, parse_repo
 from scoring import HEALTHY, SLOWING, compute_health_score, explain
+from security import action_verdict, apply_gate, assess_security, content_flags
 
 load_dotenv()
 st.set_page_config(page_title="Repo Health Predictor",
@@ -15,7 +16,7 @@ st.set_page_config(page_title="Repo Health Predictor",
 
 SAMPLES = ["psf/requests", "pallets/flask",
            "fastapi/fastapi", "request/request", "atom/atom"]
-COLORS = {"Healthy": "#1a9850", "Slowing down": "#f4a300",
+COLORS = {"Healthy": "#1a9850", "Slowing down": "#f4a300", "At risk": "#e66101",
           "Likely abandoned": "#d73027", "Archived (read-only)": "#6c757d"}
 
 
@@ -32,8 +33,12 @@ def server_token() -> str:
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def analyze(owner: str, repo: str, token: str) -> dict:
-    features = fetch_features(GitHubClient(token), owner, repo)
-    return {"features": features, "result": compute_health_score(features)}
+    client = GitHubClient(token)
+    features = fetch_features(client, owner, repo)
+    security = assess_security(client, owner, repo)
+    flags = content_flags(features)
+    result = apply_gate(compute_health_score(features), security, flags)
+    return {"features": features, "result": result, "security": security, "flags": flags}
 
 
 # ---------------------------------------------------------------- sidebar
@@ -109,6 +114,11 @@ if go_clicked or (target and st.session_state.get("analyzed") == target):
         m2.metric("Forks", f"{f['forks']:,}")
         m3.metric("Language", f["language"] or "-")
         st.info(explain(res))
+        for reason in res["gate_reasons"]:
+            st.warning(reason)
+        if res["score"] != res["maintenance_score"]:
+            st.caption(
+                f"Maintenance activity alone: {res['maintenance_score']:.0f} / 100 ({res['maintenance_label']})")
 
     with right:
         scored = [x for x in res["factors"] if x["score"] is not None]
@@ -129,6 +139,24 @@ if go_clicked or (target and st.session_state.get("analyzed") == target):
             paper_bgcolor="rgba(0,0,0,0)", showlegend=False, margin=dict(l=70, r=70, t=30, b=30), height=380,
         )
         st.plotly_chart(fig, width="stretch")
+
+    # ---- verdict + what was checked -----------------------------------------------------
+    sec = data["security"]
+    headline, why = action_verdict(
+        res["maintenance_label"], sec["level"], bool(data["flags"]))
+    st.markdown("#### Verdict")
+    box = st.error if headline in ("Replace it", "Review urgently") else (
+        st.warning if headline in ("Upgrade or review", "Use with caution", "Plan to migrate") else st.info)
+    box(f"**{headline}.** {why}")
+    if sec["findings"]:
+        st.dataframe(pd.DataFrame(sec["findings"]).rename(columns={
+            "severity": "Level", "source": "Source", "item": "Item", "detail": "Detail"}),
+            hide_index=True, width="stretch")
+    with st.expander("What was and was not checked"):
+        for c in sec["coverage"]:
+            st.write("- " + c)
+        st.caption("Health here = maintenance activity + known security problems + dual-use content flags. "
+                   "No findings does not mean safe: this tool does not detect malware or malicious intent.")
 
     st.markdown("#### What drives the health score")
     table = pd.DataFrame(
