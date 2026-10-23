@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from github_client import GitHubClient, GitHubError, fetch_features, parse_repo
 from scoring import HEALTHY, SLOWING, compute_health_score, explain
 from security import action_verdict, apply_gate, assess_security, content_flags
+from repo_scan import scan_repo
 
 load_dotenv()
 st.set_page_config(page_title="Repo Health Predictor",
@@ -37,8 +38,13 @@ def analyze(owner: str, repo: str, token: str) -> dict:
     features = fetch_features(client, owner, repo)
     security = assess_security(client, owner, repo)
     flags = content_flags(features)
-    result = apply_gate(compute_health_score(features), security, flags)
-    return {"features": features, "result": result, "security": security, "flags": flags}
+    try:
+        scan = scan_repo(client, owner, repo)
+    except Exception as e:  # the content scan must never break the main analysis
+        scan = {"ran": False, "findings": [], "strong": 0, "review": 0,
+                "coverage": [f"Content scan: NOT run ({type(e).__name__})"]}
+    result = apply_gate(compute_health_score(features), security, flags, scan)
+    return {"features": features, "result": result, "security": security, "flags": flags, "scan": scan}
 
 
 # ---------------------------------------------------------------- sidebar
@@ -141,19 +147,42 @@ if go_clicked or (target and st.session_state.get("analyzed") == target):
         st.plotly_chart(fig, width="stretch")
 
     # ---- verdict + what was checked -----------------------------------------------------
-    sec = data["security"]
+    sec, scan = data["security"], data["scan"]
     headline, why = action_verdict(
         res["maintenance_label"], sec["level"], bool(data["flags"]))
+    dead = res["maintenance_label"] in (
+        "Likely abandoned", "Archived (read-only)")
+    if scan["strong"] and sec["level"] not in ("Elevated", "High") and not dead:
+        headline, why = ("Review the findings before using",
+                         f"The scan found {scan['strong']} strong finding(s) in this repository's secrets or CI configuration. "
+                         "Static analysis can be wrong, so check each one.")
+    elif scan.get("code_high") and sec["level"] not in ("Elevated", "High") and not dead:
+        headline, why = ("Review the code findings",
+                         f"The scan found {scan['code_high']} high-severity, high-confidence code finding(s). Static analysis is noisy, so this does "
+                         "not change the score on its own, but check each one before relying on this code.")
     st.markdown("#### Verdict")
     box = st.error if headline in ("Replace it", "Review urgently") else (
-        st.warning if headline in ("Upgrade or review", "Use with caution", "Plan to migrate") else st.info)
+        st.warning if headline in ("Upgrade or review", "Use with caution", "Review the findings before using", "Plan to migrate", "Review the code findings") else st.info)
     box(f"**{headline}.** {why}")
     if sec["findings"]:
         st.dataframe(pd.DataFrame(sec["findings"]).rename(columns={
             "severity": "Level", "source": "Source", "item": "Item", "detail": "Detail"}),
             hide_index=True, width="stretch")
+
+    if scan.get("code_scan") == "unavailable":
+        st.warning("The Python code scan could not run on this server, so code findings are missing from this result.")
+
+    if scan["findings"]:
+        st.markdown("#### Findings inside the repository")
+        fd = pd.DataFrame([{"Level": f["sev"], "Source": f["source"], "Rule": f["rule"], "Where": f"{f['file']}:{f['line']}",
+                            "What": f["detail"], "Suggested fix": f["fix"], "Open": f.get("url")} for f in scan["findings"]])
+        st.dataframe(fd, hide_index=True, width="stretch",
+                     column_config={"Open": st.column_config.LinkColumn("Open", display_text="open on GitHub")})
+        st.caption("Static analysis can produce false positives, so treat each row as something to review, not a verdict. "
+                   "Code findings cover Python only. Secrets are masked and are not checked for validity.")
+
     with st.expander("What was and was not checked"):
-        for c in sec["coverage"]:
+        for c in sec["coverage"] + scan["coverage"]:
             st.write("- " + c)
         st.caption("Health here = maintenance activity + known security problems + dual-use content flags. "
                    "No findings does not mean safe: this tool does not detect malware or malicious intent.")

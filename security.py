@@ -298,7 +298,7 @@ def content_flags(f: dict) -> list[str]:
     return sorted(w for w in words if w in OFFENSIVE_TERMS)
 
 
-def apply_gate(res: dict, sec: dict, flags: list[str]) -> dict:
+def apply_gate(res: dict, sec: dict, flags: list[str], scan: dict | None = None) -> dict:
     """Make 'health' mean more than activity: known security problems or offensive/malware indicators
     cap the headline score and change the label to 'At risk'. The maintenance-only score is kept."""
     out = dict(res)
@@ -316,6 +316,10 @@ def apply_gate(res: dict, sec: dict, flags: list[str]) -> dict:
         caps.append(CAP_CONTENT)
         reasons.append(f"Offensive-security or malware-related terms in name/description/topics ({', '.join(flags)}): "
                        f"score capped at {CAP_CONTENT}. This is a dual-use warning, not proof of harm.")
+    if scan and scan.get("strong"):
+        caps.append(CAP_HIGH)
+        reasons.append(f"Content scan found {scan['strong']} strong finding(s) (possible exposed secrets or high-risk CI patterns)"
+                       f": score capped at {CAP_HIGH}. Static analysis can be wrong, so review each one.")
     out["gate_reasons"] = reasons
     dead = res["label"] in ("Likely abandoned", "Archived (read-only)")
     if caps and not dead:
