@@ -134,7 +134,8 @@ def osv_scan(deps: list[dict]) -> list[dict]:
     for d, res in zip(deps, results):
         ids = [v["id"] for v in (res or {}).get("vulns", [])]
         if ids:
-            hits.append({**d, "ids": ids})
+            is_mal = any(vid.startswith("MAL-") for vid in ids)
+            hits.append({**d, "ids": ids, "is_mal": is_mal})
     return hits
 
 
@@ -215,14 +216,24 @@ def assess_security(client: GitHubClient, owner: str, repo: str) -> dict:
                 note += f"; {dep['unpinned']} more have no exact version and were NOT scanned"
             coverage.append(note)
             if hits:
-                level = max(level, 3 if len(hits) >= 3 else 2)
-            for h in hits[:MAX_DETAIL]:
-                info = osv_details(h["ids"][0])
+                has_mal = any(h.get("is_mal") or any(vid.startswith("MAL-") for vid in h["ids"]) for h in hits)
+                if has_mal:
+                    level = max(level, 3)
+                else:
+                    level = max(level, 3 if len(hits) >= 3 else 2)
+            sorted_hits = sorted(hits, key=lambda h: (not (h.get("is_mal") or any(vid.startswith("MAL-") for vid in h["ids"]))))
+            for h in sorted_hits[:MAX_DETAIL]:
+                is_mal = h.get("is_mal") or any(vid.startswith("MAL-") for vid in h["ids"])
+                mal_ids = [vid for vid in h["ids"] if vid.startswith("MAL-")]
+                main_id = mal_ids[0] if mal_ids else h["ids"][0]
+                info = osv_details(main_id)
                 fix = f" Fixed in: {', '.join(info['fixed'])}." if info.get(
                     "fixed") else ""
-                findings.append({"severity": "Elevated", "source": "OSV (dependency)",
+                severity = "High" if is_mal else "Elevated"
+                source = "OSV (Confirmed Malware)" if is_mal else "OSV (dependency)"
+                findings.append({"severity": severity, "source": source,
                                  "item": f"{h['name']} {h['version']}",
-                                 "detail": f"{len(h['ids'])} advisory(ies), e.g. {h['ids'][0]}: "
+                                 "detail": f"{len(h['ids'])} advisory(ies), e.g. {main_id}: "
                                  f"{info.get('summary', '')}.{fix}"})
     except (requests.RequestException, ValueError, GitHubError) as e:
         coverage.append(f"Dependencies: NOT checked ({type(e).__name__})")
@@ -320,10 +331,20 @@ def apply_gate(res: dict, sec: dict, flags: list[str], scan: dict | None = None)
         caps.append(CAP_HIGH)
         reasons.append(f"Content scan found {scan['strong']} strong finding(s) (possible exposed secrets or high-risk CI patterns)"
                        f": score capped at {CAP_HIGH}. Static analysis can be wrong, so review each one.")
+    if scan and scan.get("verified_malware", 0) > 0:
+        mal_count = scan["verified_malware"]
+        caps.append(15)
+        reasons.append(
+            f"Deterministic malware/tampering proof triggered ({mal_count} verified finding(s)): score capped at 15."
+        )
     out["gate_reasons"] = reasons
     dead = res["label"] in ("Likely abandoned", "Archived (read-only)")
     if caps and not dead:
         capped = min([res["score"], *caps])
         if capped < res["score"]:
             out["score"], out["label"] = capped, "At risk"
+    if scan and scan.get("verified_malware", 0) > 0:
+        if out["score"] > 15:
+            out["score"] = 15
+        out["label"] = "At risk"
     return out

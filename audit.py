@@ -17,6 +17,7 @@ from urllib.parse import quote
 
 import requests
 
+from blast_radius import detect_typosquatting
 from github_client import GitHubClient, GitHubError, RateLimitError
 from security import OSV_VULN, action_verdict, osv_scan, parse_package_lock
 
@@ -245,6 +246,12 @@ def audit(text: str, token: str = "", progress=None, max_packages: int = MAX_PAC
             notes_row.append(f"deprecated: {reg['deprecated']}"[:90])
         if c["gh_error"] == "rate":
             notes_row.append("GitHub rate limit hit")
+        twin = detect_typosquatting(d["name"], d.get("ecosystem"))
+        if twin:
+            notes_row.append(f"TYPOSQUAT WARNING: resembles '{twin}'")
+            if headline != "Replace it":
+                headline = "Review urgently"
+                why = f"TYPOSQUATTING ALERT: package name resembles popular package '{twin}'. Verify immediately! " + why
         rows.append({"Package": d["name"], "Version": d["version"] or "unpinned", "Verdict": headline, "What to do": why,
                      "Advisories": len(ids), "Maintenance": label or "unknown",
                      "Last commit (days)": gh["days"] if gh else None, "GitHub repo": (gh or {}).get("repo") or "-",

@@ -1,0 +1,4 @@
+predictor,auc,ci_low,ci_high
+Baseline: days since last commit,0.768,0.701,0.834
+Live formula (commit-only score),0.792,0.734,0.848
+Logistic regression (cross-validated),0.847,0.792,0.894

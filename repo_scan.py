@@ -11,6 +11,8 @@ STRONG; code findings are shown for review and never change a score.
 """
 from __future__ import annotations
 
+import concurrent.futures
+import hashlib
 import io
 import json
 import os
@@ -22,12 +24,15 @@ import zipfile
 from pathlib import PurePosixPath
 
 from github_client import API, GitHubClient, GitHubError
+from malware_proof import run_malware_proof_engine
 
 MAX_ZIP_BYTES = 40 * 1024 * 1024
 MAX_UNCOMPRESSED = 150 * 1024 * 1024
 MAX_PY_FILES, MAX_PY_BYTES = 400, 400_000
 MAX_TEXT_FILES, MAX_TEXT_BYTES = 1500, 200_000
 MAX_WORKFLOWS = 30
+MAX_BINARY_BYTES = 10 * 1024 * 1024
+BINARY_EXT = {".exe", ".dll", ".so", ".dylib", ".bin", ".elf", ".scr", ".msi"}
 SKIP_DIRS = {"node_modules", "venv", ".venv", "env", "site-packages", "vendor", "third_party", "third-party",
              "dist", "build", "__pycache__", ".git"}
 TEST_DIRS = {"test", "tests", "testing", "__tests__", "spec", "fixtures"}
@@ -124,7 +129,7 @@ def _is_test(parts: tuple[str, ...]) -> bool:
 
 def read_repo(buf: io.BytesIO) -> dict:
     """Extract only what we scan, in memory. Skips unsafe paths, vendored/test code and oversized files."""
-    out = {"sha": "", "py": {}, "text": {}, "workflows": {},
+    out = {"sha": "", "py": {}, "text": {}, "workflows": {}, "binaries": [],
            "skipped": {"tests": 0, "too_big_or_limit": 0}}
     with zipfile.ZipFile(buf) as z:
         infos = [i for i in z.infolist() if not i.is_dir()]
@@ -155,10 +160,39 @@ def read_repo(buf: io.BytesIO) -> dict:
                     out["skipped"]["too_big_or_limit"] += 1
                 else:
                     out["py"][path] = z.read(i)
-            if (ext in TEXT_EXT or name.lower().startswith(".env")) and i.file_size <= MAX_TEXT_BYTES and len(out["text"]) < MAX_TEXT_FILES:
+            is_text_cand = (ext in TEXT_EXT or name.lower().startswith(".env"))
+            if is_text_cand and i.file_size <= MAX_TEXT_BYTES and len(out["text"]) < MAX_TEXT_FILES:
                 data = z.read(i)
                 if b"\x00" not in data[:2000]:
                     out["text"][path] = data.decode("utf-8", "ignore")
+                elif len(out["binaries"]) < 20 and i.file_size <= MAX_BINARY_BYTES:
+                    if data.startswith((b"\x7fELF", b"MZ")):
+                        out["binaries"].append({
+                            "path": path,
+                            "size": i.file_size,
+                            "sha256": hashlib.sha256(data).hexdigest(),
+                        })
+            elif len(out["binaries"]) < 20 and i.file_size <= MAX_BINARY_BYTES:
+                if ext in BINARY_EXT:
+                    raw_bytes = z.read(i)
+                    out["binaries"].append({
+                        "path": path,
+                        "size": i.file_size,
+                        "sha256": hashlib.sha256(raw_bytes).hexdigest(),
+                    })
+                elif not is_text_cand or i.file_size > MAX_TEXT_BYTES:
+                    try:
+                        with z.open(i) as f:
+                            magic = f.read(4)
+                        if magic.startswith((b"\x7fELF", b"MZ")):
+                            raw_bytes = z.read(i)
+                            out["binaries"].append({
+                                "path": path,
+                                "size": i.file_size,
+                                "sha256": hashlib.sha256(raw_bytes).hexdigest(),
+                            })
+                    except Exception:
+                        pass
     return out
 
 
@@ -258,7 +292,7 @@ def scan_workflow(path: str, text: str) -> list[dict]:
 def scan_repo(client: GitHubClient, owner: str, repo: str) -> dict:
     """Run every scanner. Never raises for scanner problems; says what ran in 'coverage'."""
     res = {"ran": False, "findings": [], "coverage": [], "strong": 0, "review": 0, "code_high": 0, "secrets_strong": 0, "ci_high": 0,
-           "code_scan": "not_run"}
+           "code_scan": "not_run", "malware_proof": None, "verified_malware": 0}
     try:
         data = read_repo(download_zip(client, owner, repo))
     except ScanTooLarge as e:
@@ -273,7 +307,12 @@ def scan_repo(client: GitHubClient, owner: str, repo: str) -> dict:
     def url(
         f, ln): return f"https://github.com/{owner}/{repo}/blob/{sha}/{f}#L{ln}" if sha else None
 
-    bandit = run_bandit(data["py"])
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+        f_bandit = executor.submit(run_bandit, data["py"])
+        f_proof = executor.submit(run_malware_proof_engine, data, owner, repo, url)
+        bandit = f_bandit.result()
+        proof = f_proof.result()
+
     if bandit is None:
         res["code_scan"] = "unavailable"
         res["coverage"].append(
@@ -317,6 +356,14 @@ def scan_repo(client: GitHubClient, owner: str, repo: str) -> dict:
                         "url": url(w["file"], w["line"]), "strong": w["sev"] == "High"})
     res["coverage"].append(
         f"CI workflows: {len(data['workflows'])} checked; {len([w for w in wf if w['sev'] != 'Low'])} risky patterns")
+
+    findings.extend(proof.get("findings", []))
+    if isinstance(proof.get("coverage"), list):
+        res["coverage"].extend(proof["coverage"])
+    elif proof.get("coverage"):
+        res["coverage"].append(proof["coverage"])
+    res["malware_proof"] = proof
+    res["verified_malware"] = proof.get("verified_proof_count", 0)
 
     findings.sort(key=lambda f: (SEV_ORDER.get(
         f["sev"], 9), f["file"], f["line"]))
