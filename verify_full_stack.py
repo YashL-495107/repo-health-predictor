@@ -68,9 +68,8 @@ def main():
 
             # 5. Phase 4: Malware Proof Engine
             proof = scan.get("malware_proof", {})
-            print(f"  -> [Phase 4] Verified Proofs: {proof.get('verified_proof_count', 0)} | Benign Filtered: {proof.get('benign_blobs_filtered', 0)}")
-            assert "verified_proof_count" in proof, "Phase 4 missing malware_proof dict"
-
+            print(f"  -> [Phase 4] Known Malicious: {proof.get('known_malicious_count', 0)} | High Risk Patterns: {proof.get('high_risk_pattern_count', 0)} | Ignored blobs: {proof.get('encoded_blobs_not_code', 0)}")
+            assert "known_malicious_count" in proof, "Phase 4 missing new dict keys"
             print(f"[PASS] {repo_str} successfully validated across all 4 phases.")
             passed += 1
 

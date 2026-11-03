@@ -60,7 +60,7 @@ KNOWN_REPLACEMENTS = {
             "ecosystem": "PyPI",
             "effort": "Low (95% API-compatible)",
             "why": "Supports both sync and async/await, HTTP/2, and strict timeouts while mirroring requests' API.",
-            "snippet": "# Old\nimport requests\nr = requests.get('https://example.com')\n\n// New (httpx)\nimport httpx\nr = httpx.get('https://example.com')",
+            "snippet": "# Old\nimport requests\nr = requests.get('https://example.com')\n\n# New (httpx)\nimport httpx\nr = httpx.get('https://example.com')",
         }
     ],
 }
