@@ -167,8 +167,11 @@ def _call_gemini(api_key: str, prompt: str) -> dict | None:
 
 
 def validate_threat_with_ai(api_key: str, finding: dict) -> dict | None:
-    """Validate a static security finding using Gemini grounded in AppSec and Threat Analysis skills."""
-    if not api_key:
+    """
+    NEW: Invokes the Gemini API using the `cybersecurity-threat-analysis` skill 
+    to validate a static finding.
+    """
+    if not api_key or not (finding.get("strong") or finding.get("sev") == "High"):
         return None
 
     rule = finding.get("rule", "")
@@ -290,11 +293,12 @@ Return ONLY valid JSON with this exact structure:
         llm_out = _fallback_intelligence(features, health_res, triage, forks)
 
     # Grounded AI Threat Validation for Strong & High-Severity Findings
+    # AI Threat Validation (NEW)
     ai_audit_trails = {}
-    if api_key and malware_findings:
-        for idx, f in enumerate(malware_findings):
-            if f.get("strong") or f.get("sev") == "High":
-                trail = validate_threat_with_ai(api_key, f)
+    if api_key:
+        for finding in malware_findings:
+            if finding.get("strong") or finding.get("sev") == "High":
+                validation = validate_threat_with_ai(api_key, finding)
                 if trail:
                     key = f"{f.get('file', '')}:{f.get('line', '')}:{f.get('rule', '')}"
                     ai_audit_trails[key] = trail

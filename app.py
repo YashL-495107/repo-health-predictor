@@ -50,9 +50,10 @@ def analyze(owner: str, repo: str, token: str, gemini_key: str = "") -> dict:
         blast = analyze_blast_radius(features, security, release_diff, deps=deps_list)
     except Exception as e: blast = {"blast_score": 0.0, "tier": "Unknown", "pinned_deps": 0, "unpinned_deps": 0, "typosquat_alerts": [], "compromise_simulation": "", "total_dependents": 0}
 
-    try: intel = run_intelligence_engine(client, owner, repo, features, result, gemini_api_key=gemini_key)
+    try: 
+        malware_findings = scan.get("malware_proof", {}).get("findings", [])
+        intel = run_intelligence_engine(client, owner, repo, features, result, malware_findings=malware_findings, gemini_api_key=gemini_key)
     except Exception as e: intel = {"forks": [], "issue_triage": {"counts": {}, "critical_samples": []}, "ai_report": {"executive_memo": "", "issue_triage_summary": "", "alternatives": []}}
-
     return {"features": features, "result": result, "security": security, "flags": flags, "scan": scan, "bus_factor": bus_factor, "blast_radius": blast, "intelligence": intel}
 
 with st.sidebar:
@@ -146,6 +147,22 @@ if go_clicked or (target and st.session_state.get("analyzed") == target):
         c4.metric("PyPI Release AST Diff", proof.get("release_diff", {}).get("package", "N/A"))
         diff_status = proof.get("release_diff", {}).get("status")
         if diff_status: st.info(diff_status)
+        # ---- Grounded AI Security Audit Trail ----
+        audit_trails = data.get("intelligence", {}).get("ai_audit_trails", {})
+        if audit_trails:
+            st.markdown("##### 🧠 Grounded AI Threat Audit Trails & Receipts")
+            st.caption("AI-validated analysis verifying AST de-obfuscation and static indicators with underlying threat playbooks.")
+            for key, trail in audit_trails.items():
+                with st.expander(f"🔍 Audit Trail: {key} — Verdict: {trail.get('verdict')} ({trail.get('confidence')} Confidence)"):
+                    st.markdown(f"**Referenced Cybersecurity Skill Playbook:** `{trail.get('skill_reference')}`")
+                    st.markdown(f"**Identified Attack Vector:** {trail.get('attack_vector')}")
+                    st.markdown(f"**Mathematical & Structural Backing:** {trail.get('mathematical_backing')}")
+                    st.markdown(f"**Simulated Execution Trace:** {trail.get('execution_trace')}")
+        elif gemini_key and not audit_trails and scan.get("high_risk_pattern_count", 0) == 0 and scan.get("known_malicious_count", 0) == 0:
+            st.caption("🧠 AI Threat Validator: Clean scan. No high-risk anomalies required deep playbook verification.")
+        elif not gemini_key and scan.get("high_risk_pattern_count", 0) > 0:
+            st.info("💡 Enter a Gemini API Key in the sidebar to generate step-by-step AI Audit Trails validating these findings.")
+
 
     bf_data = data.get("bus_factor")
     if bf_data and not str(bf_data.get("burnout_status", "")).startswith("Unavailable"):
