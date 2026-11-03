@@ -1,11 +1,10 @@
-"""Phase 2: LLM-Assisted Semantic Issue Triage, Active Fork Discovery & Migration Engine.
+"""Phase 2: LLM-Assisted Semantic Triage, Migration Engine & Grounded Threat Validation.
 
-Provides actionable engineering decisions when a repository is slowing down, at risk,
-or abandoned:
-  1. Discovers active community forks that are ahead of a dormant upstream repo.
-  2. Triages open issues by severity category (crashes, breaking changes, security).
-  3. Uses Gemini REST API (with a deterministic zero-key fallback) to generate drop-in
-     replacement recommendations and code migration snippets.
+Integrates Gemini 2.5 Flash to:
+  1. Triage open issues and surface maintained community forks.
+  2. Synthesize architectural migration recommendations.
+  3. Ground static detection results in structured cybersecurity playbooks
+     to provide transparent, step-by-step audit trails.
 """
 from __future__ import annotations
 
@@ -13,13 +12,12 @@ import json
 import os
 import re
 from datetime import datetime, timezone
-
 import requests
 
 from github_client import GitHubClient, GitHubError, _dt
 
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
-TIMEOUT = 15
+TIMEOUT = 20
 
 KNOWN_REPLACEMENTS = {
     "request/request": [
@@ -46,13 +44,6 @@ KNOWN_REPLACEMENTS = {
             "why": "Huge extension ecosystem, monthly security patches, and native keymap importers for Atom.",
             "snippet": "# Install Atom Keymap in VS Code:\ncode --install-extension ms-vscode.atom-keybindings",
         },
-        {
-            "name": "zed-industries/zed",
-            "ecosystem": "Rust Desktop Editor",
-            "effort": "Low",
-            "why": "Created by the original authors of Atom; GPU-accelerated and actively developed.",
-            "snippet": "# Direct spiritual successor by the Atom creators (written in Rust)",
-        },
     ],
     "psf/requests": [
         {
@@ -78,16 +69,9 @@ ISSUE_CATEGORIES = {
 }
 
 
-def find_active_forks(
-    client: GitHubClient, owner: str, repo: str, upstream_idle_days: int
-) -> list[dict]:
-    """Find community forks that are more recently maintained than the upstream repository."""
+def find_active_forks(client: GitHubClient, owner: str, repo: str, upstream_idle_days: int) -> list[dict]:
     try:
-        r = client.get(
-            f"/repos/{owner}/{repo}/forks",
-            {"sort": "stargazers", "per_page": 20},
-            allow=(200, 404),
-        )
+        r = client.get(f"/repos/{owner}/{repo}/forks", {"sort": "stargazers", "per_page": 20}, allow=(200, 404))
         if r.status_code != 200 or not isinstance(r.json(), list):
             return []
         forks = r.json()
@@ -120,7 +104,6 @@ def find_active_forks(
 
 
 def triage_open_issues(client: GitHubClient, owner: str, repo: str) -> dict:
-    """Fetch top open issues and classify them into risk buckets."""
     try:
         r = client.get(
             f"/repos/{owner}/{repo}/issues",
@@ -164,22 +147,17 @@ def triage_open_issues(client: GitHubClient, owner: str, repo: str) -> dict:
 
 
 def _call_gemini(api_key: str, prompt: str) -> dict | None:
-    """Call Gemini REST API with JSON response mode. Returns parsed dict or None on failure."""
     if not api_key:
         return None
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
-            "temperature": 0.2,
+            "temperature": 0.1,
             "responseMimeType": "application/json",
         },
     }
     try:
-        r = requests.post(
-            f"{GEMINI_URL}?key={api_key}",
-            json=payload,
-            timeout=TIMEOUT,
-        )
+        r = requests.post(f"{GEMINI_URL}?key={api_key}", json=payload, timeout=TIMEOUT)
         if r.status_code != 200:
             return None
         text = r.json()["candidates"][0]["content"]["parts"][0]["text"]
@@ -188,8 +166,44 @@ def _call_gemini(api_key: str, prompt: str) -> dict | None:
         return None
 
 
+def validate_threat_with_ai(api_key: str, finding: dict) -> dict | None:
+    """Validate a static security finding using Gemini grounded in AppSec and Threat Analysis skills."""
+    if not api_key:
+        return None
+
+    rule = finding.get("rule", "")
+    detail = finding.get("detail", "")
+    file_path = finding.get("file", "")
+
+    prompt = f"""You are a Principal Application Security Auditor.
+Your operational guidance is grounded in domain skills:
+  - user:cybersecurity-offensive-appsec (Software supply-chain integrity, reverse-shell analysis)
+  - user:cybersecurity-detection-response (Threat triage, evasion verification)
+  - user:cybersecurity-forensics-intel (Payload decoding, IoC extraction)
+
+Evaluate this static finding flagged in a repository scan:
+File: {file_path}
+Rule: {rule}
+Extracted Evidence / Payload Details: {detail}
+
+Validate whether this finding is a true malicious risk or a benign false positive.
+Return ONLY valid JSON matching this exact schema:
+{{
+  "skill_reference": "user:cybersecurity-offensive-appsec / performing-supply-chain-attack-simulation",
+  "attack_vector": "Categorize the threat (e.g., Multi-Stage Obfuscated Dropper, Credential Harvesting, Phantom Release Backdoor)",
+  "mathematical_backing": "Explain the mechanics: why does the AST pattern, unhexing, or entropy confirm this is executable code rather than a benign string?",
+  "execution_trace": "Step-by-step operational narrative of what this code does if executed in production.",
+  "verdict": "Confirmed Malicious Risk | Benign False Positive | Review Required",
+  "confidence": "High | Medium | Low"
+}}"""
+
+    res = _call_gemini(api_key, prompt)
+    if res and isinstance(res, dict) and "verdict" in res:
+        return res
+    return None
+
+
 def _fallback_intelligence(features: dict, health_res: dict, issue_triage: dict, forks: list[dict]) -> dict:
-    """Deterministic fallback when no GEMINI_API_KEY is provided."""
     full_name = features.get("full_name", "").lower()
     lang = features.get("language") or "Software"
     topics = ", ".join(features.get("topics") or []) or "general utility"
@@ -201,11 +215,8 @@ def _fallback_intelligence(features: dict, health_res: dict, issue_triage: dict,
                 "name": f"Evaluate active {lang} alternatives ({topics})",
                 "ecosystem": lang,
                 "effort": "Medium (Evaluate API parity)",
-                "why": (
-                    f"Look for actively maintained {lang} packages with >=3 core maintainers "
-                    f"and recent releases in the '{topics}' domain."
-                ),
-                "snippet": f"# Add GEMINI_API_KEY to .env or Sidebar to generate repo-specific {lang} migration code.",
+                "why": f"Look for actively maintained {lang} packages with multiple core maintainers in '{topics}'.",
+                "snippet": "# Add GEMINI_API_KEY to .env or Sidebar to generate migration code.",
             }
         ]
 
@@ -214,7 +225,7 @@ def _fallback_intelligence(features: dict, health_res: dict, issue_triage: dict,
     compat_bugs = issue_triage["counts"].get("Breaking / Compatibility", 0)
 
     summary = (
-        f"Out of the top sampled open issues, heuristic triage flagged {sec_bugs} security-related, "
+        f"Out of sampled open issues, heuristic triage flagged {sec_bugs} security-related, "
         f"{crash_bugs} crash/memory, and {compat_bugs} compatibility/breaking threads. "
     )
     if forks:
@@ -224,10 +235,7 @@ def _fallback_intelligence(features: dict, health_res: dict, issue_triage: dict,
 
     return {
         "source": "Heuristic Engine (Add GEMINI_API_KEY for AI Deep Synthesis)",
-        "executive_memo": (
-            f"{features.get('full_name')} is currently rated '{health_res.get('label')}' "
-            f"(Score: {health_res.get('score')}/100). {summary}"
-        ),
+        "executive_memo": f"{features.get('full_name')} is currently rated '{health_res.get('label')}' (Score: {health_res.get('score')}/100). {summary}",
         "issue_triage_summary": summary,
         "alternatives": alts,
     }
@@ -239,9 +247,9 @@ def run_intelligence_engine(
     repo: str,
     features: dict,
     health_res: dict,
+    malware_findings: list[dict] | None = None,
     gemini_api_key: str = "",
 ) -> dict:
-    """Main entry point: runs fork discovery, issue triage, and LLM migration synthesis."""
     api_key = (gemini_api_key or os.getenv("GEMINI_API_KEY") or "").strip()
     idle_days = features.get("days_since_last_commit", 0)
 
@@ -281,8 +289,19 @@ Return ONLY valid JSON with this exact structure:
     else:
         llm_out = _fallback_intelligence(features, health_res, triage, forks)
 
+    # Grounded AI Threat Validation for Strong & High-Severity Findings
+    ai_audit_trails = {}
+    if api_key and malware_findings:
+        for idx, f in enumerate(malware_findings):
+            if f.get("strong") or f.get("sev") == "High":
+                trail = validate_threat_with_ai(api_key, f)
+                if trail:
+                    key = f"{f.get('file', '')}:{f.get('line', '')}:{f.get('rule', '')}"
+                    ai_audit_trails[key] = trail
+
     return {
         "forks": forks,
         "issue_triage": triage,
         "ai_report": llm_out,
+        "ai_audit_trails": ai_audit_trails,
     }
