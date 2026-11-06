@@ -32,6 +32,20 @@ SOURCE_EXT = {".py", ".js", ".ts", ".jsx", ".tsx", ".java", ".kt", ".go", ".rs",
 TEST_NAME = re.compile(r"(^test[_\-.]|[_\-.]tests?\.[a-z0-9]+$|\.(test|spec)\.[a-z0-9]+$)", re.I)
 TEST_CLASS = re.compile(r"[a-z0-9]Tests?\.(java|kt|cs|scala)$")
 NOISY_STRONG = {"B324"}
+MACHO = {b"\xcf\xfa\xed\xfe", b"\xfe\xed\xfa\xcf", b"\xca\xfe\xba\xbe"}
+MEDIA_EXT = {".png", ".jpg", ".jpeg", ".gif", ".ico", ".webp", ".svg", ".woff", ".woff2", ".ttf", ".otf", ".eot", ".mp3", ".mp4", ".webm", ".pdf", ".zip", ".gz", ".jar"}
+
+def _is_executable(head: bytes) -> bool:
+    return head[:2] == b"MZ" or head[:4] == b"\x7fELF" or head[:4] in MACHO
+
+def _safe_proof(data, owner, repo, url):
+    try:
+        return run_malware_proof_engine(data, owner, repo, url)
+    except Exception as e:
+        return {"findings": [], "known_malicious_count": 0, "high_risk_pattern_count": 0, "review_count": 0,
+                "encoded_blobs_not_code": 0, "setup_py_status": "error", "release_diff": {},
+                "profile": {"categories": {}, "patterns": []},
+                "coverage": [f"Malware engine: NOT run ({type(e).__name__})"]}
 
 def _is_fixture(path: str) -> bool:
     parts = path.lower().split("/")
@@ -87,23 +101,21 @@ def read_repo(buf: io.BytesIO) -> dict:
                 elif i.file_size > MAX_PY_BYTES or len(out["py"]) >= MAX_PY_FILES: out["skipped"]["too_big_or_limit"] += 1
                 else: out["py"][path] = z.read(i)
             is_text_cand = (ext in TEXT_EXT or name.lower().startswith(".env"))
+            data = None
             if is_text_cand and i.file_size <= MAX_TEXT_BYTES and len(out["text"]) < MAX_TEXT_FILES:
                 data = z.read(i)
-                if b"\x00" not in data[:2000]: out["text"][path] = data.decode("utf-8", "ignore")
-                elif len(out["binaries"]) < 20 and i.file_size <= MAX_BINARY_BYTES:
-                    if data.startswith((b"\x7fELF", b"MZ")):
-                        out["binaries"].append({"path": path, "size": i.file_size, "sha256": hashlib.sha256(data).hexdigest()})
-            elif len(out["binaries"]) < 20 and i.file_size <= MAX_BINARY_BYTES:
-                if ext in BINARY_EXT:
-                    raw_bytes = z.read(i)
-                    out["binaries"].append({"path": path, "size": i.file_size, "sha256": hashlib.sha256(raw_bytes).hexdigest()})
-                elif not is_text_cand or i.file_size > MAX_TEXT_BYTES:
-                    try:
-                        with z.open(i) as f: magic = f.read(4)
-                        if magic.startswith((b"\x7fELF", b"MZ")):
-                            raw_bytes = z.read(i)
-                            out["binaries"].append({"path": path, "size": i.file_size, "sha256": hashlib.sha256(raw_bytes).hexdigest()})
-                    except Exception: pass
+                if b"\x00" not in data[:2000]:
+                    out["text"][path] = data.decode("utf-8", "ignore")
+                    continue
+            if len(out["binaries"]) < 20 and 1024 <= i.file_size <= MAX_BINARY_BYTES and ext not in MEDIA_EXT:
+                if data is None:
+                    with z.open(i) as fh:
+                        head = fh.read(4)
+                else:
+                    head = data[:4]
+                if _is_executable(head):
+                    blob = data if data is not None else z.read(i)
+                    out["binaries"].append({"path": path, "size": i.file_size, "sha256": hashlib.sha256(blob).hexdigest()})
     return out
 
 def run_bandit(py: dict[str, bytes]) -> list[dict] | None:
@@ -178,7 +190,7 @@ def scan_repo(client: GitHubClient, owner: str, repo: str) -> dict:
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
         f_bandit = executor.submit(run_bandit, data["py"])
-        f_proof = executor.submit(run_malware_proof_engine, data, owner, repo, url)
+        f_proof = executor.submit(_safe_proof, data, owner, repo, url)
         bandit = f_bandit.result()
         proof = f_proof.result()
 

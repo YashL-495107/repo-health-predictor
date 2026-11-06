@@ -57,17 +57,18 @@ def main():
             assert "bus_factor" in bus and "gini" in bus, "Phase 1 missing keys"
 
             # 3. Phase 2: Intelligence & Triage
-            intel = run_intelligence_engine(client, owner, repo, features, result, "")
+            intel = run_intelligence_engine(client, owner, repo, features, result, malware_findings=[], gemini_api_key="")
             print(f"  -> [Phase 2] AI Source: {intel['ai_report']['source']} | Forks Found: {len(intel['forks'])} | Issue Buckets: {list(intel['issue_triage']['counts'].keys())}")
             assert "ai_report" in intel and "forks" in intel, "Phase 2 missing keys"
 
             # 4. Phase 3: Blast Radius & Typosquatting
-            blast = compute_repo_blast_radius(features, security, scan.get("malware_proof", {}).get("release_diff"))
+            # 4. Phase 3: Blast Radius & Typosquatting
+            proof = scan.get("malware_proof") or {}
+            blast = compute_repo_blast_radius(features, security, proof.get("release_diff"))
             print(f"  -> [Phase 3] Tier: {blast['tier']} | Blast Score: {blast['blast_score']} | Downstream: {blast['estimated_downstream_repos']:,}")
             assert "blast_score" in blast and "tier" in blast, "Phase 3 missing keys"
 
             # 5. Phase 4: Malware Proof Engine
-            proof = scan.get("malware_proof", {})
             print(f"  -> [Phase 4] Known Malicious: {proof.get('known_malicious_count', 0)} | High Risk Patterns: {proof.get('high_risk_pattern_count', 0)} | Ignored blobs: {proof.get('encoded_blobs_not_code', 0)}")
             assert "known_malicious_count" in proof, "Phase 4 missing new dict keys"
             print(f"[PASS] {repo_str} successfully validated across all 4 phases.")

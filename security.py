@@ -234,7 +234,8 @@ def apply_gate(res: dict, sec: dict, flags: list[str], scan: dict | None = None)
         reasons.append("Known-malicious indicator found (OSV malicious-package advisory and/or >=5 antivirus engines).")
     elif high_risk_count > 0:
         caps.append(49)
-        out["label"] = "At risk"
+        if res["label"] not in ("Likely abandoned", "Archived (read-only)"):
+            out["label"] = "At risk"
         reasons.append("High-risk code pattern(s) found. These are indicators, not proof of malware. Review manually before use.")
     elif scan.get("strong"):
         caps.append(49)

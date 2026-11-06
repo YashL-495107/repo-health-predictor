@@ -51,7 +51,7 @@ def analyze(owner: str, repo: str, token: str, gemini_key: str = "") -> dict:
     except Exception as e: blast = {"blast_score": 0.0, "tier": "Unknown", "pinned_deps": 0, "unpinned_deps": 0, "typosquat_alerts": [], "compromise_simulation": "", "total_dependents": 0}
 
     try: 
-        malware_findings = scan.get("malware_proof", {}).get("findings", [])
+        malware_findings = (scan.get("malware_proof") or {}).get("findings", [])
         intel = run_intelligence_engine(client, owner, repo, features, result, malware_findings=malware_findings, gemini_api_key=gemini_key)
     except Exception as e: intel = {"forks": [], "issue_triage": {"counts": {}, "critical_samples": []}, "ai_report": {"executive_memo": "", "issue_triage_summary": "", "alternatives": []}}
     return {"features": features, "result": result, "security": security, "flags": flags, "scan": scan, "bus_factor": bus_factor, "blast_radius": blast, "intelligence": intel}
@@ -66,7 +66,7 @@ with st.sidebar:
     st.caption("Health score bands")
     st.markdown(f"- **Healthy**: {HEALTHY}+\n- **Slowing down**: {SLOWING}-{HEALTHY - 1}\n- **Likely abandoned**: below {SLOWING}")
 
-st.title("🩺 GitHub Repository Health & Abandonment Predictor")
+st.title("GitHub Repository Health & Abandonment Predictor")
 st.caption("Paste any public GitHub repository to get its health score.")
 
 if "repo_input" not in st.session_state: st.session_state.repo_input = ""
@@ -123,7 +123,8 @@ if go_clicked or (target and st.session_state.get("analyzed") == target):
     headline, why = action_verdict(res["maintenance_label"], sec["level"], bool(data["flags"]))
     dead = res["maintenance_label"] in ("Likely abandoned", "Archived (read-only)")
     
-    if scan.get("known_malicious_count", 0) > 0:
+    mal_osv = any(x.get("source") == "OSV (Confirmed Malware)" for x in sec["findings"])
+    if scan.get("known_malicious_count", 0) > 0 or mal_osv:
         headline, why = ("DO NOT USE: known malicious indicator", "Do not install or run it.")
     elif scan.get("high_risk_pattern_count", 0) > 0:
         headline, why = ("High-risk patterns found: review manually before use", "Indicators, not proof of malware.")
@@ -144,25 +145,23 @@ if go_clicked or (target and st.session_state.get("analyzed") == target):
         c1.metric("Known malicious indicators", proof.get("known_malicious_count", 0))
         c2.metric("High-risk patterns (review)", proof.get("high_risk_pattern_count", 0))
         c3.metric("setup.py static check", proof.get("setup_py_status", "No setup.py"))
-        c4.metric("PyPI Release AST Diff", proof.get("release_diff", {}).get("package", "N/A"))
-        diff_status = proof.get("release_diff", {}).get("status")
+        c4.metric("PyPI release checked", (proof.get("release_diff") or {}).get("package", "N/A"))
+        diff_status = (proof.get("release_diff") or {}).get("status")
         if diff_status: st.info(diff_status)
-        # ---- Grounded AI Security Audit Trail ----
-        audit_trails = data.get("intelligence", {}).get("ai_audit_trails", {})
+        beh = proof.get("profile") or {}
+        if beh.get("categories"):
+            st.markdown("##### Behavior profile (indicator categories)")
+            st.write(" · ".join(f"**{k}**: {v}" for k, v in beh["categories"].items()))
+            if beh.get("patterns"):
+                st.warning("Malware-like combination(s): " + ", ".join(beh["patterns"]) + ". Indicators, not proof of intent.")
         if audit_trails:
-            st.markdown("##### 🧠 Grounded AI Threat Audit Trails & Receipts")
-            st.caption("AI-validated analysis verifying AST de-obfuscation and static indicators with underlying threat playbooks.")
+            st.markdown("##### 🧠 AI second opinion on high-risk findings")
+            st.caption("Gemini's reading of the evidence. Advisory only: it can be wrong and never changes the score.")
             for key, trail in audit_trails.items():
-                with st.expander(f"🔍 Audit Trail: {key} — Verdict: {trail.get('verdict')} ({trail.get('confidence')} Confidence)"):
-                    st.markdown(f"**Referenced Cybersecurity Skill Playbook:** `{trail.get('skill_reference')}`")
-                    st.markdown(f"**Identified Attack Vector:** {trail.get('attack_vector')}")
-                    st.markdown(f"**Mathematical & Structural Backing:** {trail.get('mathematical_backing')}")
-                    st.markdown(f"**Simulated Execution Trace:** {trail.get('execution_trace')}")
-        elif gemini_key and not audit_trails and scan.get("high_risk_pattern_count", 0) == 0 and scan.get("known_malicious_count", 0) == 0:
-            st.caption("🧠 AI Threat Validator: Clean scan. No high-risk anomalies required deep playbook verification.")
-        elif not gemini_key and scan.get("high_risk_pattern_count", 0) > 0:
-            st.info("💡 Enter a Gemini API Key in the sidebar to generate step-by-step AI Audit Trails validating these findings.")
-
+                with st.expander(f"🔍 {key}: {trail.get('verdict')} ({trail.get('confidence')} confidence)"):
+                    st.markdown(f"**Attack vector:** {trail.get('attack_vector')}")
+                    st.markdown(f"**Reasoning:** {trail.get('reasoning')}")
+                    st.markdown(f"**If executed:** {trail.get('execution_trace')}")
 
     bf_data = data.get("bus_factor")
     if bf_data and not str(bf_data.get("burnout_status", "")).startswith("Unavailable"):

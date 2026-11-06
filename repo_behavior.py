@@ -45,8 +45,7 @@ RULES = [
                 r"|>>\s*~?/?\.?(?:bashrc|zshrc|profile)\b"),
      "Medium", "Registers something to survive reboots or new shells."),
     ("Remote shell", "reverse-shell pattern",
-     re.compile(
-         r"/dev/tcp/|\bbash\s+-i\s+>&|\bnc(?:at)?\s+[^\n]*\s-e\s|\bmkfifo\b[^\n]*\bnc\b"),
+     re.compile(r"\b(?:ba)?sh\s+-i\s+>&\s*/dev/tcp/|\bnc(?:at)?\s+[^\n]*\s-e\s+\S*sh\b|\bmkfifo\b[^\n]*\bnc(?:at)?\b"),
      "High", "Opens an interactive shell to a remote machine."),
     ("Mining", "cryptominer reference",
      re.compile(

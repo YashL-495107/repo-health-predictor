@@ -148,6 +148,8 @@ def audit(text: str, token: str = "", progress=None, max_packages: int = MAX_PAC
         fix = min_safe_version(d["name"], d["version"], ids) if ids else None
         if label is None: headline, why = ("Upgrade or review", "Known security problems; maintenance status could not be checked.") if ids else ("Not enough data", "No GitHub repository could be found or read for this package, so maintenance was not checked.")
         else: headline, why = action_verdict(label, level)
+        if any(i.startswith("MAL-") for i in ids):
+            headline, why = "Replace it", "OSV lists this exact version as a known malicious package. Remove it and rotate any secrets this machine or CI could reach."
         if fix: why += f" Upgrade to at least {fix}."
         notes_row = []
         if not d["version"]: notes_row.append("version not pinned: vulnerabilities not scanned")
