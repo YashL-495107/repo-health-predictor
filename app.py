@@ -11,7 +11,8 @@ from scoring import HEALTHY, SLOWING, compute_health_score, explain
 from security import action_verdict, apply_gate, assess_security, content_flags, collect_dependencies
 from repo_scan import scan_repo
 from bus_factor import run_bus_factor_analysis
-from intelligence import run_intelligence_engine
+import hashlib
+from intelligence import SuccessCache, gather_repo_intel, run_ai_layer, _configured_model
 from blast_radius import analyze_blast_radius
 
 load_dotenv()
@@ -38,7 +39,7 @@ def _md_escape(text) -> str:
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
-def analyze(owner: str, repo: str, token: str, gemini_key: str = "") -> dict:
+def analyze(owner: str, repo: str, token: str) -> dict:
     client = GitHubClient(token)
     features = fetch_features(client, owner, repo)
     security = assess_security(client, owner, repo)
@@ -62,10 +63,30 @@ def analyze(owner: str, repo: str, token: str, gemini_key: str = "") -> dict:
         blast = analyze_blast_radius(features, security, release_diff, deps=deps_list)
     except Exception as e: blast = {"blast_score": 0.0, "tier": "Unknown", "pinned_deps": 0, "unpinned_deps": 0, "typosquat_alerts": [], "compromise_simulation": "", "total_dependents": 0}
 
-    try: 
-        intel = run_intelligence_engine(client, owner, repo, features, result, gemini_api_key=gemini_key, scan_findings=scan.get("findings", []))
-    except Exception as e: intel = {"forks": [], "issue_triage": {"counts": {}, "critical_samples": []}, "ai_report": {"executive_memo": "", "issue_triage_summary": "", "alternatives": []}, "ai_audit_trails": {}, "ai_status": f"AI layer did not run ({type(e).__name__})"}
+    try: intel = gather_repo_intel(client, owner, repo, features)
+    except Exception: intel = {"forks": [], "issue_triage": {"counts": {}, "critical_samples": []}}
     return {"features": features, "result": result, "security": security, "flags": flags, "scan": scan, "bus_factor": bus_factor, "blast_radius": blast, "intelligence": intel}
+
+
+@st.cache_resource
+def _ai_cache() -> SuccessCache:
+    # Separate from analyze(): only successful Gemini results are kept (300s), so a failed call is retried on the next Analyze.
+    return SuccessCache(ttl=300)
+
+
+def ai_layer(owner: str, repo: str, gemini_key: str, data: dict) -> dict:
+    intel = data["intelligence"]
+    cache_key = (owner.lower(), repo.lower(), hashlib.sha256(gemini_key.encode()).hexdigest(), _configured_model())
+    cached = _ai_cache().get(cache_key)
+    if cached is not None:
+        return cached
+    try:
+        ai = run_ai_layer(gemini_key, data["features"], data["result"], intel["issue_triage"], intel["forks"], data["scan"].get("findings", []))
+    except Exception as e:
+        err = f"AI layer did not run ({type(e).__name__})"
+        ai = {"ai_report": {"executive_memo": "", "issue_triage_summary": "", "alternatives": [], "source": "Heuristic engine", "error": err}, "ai_audit_trails": {}, "ai_status": err}
+    _ai_cache().put(cache_key, ai)
+    return ai
 
 with st.sidebar:
     st.header("About")
@@ -98,7 +119,9 @@ if go_clicked or (target and st.session_state.get("analyzed") == target):
     try:
         owner, repo = parse_repo(target)
         with st.spinner(f"Fetching live data for {owner}/{repo} ..."):
-            data = analyze(owner, repo, token, gemini_key)
+            data = analyze(owner, repo, token)
+        with st.spinner("Asking Gemini (advisory only) ..." if gemini_key else "Preparing results ..."):
+            data["intelligence"] = {**data["intelligence"], **ai_layer(owner, repo, gemini_key, data)}
         st.session_state.analyzed = target
     except GitHubError as e:
         st.error(str(e))

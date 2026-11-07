@@ -11,6 +11,8 @@ from __future__ import annotations
 import json
 import os
 import re
+import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from urllib.parse import quote
@@ -42,9 +44,18 @@ def clean_api_key(raw) -> tuple[str, str | None]:
     return key, None
 
 
+def _error_code(e: Exception):
+    code = getattr(e, "code", None) or getattr(e, "status_code", None)
+    return code if isinstance(code, int) else None
+
+
+def _is_retryable(e: Exception) -> bool:
+    return "timeout" in type(e).__name__.lower() or _error_code(e) in RETRYABLE_STATUS
+
+
 def _sdk_error(e: Exception) -> str:
     """Exception type plus HTTP status only: never the key or the full exception text."""
-    code = getattr(e, "code", None) or getattr(e, "status_code", None)
+    code = _error_code(e)
     name = type(e).__name__
     if "timeout" in name.lower():
         return f"timeout ({name})"
@@ -52,7 +63,14 @@ def _sdk_error(e: Exception) -> str:
 
 
 TIMEOUT = 20
-AI_TIMEOUT = 15
+REPORT_TIMEOUT = 30         # main report call, per attempt
+AI_TIMEOUT = 20             # per-finding call, per attempt
+AI_BUDGET = 25              # per-finding call, all attempts + backoff together
+RETRY_BACKOFF = (1, 3)      # seconds before attempt 2 and attempt 3
+RETRYABLE_STATUS = {429, 500, 502, 503, 504}
+MIN_ATTEMPT_SECONDS = 3     # don't start a retry with less time than this left in the budget
+AI_CACHE_TTL = 300
+_sleep = time.sleep         # patched in tests
 AI_MAX_FINDINGS = 5
 AI_WORKERS = 3
 EVIDENCE_LIMIT = 600
@@ -212,8 +230,10 @@ def triage_open_issues(client: GitHubClient, owner: str, repo: str) -> dict:
     return {"counts": counts, "critical_samples": critical_samples}
 
 
-def _gemini_call(api_key: str, prompt: str, timeout: int = TIMEOUT) -> tuple[dict | None, str | None, str]:
-    """Call Gemini through the google-genai SDK; return (parsed_json, error_reason, model_used)."""
+def _gemini_call(api_key: str, prompt: str, timeout: int = AI_TIMEOUT, budget: float | None = None) -> tuple[dict | None, str | None, str]:
+    """Call Gemini through the google-genai SDK; return (parsed_json, error_reason, model_used).
+    Retries timeouts and HTTP 429/5xx up to 2 more times (1s, then 3s backoff). If `budget` is set, all
+    attempts plus backoff must fit inside it; each attempt's timeout is shrunk to what is left."""
     model = _configured_model()
     key, key_err = clean_api_key(api_key)
     if key_err:
@@ -222,29 +242,44 @@ def _gemini_call(api_key: str, prompt: str, timeout: int = TIMEOUT) -> tuple[dic
         from google import genai
     except ImportError:
         return None, "google-genai is not installed", model
-    try:
-        client = genai.Client(api_key=key, http_options={"timeout": int(timeout * 1000)})
-        resp = client.models.generate_content(
-            model=model,
-            contents=prompt,
-            config={"response_mime_type": "application/json", "temperature": 0.1, "max_output_tokens": 2048},
-        )
-    except Exception as e:
-        return None, _sdk_error(e), model
-    try:
-        return json.loads(resp.text), None, model
-    except (ValueError, TypeError, AttributeError):
-        return None, "bad JSON", model
+    deadline = time.monotonic() + budget if budget else None
+    attempt, err = 0, None
+    while True:
+        attempt += 1
+        per_try = timeout
+        if deadline is not None:
+            per_try = min(timeout, max(1.0, deadline - time.monotonic()))
+        try:
+            client = genai.Client(api_key=key, http_options={"timeout": int(per_try * 1000)})
+            resp = client.models.generate_content(
+                model=model,
+                contents=prompt,
+                config={"response_mime_type": "application/json", "temperature": 0.1, "max_output_tokens": 2048},
+            )
+        except Exception as e:
+            err = _sdk_error(e)
+            if not _is_retryable(e) or attempt > len(RETRY_BACKOFF):
+                break
+            wait = RETRY_BACKOFF[attempt - 1]
+            if deadline is not None and deadline - time.monotonic() - wait < MIN_ATTEMPT_SECONDS:
+                break
+            _sleep(wait)
+            continue
+        try:
+            return json.loads(resp.text), None, model
+        except (ValueError, TypeError, AttributeError):
+            return None, "bad JSON", model
+    return None, (f"{err} after {attempt} attempts" if attempt > 1 else err), model
 
 
-def _gemini_request(api_key: str, prompt: str, timeout: int = TIMEOUT) -> tuple[dict | None, str | None]:
+def _gemini_request(api_key: str, prompt: str, timeout: int = AI_TIMEOUT, budget: float | None = None) -> tuple[dict | None, str | None]:
     """Call Gemini and return (parsed_json, error_reason). Exactly one of the two is None."""
-    data, err, _ = _gemini_call(api_key, prompt, timeout)
+    data, err, _ = _gemini_call(api_key, prompt, timeout, budget)
     return data, err
 
 
 def _call_gemini(api_key: str, prompt: str) -> dict | None:
-    data, _ = _gemini_request(api_key, prompt)
+    data, _ = _gemini_request(api_key, prompt, timeout=REPORT_TIMEOUT)
     return data
 
 
@@ -332,7 +367,7 @@ def validate_threat_with_ai(api_key: str, finding: dict, finding_id: str) -> dic
     skill_text = load_skill(skill)
     if not skill_text:
         return {"error": f"skill file skills/{skill}.md could not be read"}
-    raw, err = _gemini_request(api_key, build_threat_prompt(skill, skill_text, finding), timeout=AI_TIMEOUT)
+    raw, err = _gemini_request(api_key, build_threat_prompt(skill, skill_text, finding), timeout=AI_TIMEOUT, budget=AI_BUDGET)
     if err:
         return {"error": err}
     out = validate_ai_output(raw, skill)
@@ -356,7 +391,7 @@ def explain_findings(api_key: str, findings: list[dict] | None) -> tuple[dict, s
         results = {}
         for key, fut in futures:
             try:
-                results[key] = fut.result(timeout=AI_TIMEOUT + 5)
+                results[key] = fut.result(timeout=AI_BUDGET + 5)
             except Exception as e:
                 results[key] = {"error": f"AI explanation failed ({type(e).__name__})"}
     errors = [r["error"] for r in results.values() if "error" in r]
@@ -419,7 +454,7 @@ def verify_alternatives(alts: list[dict]) -> list[dict]:
         out.append({**alt, "registry_status": status})
     return out
 
-def _fallback_intelligence(features: dict, health_res: dict, issue_triage: dict, forks: list[dict]) -> dict:
+def _fallback_intelligence(features: dict, health_res: dict, issue_triage: dict, forks: list[dict], key_provided: bool = False) -> dict:
     full_name = features.get("full_name", "").lower()
     lang = features.get("language") or "Software"
     topics = ", ".join(features.get("topics") or []) or "general utility"
@@ -432,7 +467,8 @@ def _fallback_intelligence(features: dict, health_res: dict, issue_triage: dict,
                 "ecosystem": lang,
                 "effort": "Medium (Evaluate API parity)",
                 "why": f"Look for actively maintained {lang} packages with multiple core maintainers in '{topics}'.",
-                "snippet": "# Add GEMINI_API_KEY to .env or Sidebar to generate migration code.",
+                "snippet": "# Gemini was not used (see the warning above)." if key_provided
+                           else "# Add GEMINI_API_KEY to .env or Sidebar to generate migration code.",
             }
         ]
 
@@ -457,22 +493,23 @@ def _fallback_intelligence(features: dict, health_res: dict, issue_triage: dict,
     }
 
 
-def run_intelligence_engine(
-    client: GitHubClient,
-    owner: str,
-    repo: str,
+def gather_repo_intel(client: GitHubClient, owner: str, repo: str, features: dict) -> dict:
+    """GitHub-only part of the intelligence layer (forks + issue triage). Safe to cache for a long time."""
+    idle_days = features.get("days_since_last_commit", 0)
+    return {"forks": find_active_forks(client, owner, repo, idle_days), "issue_triage": triage_open_issues(client, owner, repo)}
+
+
+def run_ai_layer(
+    gemini_api_key: str,
     features: dict,
     health_res: dict,
-    malware_findings: list[dict] | None = None,
-    gemini_api_key: str = "",
-    scan_findings: list[dict] | None = None,
+    triage: dict,
+    forks: list[dict],
+    findings: list[dict] | None,
 ) -> dict:
+    """Gemini part: report + per-finding explanations. Advisory only, never feeds the score, cap or verdict."""
     api_key = (gemini_api_key or os.getenv("GEMINI_API_KEY") or "").strip()
     idle_days = features.get("days_since_last_commit", 0)
-
-    forks = find_active_forks(client, owner, repo, idle_days)
-    triage = triage_open_issues(client, owner, repo)
-
     prompt = f"""You are a Principal Open-Source Supply Chain Architect.
 Analyze this GitHub repository and return a strict JSON object:
 
@@ -500,22 +537,58 @@ Return ONLY valid JSON with this exact structure:
   ]
 }}"""
 
-    llm_out, llm_err, model_used = _gemini_call(api_key, prompt)
+    llm_out, llm_err, model_used = _gemini_call(api_key, prompt, timeout=REPORT_TIMEOUT)
     if isinstance(llm_out, dict) and "alternatives" in llm_out:
         llm_out["source"] = "Gemini Flash AI Triage"
         llm_out["model"] = model_used
         llm_out["alternatives"] = verify_alternatives(llm_out.get("alternatives"))
     else:
-        llm_out = {**_fallback_intelligence(features, health_res, triage, forks), "error": llm_err or "bad JSON"}
+        llm_out = {**_fallback_intelligence(features, health_res, triage, forks, key_provided=bool(api_key)),
+                   "error": llm_err or "bad JSON"}
 
-    # AI explanation of findings: advisory only, never feeds back into score, cap or verdict.
-    findings = scan_findings if scan_findings is not None else malware_findings
     ai_audit_trails, ai_status = explain_findings(api_key, findings)
+    return {"ai_report": llm_out, "ai_audit_trails": ai_audit_trails, "ai_status": ai_status}
 
-    return {
-        "forks": forks,
-        "issue_triage": triage,
-        "ai_report": llm_out,
-        "ai_audit_trails": ai_audit_trails,
-        "ai_status": ai_status,
-    }
+
+def ai_result_ok(ai: dict) -> bool:
+    """True only if the Gemini report and every per-finding explanation succeeded."""
+    rep = (ai or {}).get("ai_report") or {}
+    trails = (ai or {}).get("ai_audit_trails") or {}
+    return (not rep.get("error") and str(rep.get("source", "")).startswith("Gemini")
+            and not any("error" in t for t in trails.values()))
+
+
+class SuccessCache:
+    """Small TTL cache that only ever stores successful AI results, so failures are retried on the next click."""
+    def __init__(self, ttl: float = AI_CACHE_TTL):
+        self.ttl, self._data, self._lock = ttl, {}, threading.Lock()
+
+    def get(self, key):
+        with self._lock:
+            hit = self._data.get(key)
+            if hit and time.monotonic() - hit[0] < self.ttl:
+                return hit[1]
+            self._data.pop(key, None)
+            return None
+
+    def put(self, key, value) -> bool:
+        if not ai_result_ok(value):
+            return False
+        with self._lock:
+            self._data[key] = (time.monotonic(), value)
+        return True
+
+
+def run_intelligence_engine(
+    client: GitHubClient,
+    owner: str,
+    repo: str,
+    features: dict,
+    health_res: dict,
+    malware_findings: list[dict] | None = None,
+    gemini_api_key: str = "",
+    scan_findings: list[dict] | None = None,
+) -> dict:
+    intel = gather_repo_intel(client, owner, repo, features)
+    findings = scan_findings if scan_findings is not None else malware_findings
+    return {**intel, **run_ai_layer(gemini_api_key, features, health_res, intel["issue_triage"], intel["forks"], findings)}

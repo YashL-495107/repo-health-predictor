@@ -209,14 +209,85 @@ def test_genai_timeout_and_bad_json():
     except ImportError:
         import httpx as _hx   # transport used by google-genai 1.x
     def slow(): raise _hx.ReadTimeout("timed out")
-    (_, err_t, _), _ = _with_fake_genai(slow)
+    waits, restore = _no_sleep()
+    try:
+        (_, err_t, _), _ = _with_fake_genai(slow)
+    finally:
+        restore()
     (_, err_j, _), _ = _with_fake_genai(lambda: _FakeGenResp('{"alternatives": [trunc'))
-    _record("Gemini SDK: timeout and truncated JSON give short reasons", err_t == "timeout (ReadTimeout)" and err_j == "bad JSON",
+    _record("Gemini SDK: timeout (retried) and truncated JSON give short reasons",
+            err_t == "timeout (ReadTimeout) after 3 attempts" and waits == [1, 3] and err_j == "bad JSON",
             f"timeout={err_t} json={err_j}")
 
 def test_genai_rejects_non_ascii_key():
     (_, err, _), calls = _with_fake_genai(lambda: _FakeGenResp("{}"), key="AIza\u00e9bad-key")
     _record("Gemini SDK: non-ASCII key rejected before any call", not calls and "non-ASCII" in (err or ""), f"err={err}")
+
+def _sequence(*steps):
+    """Return a behaviour() that raises/returns each step in turn (exceptions are raised, strings returned as text)."""
+    it = iter(steps)
+    def behaviour():
+        step = next(it)
+        if isinstance(step, Exception): raise step
+        return _FakeGenResp(step)
+    return behaviour
+
+def _no_sleep():
+    import intelligence as I
+    waits, orig = [], I._sleep
+    I._sleep = waits.append
+    return waits, lambda: setattr(I, "_sleep", orig)
+
+def _api_err(kind, code):
+    from google.genai import errors
+    return getattr(errors, kind)(code, {"error": {"code": code, "message": "TEST-KEY-123 boom", "status": "X"}})
+
+def test_retry_504_then_success():
+    waits, restore = _no_sleep()
+    try:
+        (data, err, _), calls = _with_fake_genai(_sequence(_api_err("ServerError", 504), '{"ok": 1}'))
+    finally:
+        restore()
+    gens = [c for c in calls if c[0] == "generate"]
+    _record("Retry: 504 then success -> success after 2 attempts (1s backoff)", err is None and data == {"ok": 1} and len(gens) == 2 and waits == [1],
+            f"attempts={len(gens)} waits={waits} err={err}")
+
+def test_retry_401_not_retried():
+    waits, restore = _no_sleep()
+    try:
+        (_, err, _), calls = _with_fake_genai(_sequence(_api_err("ClientError", 401), '{"ok": 1}'))
+    finally:
+        restore()
+    gens = [c for c in calls if c[0] == "generate"]
+    _record("Retry: 401 is not retried", len(gens) == 1 and not waits and err == "ClientError (HTTP 401)", f"attempts={len(gens)} err={err}")
+
+def test_retry_three_503s():
+    waits, restore = _no_sleep()
+    try:
+        (_, err, _), calls = _with_fake_genai(_sequence(*[_api_err("ServerError", 503)] * 3))
+    finally:
+        restore()
+    gens = [c for c in calls if c[0] == "generate"]
+    _record("Retry: three 503s -> '... after 3 attempts' (1s, 3s backoff)",
+            len(gens) == 3 and waits == [1, 3] and err == "ServerError (HTTP 503) after 3 attempts", f"err={err} waits={waits}")
+
+def test_ai_cache_skips_failures():
+    from intelligence import SuccessCache
+    c = SuccessCache(ttl=300)
+    good = {"ai_report": {"source": "Gemini Flash AI Triage", "model": "m"}, "ai_audit_trails": {"a:1:r": {"verdict": "Likely Benign"}}}
+    bad_report = {"ai_report": {"source": "Heuristic Engine", "error": "ServerError (HTTP 503) after 3 attempts"}, "ai_audit_trails": {}}
+    bad_trail = {"ai_report": {"source": "Gemini Flash AI Triage"}, "ai_audit_trails": {"a:1:r": {"error": "timeout (ReadTimeout)"}}}
+    stored = [c.put("good", good), c.put("bad1", bad_report), c.put("bad2", bad_trail)]
+    ok = stored == [True, False, False] and c.get("good") == good and c.get("bad1") is None and c.get("bad2") is None
+    _record("AI cache: failed report or failed explanation is not stored", ok, f"stored={stored}")
+
+def test_fallback_snippet_flag():
+    from intelligence import _fallback_intelligence
+    args = ({"full_name": "x/y", "language": "Python"}, {"label": "Healthy", "score": 90}, {"counts": {}}, [])
+    with_key = _fallback_intelligence(*args, key_provided=True)["alternatives"][0]["snippet"]
+    no_key = _fallback_intelligence(*args, key_provided=False)["alternatives"][0]["snippet"]
+    _record("Fallback snippet depends on whether a key was provided",
+            with_key == "# Gemini was not used (see the warning above)." and "Add GEMINI_API_KEY" in no_key)
 
 def main():
     print("=" * 72 + "\n  Phase 4 Reality Verification\n" + "=" * 72)
@@ -226,7 +297,9 @@ def main():
               test_skill_map_routing, test_ai_output_validation, test_ai_prompt_injection_wrapped,
               test_app_cache_decorator, test_no_stale_malware_wording,
               test_genai_success_and_key_cleaning, test_genai_default_model, test_genai_error_hides_key,
-              test_genai_timeout_and_bad_json, test_genai_rejects_non_ascii_key):
+              test_genai_timeout_and_bad_json, test_genai_rejects_non_ascii_key,
+              test_retry_504_then_success, test_retry_401_not_retried, test_retry_three_503s,
+              test_ai_cache_skips_failures, test_fallback_snippet_flag):
         try:
             t()
         except Exception as e:
