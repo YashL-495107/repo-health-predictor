@@ -156,69 +156,67 @@ def test_no_stale_malware_wording():
             hits += [f"{os.path.relpath(path, root)}: '{b}'" for b in banned if b in text]
     _record("Wording: no 'does/do not detect malware' in .py or README.md", not hits, "\n".join(hits))
 
-class _FakeResp:
-    def __init__(self, code, body):
-        self.status_code, self._body, self.text = code, body, str(body)
-    def json(self):
-        return self._body
-
-def _ok_gemini():
-    return _FakeResp(200, {"candidates": [{"content": {"parts": [{"text": '{"alternatives": []}'}]}}]})
-
-def _with_fake_requests(post, get):
+def _with_fake_genai(behaviour, key="TEST-KEY-123", model_env="gemini-test-flash"):
+    """Patch google.genai.Client with a fake; returns (result_tuple, list of recorded Client/generate calls)."""
+    from google import genai
     import intelligence as I
-    orig = (I.requests.post, I.requests.get, I._discovered_model, os.environ.get("GEMINI_MODEL"))
-    I.requests.post, I.requests.get, I._discovered_model = post, get, None
-    os.environ["GEMINI_MODEL"] = "gemini-missing"
-    try:
-        return I._gemini_call("TEST-KEY-123", "prompt")
-    finally:
-        I.requests.post, I.requests.get, I._discovered_model = orig[0], orig[1], orig[2]
-        if orig[3] is None: os.environ.pop("GEMINI_MODEL", None)
-        else: os.environ["GEMINI_MODEL"] = orig[3]
-
-def test_gemini_404_discovers_model():
     calls = []
-    def post(url, headers=None, json=None, timeout=None, **kw):
-        calls.append(("POST", url, headers))
-        return _FakeResp(404, {"error": {"message": "model not found"}}) if "gemini-missing" in url else _ok_gemini()
-    def get(url, headers=None, params=None, timeout=None, **kw):
-        calls.append(("GET", url, headers))
-        return _FakeResp(200, {"models": [
-            {"name": "models/gemini-pro-x", "supportedGenerationMethods": ["generateContent"]},
-            {"name": "models/gemini-flash-embed", "supportedGenerationMethods": ["embedContent"]},
-            {"name": "models/gemini-9-flash", "supportedGenerationMethods": ["generateContent", "countTokens"]}]})
-    data, err, model = _with_fake_requests(post, get)
-    ok = (err is None and model == "gemini-9-flash" and [c[0] for c in calls] == ["POST", "GET", "POST"]
-          and calls[1][1].endswith("/v1beta/models") and "gemini-9-flash:generateContent" in calls[2][1]
-          and all(c[2].get("x-goog-api-key") == "TEST-KEY-123" for c in calls)
-          and not any("TEST-KEY-123" in c[1] for c in calls))
-    _record("Gemini: 404 -> ListModels -> retry with discovered flash model; key never in URL", ok,
-            "\n".join(f"{m} {u}" for m, u, _ in calls) + f"\nmodel={model} err={err}")
+    class FakeModels:
+        def generate_content(self, model=None, contents=None, config=None):
+            calls.append(("generate", model, config))
+            return behaviour()
+    class FakeClient:
+        def __init__(self, api_key=None, http_options=None, **kw):
+            calls.append(("client", api_key, http_options))
+            self.models = FakeModels()
+    orig_client, orig_env = genai.Client, os.environ.get("GEMINI_MODEL")
+    genai.Client = FakeClient
+    if model_env is None: os.environ.pop("GEMINI_MODEL", None)
+    else: os.environ["GEMINI_MODEL"] = model_env
+    try:
+        return I._gemini_call(key, "prompt", timeout=15), calls
+    finally:
+        genai.Client = orig_client
+        if orig_env is None: os.environ.pop("GEMINI_MODEL", None)
+        else: os.environ["GEMINI_MODEL"] = orig_env
 
-def test_gemini_404_no_model():
-    post = lambda url, **kw: _FakeResp(404, {"error": {"message": "not found"}})
-    get = lambda url, **kw: _FakeResp(200, {"models": [{"name": "models/gemini-pro-x", "supportedGenerationMethods": ["generateContent"]}]})
-    _, err, _ = _with_fake_requests(post, get)
-    _record("Gemini: 404 with no flash model -> 'no usable Gemini model for this key'", err == "no usable Gemini model for this key", f"err={err}")
+class _FakeGenResp:
+    def __init__(self, text): self.text = text
 
-def test_gemini_thinking_400_retry():
-    bodies = []
-    def post(url, headers=None, json=None, timeout=None, **kw):
-        bodies.append(json["generationConfig"])
-        if "thinkingConfig" in json["generationConfig"]:
-            return _FakeResp(400, {"error": {"message": "Thinking budget is not supported for this model."}})
-        return _ok_gemini()
-    get = lambda url, **kw: _FakeResp(500, {})
-    data, err, _ = _with_fake_requests(post, get)
-    ok = (err is None and len(bodies) == 2 and "thinkingConfig" in bodies[0] and "thinkingConfig" not in bodies[1]
-          and bodies[1].get("maxOutputTokens") == 2048)
-    _record("Gemini: 400 about thinking -> one retry without thinkingConfig, maxOutputTokens kept", ok, f"configs={bodies} err={err}")
+def test_genai_success_and_key_cleaning():
+    (data, err, model), calls = _with_fake_genai(lambda: _FakeGenResp('{"alternatives": []}'),
+                                                 key='  "TEST-KEY-123"\u200b\n')
+    gen = [c for c in calls if c[0] == "generate"]
+    ok = (err is None and data == {"alternatives": []} and model == "gemini-test-flash"
+          and calls[0] == ("client", "TEST-KEY-123", {"timeout": 15000})
+          and gen and gen[0][1] == "gemini-test-flash"
+          and gen[0][2] == {"response_mime_type": "application/json", "temperature": 0.1, "max_output_tokens": 2048})
+    _record("Gemini SDK: cleaned key, GEMINI_MODEL and config reach generate_content", ok, f"calls={calls} err={err}")
 
-def test_gemini_error_trailing_dot():
-    post = lambda url, **kw: _FakeResp(403, {"error": {"message": "API key not valid. Please pass a valid API key."}})
-    _, err, _ = _with_fake_requests(post, lambda url, **kw: _FakeResp(500, {}))
-    _record("Gemini: error text has no trailing '.'", err == "HTTP 403: API key not valid. Please pass a valid API key", f"err={err}")
+def test_genai_default_model():
+    (_, err, model), calls = _with_fake_genai(lambda: _FakeGenResp("{}"), model_env=None)
+    _record("Gemini SDK: default model is gemini-3.1-flash-lite", model == "gemini-3.1-flash-lite" and calls[-1][1] == model, f"model={model}")
+
+def test_genai_error_hides_key():
+    from google.genai import errors
+    def boom(): raise errors.ClientError(403, {"error": {"code": 403, "message": "API key not valid: TEST-KEY-123", "status": "PERMISSION_DENIED"}})
+    (_, err, _), _ = _with_fake_genai(boom)
+    _record("Gemini SDK: error shows type + HTTP status only, never the key", err == "ClientError (HTTP 403)", f"err={err}")
+
+def test_genai_timeout_and_bad_json():
+    try:
+        import httpx2 as _hx  # transport used by newer google-genai releases
+    except ImportError:
+        import httpx as _hx   # transport used by google-genai 1.x
+    def slow(): raise _hx.ReadTimeout("timed out")
+    (_, err_t, _), _ = _with_fake_genai(slow)
+    (_, err_j, _), _ = _with_fake_genai(lambda: _FakeGenResp('{"alternatives": [trunc'))
+    _record("Gemini SDK: timeout and truncated JSON give short reasons", err_t == "timeout (ReadTimeout)" and err_j == "bad JSON",
+            f"timeout={err_t} json={err_j}")
+
+def test_genai_rejects_non_ascii_key():
+    (_, err, _), calls = _with_fake_genai(lambda: _FakeGenResp("{}"), key="AIza\u00e9bad-key")
+    _record("Gemini SDK: non-ASCII key rejected before any call", not calls and "non-ASCII" in (err or ""), f"err={err}")
 
 def main():
     print("=" * 72 + "\n  Phase 4 Reality Verification\n" + "=" * 72)
@@ -227,8 +225,8 @@ def main():
               test_benign_regex_literal, test_typosquat,
               test_skill_map_routing, test_ai_output_validation, test_ai_prompt_injection_wrapped,
               test_app_cache_decorator, test_no_stale_malware_wording,
-              test_gemini_404_discovers_model, test_gemini_404_no_model, test_gemini_thinking_400_retry,
-              test_gemini_error_trailing_dot):
+              test_genai_success_and_key_cleaning, test_genai_default_model, test_genai_error_hides_key,
+              test_genai_timeout_and_bad_json, test_genai_rejects_non_ascii_key):
         try:
             t()
         except Exception as e:
