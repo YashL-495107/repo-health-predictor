@@ -26,6 +26,13 @@ def server_token() -> str:
     except Exception: pass
     return os.getenv("GITHUB_TOKEN", "")
 
+def server_gemini_key() -> str:
+    try:
+        k = st.secrets.get("GEMINI_API_KEY", "")
+        if k: return k
+    except Exception: pass
+    return os.getenv("GEMINI_API_KEY", "")
+
 @st.cache_data(ttl=3600, show_spinner=False)
 def _md_escape(text) -> str:
     return re.sub(r"([\\`*_{}\[\]()#+\-.!|<>~$])", r"\\\1", str(text))
@@ -66,7 +73,7 @@ with st.sidebar:
     user_token = st.text_input("Your own GitHub token (optional)", type="password", placeholder="Leave empty to use the shared token", help="Only needed if the shared token hits GitHub's rate limit. Never stored.")
     token = user_token.strip() or server_token()
     gemini_key_input = st.text_input("Gemini API key (optional, for AI migration & triage)", type="password", placeholder="Leave empty for deterministic heuristics", help="Used for generative architecture migration code snippets and semantic issue triage.")
-    gemini_key = gemini_key_input.strip() or os.getenv("GEMINI_API_KEY", "")
+    gemini_key = gemini_key_input.strip() or server_gemini_key()
     st.caption("Health score bands")
     st.markdown(f"- **Healthy**: {HEALTHY}+\n- **Slowing down**: {SLOWING}-{HEALTHY - 1}\n- **Likely abandoned**: below {SLOWING}")
 

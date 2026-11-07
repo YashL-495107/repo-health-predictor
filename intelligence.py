@@ -186,7 +186,7 @@ def _gemini_request(api_key: str, prompt: str, timeout: int = TIMEOUT) -> tuple[
         return None, "no API key"
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.1, "responseMimeType": "application/json"},
+        "generationConfig": {"temperature": 0.1, "responseMimeType": "application/json", "maxOutputTokens": 2048, "thinkingConfig": {"thinkingBudget": 0}},
     }
     try:
         r = requests.post(GEMINI_URL, headers={"x-goog-api-key": api_key}, json=payload, timeout=timeout)
