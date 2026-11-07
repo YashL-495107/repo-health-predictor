@@ -135,15 +135,16 @@ def _sdk_error(e: Exception, key: str = "") -> str:
 
 TIMEOUT = 20
 REPORT_TIMEOUT = 30         # main report call, per attempt
+REPORT_BUDGET = 60          # main report call, all attempts + backoff together
 AI_TIMEOUT = 20             # per-finding call, per attempt
-AI_BUDGET = 25              # per-finding call, all attempts + backoff together
+AI_BUDGET = 45              # per-finding call, all attempts + backoff together
+MIN_SDK_TIMEOUT = 10        # Google rejects request deadlines under 10s with HTTP 400
 RETRY_BACKOFF = (1, 3)      # seconds before attempt 2 and attempt 3
 RETRYABLE_STATUS = {429, 500, 502, 503, 504}
-MIN_ATTEMPT_SECONDS = 3     # don't start a retry with less time than this left in the budget
 AI_CACHE_TTL = 300
 _sleep = time.sleep         # patched in tests
 AI_MAX_FINDINGS = 5
-AI_WORKERS = 3
+AI_WORKERS = 2
 EVIDENCE_LIMIT = 600
 OUTPUT_LIMIT = 400
 SKILLS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "skills")
@@ -304,7 +305,8 @@ def triage_open_issues(client: GitHubClient, owner: str, repo: str) -> dict:
 def _gemini_call(api_key: str, prompt: str, timeout: int = AI_TIMEOUT, budget: float | None = None) -> tuple[dict | None, str | None, str]:
     """Call Gemini through the google-genai SDK; return (parsed_json, error_reason, model_used).
     Retries timeouts and HTTP 429/5xx up to 2 more times (1s, then 3s backoff). If `budget` is set, all
-    attempts plus backoff must fit inside it; each attempt's timeout is shrunk to what is left."""
+    attempts plus backoff must fit inside it. No request is ever sent with a deadline under MIN_SDK_TIMEOUT:
+    a retry only starts if MIN_SDK_TIMEOUT + backoff still fits, otherwise the last real error is reported."""
     model = _configured_model()
     key, key_err = clean_api_key(api_key)
     if key_err:
@@ -314,12 +316,13 @@ def _gemini_call(api_key: str, prompt: str, timeout: int = AI_TIMEOUT, budget: f
     except ImportError:
         return None, "google-genai is not installed", model
     deadline = time.monotonic() + budget if budget else None
-    attempt, err, history = 0, None, []
+    attempt, err, history, out_of_time = 0, None, [], False
     while True:
         attempt += 1
         per_try = timeout
         if deadline is not None:
-            per_try = min(timeout, max(1.0, deadline - time.monotonic()))
+            per_try = min(timeout, deadline - time.monotonic())
+        per_try = max(MIN_SDK_TIMEOUT, per_try)
         try:
             client = genai.Client(api_key=key, http_options={"timeout": int(per_try * 1000)})
             resp = client.models.generate_content(
@@ -333,7 +336,8 @@ def _gemini_call(api_key: str, prompt: str, timeout: int = AI_TIMEOUT, budget: f
             if not _is_retryable(e) or attempt > len(RETRY_BACKOFF):
                 break
             wait = RETRY_BACKOFF[attempt - 1]
-            if deadline is not None and deadline - time.monotonic() - wait < MIN_ATTEMPT_SECONDS:
+            if deadline is not None and deadline - time.monotonic() - wait < MIN_SDK_TIMEOUT:
+                out_of_time = True
                 break
             _sleep(wait)
             continue
@@ -341,17 +345,21 @@ def _gemini_call(api_key: str, prompt: str, timeout: int = AI_TIMEOUT, budget: f
             return json.loads(resp.text), None, model
         except (ValueError, TypeError, AttributeError):
             return None, "bad JSON", model
-    return None, _retry_summary(err, history), model
+    return None, _retry_summary(err, history, out_of_time), model
 
 
-def _retry_summary(last_error: str, history: list[str]) -> str:
+def _retry_summary(last_error: str, history: list[str], out_of_time: bool = False) -> str:
     """'X' for one attempt, 'X after N attempts' if every attempt failed the same way,
-    otherwise the sequence, e.g. 'timeout, then ClientError (HTTP 400, ...)'."""
-    if len(history) <= 1:
-        return last_error
-    if len(set(history)) == 1:
-        return f"{last_error} after {len(history)} attempts"
-    return ", ".join(history[:-1]) + f", then {last_error}"
+    otherwise the sequence, e.g. 'timeout, then ClientError (HTTP 400, ...)'.
+    Adds ', no time left to retry' when a retry was skipped because the budget ran out."""
+    n = len(history)
+    if n > 1 and len(set(history)) > 1:
+        text = ", ".join(history[:-1]) + f", then {last_error}"
+    elif n > 1 or out_of_time:
+        text = f"{last_error} after {n} attempt{'s' if n != 1 else ''}"
+    else:
+        text = last_error
+    return text + (", no time left to retry" if out_of_time else "")
 
 
 def _gemini_request(api_key: str, prompt: str, timeout: int = AI_TIMEOUT, budget: float | None = None) -> tuple[dict | None, str | None]:
@@ -361,7 +369,7 @@ def _gemini_request(api_key: str, prompt: str, timeout: int = AI_TIMEOUT, budget
 
 
 def _call_gemini(api_key: str, prompt: str) -> dict | None:
-    data, _ = _gemini_request(api_key, prompt, timeout=REPORT_TIMEOUT)
+    data, _ = _gemini_request(api_key, prompt, timeout=REPORT_TIMEOUT, budget=REPORT_BUDGET)
     return data
 
 
@@ -652,7 +660,7 @@ Return ONLY valid JSON with this exact structure:
   ]
 }}"""
 
-    llm_out, llm_err, model_used = _gemini_call(api_key, prompt, timeout=REPORT_TIMEOUT)
+    llm_out, llm_err, model_used = _gemini_call(api_key, prompt, timeout=REPORT_TIMEOUT, budget=REPORT_BUDGET)
     if isinstance(llm_out, dict) and "alternatives" in llm_out:
         llm_out["source"] = "Gemini Flash AI Triage"
         llm_out["model"] = model_used

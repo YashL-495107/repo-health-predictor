@@ -383,6 +383,62 @@ def test_failed_explanation_card():
           and not stored)
     _record("Failed explanation -> 'cfg.py:7: AI explanation failed' card with reason; not cached", ok, f"cards={cards} status={status}")
 
+def _fake_clock_run(steps, timeout, budget):
+    """Run _gemini_call with a fake clock. Each step is (seconds_taken, outcome); outcome is an exception or JSON text.
+    Returns (result, timeouts_ms, clock_seconds)."""
+    import types
+    from google import genai
+    import intelligence as I
+    clock, timeouts, it = [0.0], [], iter(steps)
+    class C:
+        def __init__(self, api_key=None, http_options=None, **kw):
+            self.t = http_options["timeout"]; timeouts.append(self.t); self.models = self
+        def generate_content(self, **kw):
+            took, outcome = next(it)
+            clock[0] += min(took, self.t / 1000)
+            if isinstance(outcome, Exception): raise outcome
+            return _FakeGenResp(outcome)
+    orig = (genai.Client, I.time, I._sleep)
+    genai.Client = C
+    I.time = types.SimpleNamespace(monotonic=lambda: clock[0])
+    I._sleep = lambda sec: clock.__setitem__(0, clock[0] + sec)
+    try:
+        return I._gemini_call("TEST-KEY-123", "p", timeout=timeout, budget=budget), timeouts, clock[0]
+    finally:
+        genai.Client, I.time, I._sleep = orig
+
+def test_deadline_504_then_success_in_budget():
+    import intelligence as I
+    (data, err, _), timeouts, t = _fake_clock_run([(20, _api_err("ServerError", 504)), (2, '{"ok": 1}')], I.AI_TIMEOUT, I.AI_BUDGET)
+    _record("Deadline: 504 at 20s then success; retry gets a full >=10s timeout and stays in the 45s budget",
+            err is None and data == {"ok": 1} and timeouts == [20000, 20000] and t <= I.AI_BUDGET, f"timeouts_ms={timeouts} clock={t}s err={err}")
+
+def test_deadline_no_retry_when_budget_short():
+    import intelligence as I
+    # 2 attempts of 20s + 1s backoff = 41s used of 45s: 4s left < 10s + 3s backoff, so attempt 3 must not be sent
+    steps = [(20, _api_err("ServerError", 504)), (20, _api_err("ServerError", 504)), (1, '{"ok": 1}')]
+    (_, err, _), timeouts, t = _fake_clock_run(steps, I.AI_TIMEOUT, I.AI_BUDGET)
+    # a tight budget: 15s used of 20s leaves 5s < 10s + 1s backoff
+    (_, err1, _), timeouts1, _ = _fake_clock_run([(15, _api_err("ServerError", 504)), (1, '{"ok": 1}')], 15, 20)
+    ok = (len(timeouts) == 2 and err.endswith("after 2 attempts, no time left to retry") and err.startswith("ServerError (HTTP 504")
+          and len(timeouts1) == 1 and err1 == "ServerError (HTTP 504, [redacted] boom) after 1 attempt, no time left to retry")
+    _record("Deadline: no retry when < 10s + backoff remains, and the message says so", ok, f"err={err}\nerr1={err1}")
+
+def test_deadline_never_below_10s():
+    import intelligence as I
+    seen = []
+    for timeout, budget in [(I.AI_TIMEOUT, I.AI_BUDGET), (I.REPORT_TIMEOUT, I.REPORT_BUDGET), (12, 14), (5, None), (20, 11)]:
+        steps = [(timeout, _api_err("ServerError", 503))] * 3
+        _, timeouts, t = _fake_clock_run(steps, timeout, budget)
+        seen += timeouts
+    _record("Deadline: no SDK call ever uses a timeout under 10000 ms", seen and min(seen) >= 10000, f"timeouts_ms={sorted(set(seen))}")
+
+def test_budget_constants():
+    import intelligence as I
+    ok = (I.AI_TIMEOUT == 20 and I.AI_BUDGET == 45 and I.REPORT_TIMEOUT == 30 and I.REPORT_BUDGET == 60
+          and I.AI_WORKERS == 2 and I.MIN_SDK_TIMEOUT == 10)
+    _record("Budgets: per-finding 20s/45s, report 30s/60s, 2 workers", ok)
+
 def main():
     print("=" * 72 + "\n  Phase 4 Reality Verification\n" + "=" * 72)
     for t in (test_attack1_double_encoded_dropper, test_attack2_hex_exec, test_attack3_setup_exec_net,
@@ -395,7 +451,9 @@ def main():
               test_retry_504_then_success, test_retry_401_not_retried, test_retry_three_503s,
               test_ai_cache_skips_failures, test_fallback_snippet_flag,
               test_ai_candidates_deduped, test_gemini_key_caption,
-              test_sdk_error_status_message_scrubbed, test_retry_history_timeout_then_400, test_failed_explanation_card):
+              test_sdk_error_status_message_scrubbed, test_retry_history_timeout_then_400, test_failed_explanation_card,
+              test_deadline_504_then_success_in_budget, test_deadline_no_retry_when_budget_short,
+              test_deadline_never_below_10s, test_budget_constants):
         try:
             t()
         except Exception as e:
