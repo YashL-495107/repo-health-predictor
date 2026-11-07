@@ -86,7 +86,7 @@ def detect(ctx) -> dict:
     rev = None
     if act.get("status") == "ok" and tn:
         rev = git_revival(act.get("commits") or [], tn)
-        if not act.get("complete"):
+        if not act.get("complete"):   # a sub-signal limit: shown in the detector detail, not the headline
             notes.append(f"commit history read up to {len(act.get('commits') or [])} commits before the release")
         if rev:
             silence.append(f"no commits for {rev['gap_days']} days, then activity from {rev['revived_at'][:10]}")

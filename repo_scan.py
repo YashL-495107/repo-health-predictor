@@ -190,6 +190,25 @@ def run_bandit(py: dict[str, bytes]) -> list[dict] | None:
 
 def _mask(s: str) -> str: return s[:4] + "…" + s[-2:] if len(s) > 8 else "…"
 
+SECRET_REVIEW_TOKENS = {"test", "tests", "testdata", "testing", "fixture", "fixtures", "asset", "assets", "sample", "samples",
+                        "example", "examples", "doc", "docs", "rules", "signatures", "yara", "sigma", "detections"}
+SAMPLE_LOOKING = re.compile(r"example|sample|dummy|fake|test|xxxx|changeme|placeholder|not[_-]?a[_-]?real", re.I)
+
+
+def secret_review_reason(path: str, kind: str, line: str) -> str | None:
+    """Why a private key block or sample-looking key is review rather than strong: its path has a test / sample /
+    asset / docs / rule-definition directory (matched on name tokens, so 'certbot_integration_tests' and
+    'sample-config' count). None means keep the normal rules."""
+    if kind != "Private key block" and not SAMPLE_LOOKING.search(line or ""):
+        return None
+    tokens = {t for part in path.lower().split("/")[:-1] for t in re.split(r"[-_.]+", part) if t}
+    hit = sorted(tokens & SECRET_REVIEW_TOKENS)
+    if not hit:
+        return None
+    return (f"Downgraded from strong to review: the path contains a {'/'.join(hit)} directory, where test keys and "
+            "sample credentials are normal. The same key elsewhere would be strong.")
+
+
 def scan_secrets(text: dict[str, str], limit: int = 20) -> list[dict]:
     found = []
     for path, content in text.items():
@@ -198,7 +217,9 @@ def scan_secrets(text: dict[str, str], limit: int = 20) -> list[dict]:
             for kind, rx in SECRET_PATTERNS.items():
                 m = rx.search(line)
                 if m and not m.group(0).upper().endswith("EXAMPLE"):
-                    found.append({"kind": kind, "file": path, "line": n, "masked": _mask(m.group(0)), "fixture": _is_fixture(path) or (kind == "Private key block" and os.path.splitext(path)[1].lower() in SOURCE_EXT)})
+                    fixture = _is_fixture(path) or (kind == "Private key block" and os.path.splitext(path)[1].lower() in SOURCE_EXT)
+                    found.append({"kind": kind, "file": path, "line": n, "masked": _mask(m.group(0)), "fixture": fixture,
+                                  "review_reason": None if fixture else secret_review_reason(path, kind, line)})
                     if len(found) >= limit: return found
     return found
 
@@ -270,6 +291,7 @@ def scan_repo(client: GitHubClient, owner: str, repo: str) -> dict:
     secrets = scan_secrets(data["text"])
     for s in secrets:
         if s["fixture"]: findings.append({"sev": "Low", "source": "Secrets", "rule": f"Key-like text in a test/example/doc/source file ({s['kind']})", "file": s["file"], "line": s["line"], "detail": f"Matches a {s['kind']} pattern: {s['masked']}", "fix": "Usually intentional test data; confirm it is not a real credential.", "url": url(s["file"], s["line"]), "strong": False})
+        elif s.get("review_reason"): findings.append({"sev": "Medium", "source": "Secrets", "rule": f"Possible {s['kind']} in a test/sample/asset path (review)", "file": s["file"], "line": s["line"], "detail": f"Matches a {s['kind']} pattern: {s['masked']}. {s['review_reason']}", "fix": "Usually test or sample material; confirm it is not a real key.", "url": url(s["file"], s["line"]), "strong": False, "review_reason": s["review_reason"]})
         else: findings.append({"sev": "High", "source": "Secrets", "rule": f"Possible exposed {s['kind']}", "file": s["file"], "line": s["line"], "detail": f"Matches a {s['kind']} pattern: {s['masked']}", "fix": "Verify it is real; if so, revoke it and remove it from history.", "url": url(s["file"], s["line"]), "strong": True})
     res["coverage"].append(f"Secret scan: {len(data['text'])} text files checked for provider key patterns; {len(secrets)} matches ({sum(1 for s in secrets if s['fixture'])} in test/example/doc/source files, not counted as strong)")
 
@@ -294,6 +316,11 @@ def scan_repo(client: GitHubClient, owner: str, repo: str) -> dict:
     res["ci_high"] = sum(1 for f in findings if f.get("strong") and f["source"] == "CI workflow")
     res["review"] = sum(1 for f in findings if not f.get("strong") and f["sev"] in ("High", "Medium"))
     res["scan_coverage"] = scan_coverage(data)
+    try:   # Python files the data-flow detectors analyse with ast (behavior_patterns defers to them for these)
+        from detectors.pyast import parse_ok
+        res["ast_analysed_py"] = sorted(p for p, t in data["text"].items() if parse_ok(p, t))
+    except Exception:
+        res["ast_analysed_py"] = []
     _attach_detectors(res, data)
     return res
 

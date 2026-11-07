@@ -70,6 +70,9 @@ def score_pillar(pillar: str, results: list[dict]) -> dict:
         cov_text += "; " + "; ".join(sorted({r.get("coverage_detail") or f"{r['detector']}: partial" for r in partial}))
     coverage = {"ran": len(ran), "total": len(feeding), "not_applicable": len(na), "partial": bool(partial),
                 "partial_details": [f"{r['detector']}: {r.get('coverage_detail') or 'partial'}" for r in partial],
+                # only a truncated content scan counts for the headline note (sub-signal limits do not)
+                "headline_partial_details": [f"{r['detector']}: {r.get('coverage_detail')}" for r in partial
+                                             if r.get("content_truncated")],
                 "text": cov_text}
     if not ran:
         if feeding and len(na) == len(feeding):
@@ -97,12 +100,15 @@ def score_pillar(pillar: str, results: list[dict]) -> dict:
             "findings": findings, "worst": findings[0] if findings else None}
 
 
+NO_LIMIT_REASON = "No limiting pillar: no findings in the assessed pillars"
+
+
 def _pillar_reason(p: dict) -> str:
     w = p["worst"]
     if w:
         amp = " (escalated by fragility)" if w.get("fragility_amplified") else ""
         return f"limited by {p['pillar']}: {w.get('rule')}{_where(w)}{amp}"
-    return f"limited by {p['pillar']}: no findings ({p['coverage']['text']})"
+    return NO_LIMIT_REASON
 
 
 def compute_trust(results: list[dict], maintenance: dict, *, archived: bool = False,
@@ -123,7 +129,7 @@ def compute_trust(results: list[dict], maintenance: dict, *, archived: bool = Fa
     tiers = {f["tier"] for f in all_findings}
     assessed = [p for p in PILLARS if pillars[p]["score"] is not None]
     partial_reasons = [f"{p}: not assessed ({pillars[p]['reason']})" for p in PILLARS if pillars[p]["status"] == "not_assessed"]
-    partial_reasons += [d for p in PILLARS for d in pillars[p]["coverage"]["partial_details"]]
+    partial_reasons += [d for p in PILLARS for d in pillars[p]["coverage"]["headline_partial_details"]]
 
     if not assessed:
         return {"trust_score": None, "label": LABEL_NOT_ASSESSED, "label_base": LABEL_NOT_ASSESSED, "partial": True,
@@ -146,6 +152,8 @@ def compute_trust(results: list[dict], maintenance: dict, *, archived: bool = Fa
     tiers |= {c[2] for c in evidence_caps or [] if len(c) > 2 and c[2]}
     order = {p: i for i, p in enumerate(PILLARS)}
     value, kind, pillar, reason = min(cands, key=lambda c: (c[0], _KIND_ORDER[c[1]], order.get(c[2], 9)))
+    if kind == "pillar" and reason == NO_LIMIT_REASON:
+        pillar, kind = None, None          # nothing limits the score: do not name a pillar
 
     if "known_malicious" in tiers:
         base = LABEL_KNOWN_MALICIOUS

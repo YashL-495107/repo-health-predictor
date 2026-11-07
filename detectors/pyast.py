@@ -26,8 +26,28 @@ def analysable(path: str, exts: tuple[str, ...]) -> bool:
     return p.suffix.lower() in exts and not any(x.lower() in SKIP_PARTS for x in p.parts[:-1])
 
 
+def parse_ok(path: str, text: str) -> bool:
+    """True if `path` is a Python file the data-flow detectors analyse with ast (scannable and parseable)."""
+    return analysable(path, (".py",)) and safe_parse(text)[0] is not None
+
+
+_PARSE_CACHE: dict[str, tuple] = {}
+
+
 def safe_parse(text: str) -> tuple[ast.AST | None, str | None]:
-    """(tree, None) or (None, reason). Never raises."""
+    """(tree, None) or (None, reason). Never raises. Results are memoised by content hash (bounded)."""
+    import hashlib
+    key = hashlib.sha256(text.encode("utf-8", "ignore")).hexdigest()
+    if key in _PARSE_CACHE:
+        return _PARSE_CACHE[key]
+    out = _safe_parse(text)
+    if len(_PARSE_CACHE) > 4000:
+        _PARSE_CACHE.clear()
+    _PARSE_CACHE[key] = out
+    return out
+
+
+def _safe_parse(text: str) -> tuple[ast.AST | None, str | None]:
     if len(text.encode("utf-8", "ignore")) > MAX_PARSE_BYTES:
         return None, "too large"
     try:

@@ -3,6 +3,34 @@
 Every change to detector logic, thresholds, tier mapping or fragility weights bumps `RULESET_VERSION`
 (`detectors/version.py`). Results produced under different versions are not directly comparable.
 
+## 2026.11.07-7
+
+Dev-set tuning from a sweep of 8 real clients (boto3, twine, sentry-python, docker-py, paramiko, keyring, certbot, pip)
+and one false positive found on certbot. These repositories are now part of the **dev set** (used to tune rules), so
+they cannot be used as held-out evidence later.
+
+- **Secrets (certbot false positive):** a private key block, or a sample-looking key (example/sample/dummy/fake/test/
+  xxxx/changeme in the line), in a path whose directory names contain test, tests, testdata, fixtures, assets, sample,
+  samples, example, examples, docs or a rule-definition directory (rules, signatures, yara, sigma, detections) is now
+  review, not strong (no 49 cap). Matched on name tokens, so `certbot_integration_tests` and `sample-config` count.
+  The reason is recorded in `review_reason`. The same key at the repo root or in `src/` stays strong. certbot had 8
+  strong private-key findings in test assets.
+- **(1)** The legacy single-indicator regex rules "Credential access: reads credential files" and "dumps all
+  environment variables" are no longer findings for Python files that credential_exfiltration analysed with ast
+  (kept as `info_findings` with the reason). They are kept for JS, shell and unparseable files; multi-signal
+  same-file intent patterns are always kept.
+- **(2)** Single credential/environment indicators with no network sink in development-tooling paths (tasks.py,
+  noxfile.py, scripts/, tools/, .agents/, tests, docs, examples, ...) become info (no tier) with the reason.
+- **(3)** A client's OWN credential file is not a source (docker -> ~/.docker/config.json, kubernetes ->
+  ~/.kube/config / kubeconfig, twine -> ~/.pypirc, pip -> pip.conf, aws/boto -> ~/.aws/credentials, ...), using the
+  package/repository name tokens as for hosts. Someone else's client file stays a named source (review when sent to
+  an unrelated or dynamic destination).
+- **(4)** Only a truncated content scan (read_repo file caps: "partial scan: X of Y files") or an unassessed pillar
+  adds the headline "Partial assessment" note. Sub-signal limits (the 300-commit read, dependency lookups, release
+  metadata only, publisher known for some releases) stay in the detector detail.
+- **(5)** When no pillar limits the score, the reason is "No limiting pillar: no findings in the assessed pillars"
+  and no pillar is named (was "limited by Integrity: no findings").
+
 ## 2026.11.07-6
 
 - New Behavior detectors with Python data flow (ast only; nothing compiled or executed):

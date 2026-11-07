@@ -1,6 +1,6 @@
 # Project capabilities
 
-Status as of ruleset `2026.11.07-6` (branch `trust-engine`). Changes per ruleset version: [docs/RULESET_CHANGELOG.md](docs/RULESET_CHANGELOG.md). This file says what is built, what is
+Status as of ruleset `2026.11.07-7` (branch `trust-engine`). Changes per ruleset version: [docs/RULESET_CHANGELOG.md](docs/RULESET_CHANGELOG.md). This file says what is built, what is
 measured and what is not yet measured. Every number here comes from a script in this repository; anything without
 a script behind it is marked "not yet measured".
 
@@ -34,9 +34,11 @@ names its cause: "limited by Integrity: ...", "limited by Maintenance: ..." or "
 secret".
 
 Labels: DO NOT USE: known malicious indicator > High-risk patterns: review before use > Review recommended >
-Fragile / unmaintained > No findings. "(Partial assessment)" is added when a pillar could not be assessed or a
-detector only read part of the repository (for example "partial scan: 1500 of 2300 text files"). "Not assessed"
-when no evidence pillar could be assessed.
+Fragile / unmaintained > No findings. "(Partial assessment)" is added when a pillar could not be assessed or the
+content scan only read part of the repository (for example "partial scan: 1500 of 2300 text files"). Limits of a
+single sub-signal (for example the 300-commit history read) are shown in the detector detail, not in the headline.
+"Not assessed" when no evidence pillar could be assessed. When nothing limits the score the reason reads "No limiting
+pillar".
 
 **Intended behavior change in Phase 1:** `apply_gate` used to skip every evidence cap for repositories labelled
 "Likely abandoned" or "Archived". That exception is removed: an abandoned repository with a known-malicious or
@@ -91,6 +93,11 @@ Responses are cached on disk (`http_cache.py`, keyed by URL and snapshot date; `
 `REPOHEALTH_OFFLINE=1` uses the cache only). Recorded, trimmed registry responses for offline tests are in
 `tests/fixtures/releases/`.
 
+## Dev set
+
+Rules were tuned (ruleset 2026.11.07-7) on 8 real clients: boto3, twine, sentry-python, docker-py, paramiko, keyring,
+certbot and pip. They are a **dev set** and must not be reported as held-out evidence.
+
 ## Behavior data-flow detectors (Phase 4)
 
 | Detector | Pillar | What it tracks | Tier |
@@ -126,7 +133,7 @@ exfil endpoint, release-vs-git drift with new capabilities), mapped by `detector
 | lookalike_name | Exposure | behavior scan name-similarity check | review |
 | committed_binary | Exposure | behavior scan committed-executable check | review |
 | virustotal | Exposure | Layer 3 VirusTotal hash lookup (needs VT_API_KEY) | 5+ engines -> known_malicious, 1-4 -> review |
-| repo_secrets | Exposure | secret scan | strong -> review (the 49 evidence cap still applies) |
+| repo_secrets | Exposure | secret scan | strong -> review (the 49 evidence cap still applies); private keys or sample-looking keys in test/sample/asset/docs/rule paths -> review without the cap |
 | ci_workflow | Exposure | GitHub Actions checks | High/Medium -> review (the 49 cap still applies for High) |
 
 Each detector's docstring lists what it detects, known evasions and false-positive sources. Every finding is

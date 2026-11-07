@@ -47,7 +47,11 @@ def make_result(detector: str, pillar: str, status: str, findings: list[dict] | 
         coverage = coverage or "full"
     else:
         tier, findings, coverage, coverage_detail = "unknown", [], None, None
-    return {"detector": detector, "pillar": pillar, "status": status,
+    # content_truncated: the repository content scan hit a file cap (read_repo limits; text_coverage() produces the
+    # "partial scan: X of Y files" detail). Only this kind of partial coverage adds the headline "Partial assessment"
+    # note; sub-signal limits (commit history read, dependency lookups, release metadata) stay in the detector detail.
+    content_truncated = bool(status == "ran" and coverage_detail and "partial scan:" in coverage_detail)
+    return {"detector": detector, "pillar": pillar, "status": status, "content_truncated": content_truncated,
             "not_assessed_reason": None if status == "ran" else (reason or status.replace("_", " ")),
             "tier": tier, "findings": findings, "fragility_amplified": False,
             "coverage": coverage, "coverage_detail": coverage_detail, "ruleset_version": RULESET_VERSION}

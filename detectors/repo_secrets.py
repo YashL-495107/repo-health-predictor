@@ -2,7 +2,9 @@
 
 Detects: provider key patterns (AWS, GitHub, Slack, Google, Stripe live keys, private key blocks) in text files.
 Secrets are masked and NOT checked for validity.
-Tier: a key-like string outside test/example/doc files -> review. The existing security.py rule still caps the
+Tier: a key-like string outside test/example/doc files -> review (strong). A private key block or sample-looking
+key in a test / sample / asset / docs / rule-definition directory -> review but NOT strong (no 49 cap), with the
+reason recorded (repo_scan.secret_review_reason). The existing security.py rule still caps the
 headline at 49 for a strong secret ("capped by evidence rule: strong secret").
 Known evasions: split or encoded keys, providers without a distinctive prefix, files over the size/count caps.
 False-positive sources: test fixtures not recognised as such, revoked or example keys, generated data.
@@ -17,6 +19,6 @@ def detect(ctx) -> dict:
     if gate:
         return gate
     out = [enrich(f, DETECTOR_ID, "review") for f in scan_findings(ctx)
-           if f.get("source") == "Secrets" and f.get("strong")]
+           if f.get("source") == "Secrets" and (f.get("strong") or f.get("review_reason"))]
     cov, detail = text_coverage(ctx, ("text",))
     return make_result(DETECTOR_ID, PILLAR, "ran", out, coverage=cov, coverage_detail=detail)

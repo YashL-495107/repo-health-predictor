@@ -3,4 +3,4 @@
 Format YYYY.MM.DD-n. Bump it whenever a detector's logic, thresholds or tier mapping changes, and add an
 entry to docs/RULESET_CHANGELOG.md.
 """
-RULESET_VERSION = "2026.11.07-6"
+RULESET_VERSION = "2026.11.07-7"

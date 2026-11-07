@@ -50,7 +50,25 @@ NOT_CRED_NAME = re.compile(r"_PROXY$|^NO_PROXY$|CA_BUNDLE|_CERT|KEY_?(FILE|PATH|
 FOREIGN_FILE = re.compile(r"\.ssh/|(^|/)id_(rsa|dsa|ecdsa|ed25519)\b|Login Data|(^|/)Cookies$|Local State|wallet\.dat|\.electrum|Exodus|"
                           r"\.bitcoin|\.ethereum|keystore|/etc/shadow|\.gnupg|Local Storage/leveldb", re.I)
 FOREIGN_PART = {".ssh", "id_rsa", "id_ed25519", "id_ecdsa", "id_dsa", "login data", "local state", "wallet.dat", ".gnupg", ".electrum"}
-CLIENT_FILE = re.compile(r"\.aws/credentials|\.config/gcloud|\.netrc|\.pypirc|\.git-credentials|\.npmrc|\.docker/config\.json|\.kube/config", re.I)
+CLIENT_FILE = re.compile(r"\.aws/credentials|\.config/gcloud|\.netrc|\.pypirc|\.git-credentials|\.npmrc|\.docker/config\.json|"
+                         r"\.kube/config|kubeconfig|pip\.conf|pip\.ini", re.I)
+# Which tools own which credential file: a client reading its OWN file (docker -> ~/.docker/config.json) is normal,
+# whatever host it then talks to. Matched against the package/repository name tokens, like hosts.
+CLIENT_FILE_OWNERS = [
+    (re.compile(r"\.docker/config\.json", re.I), {"docker", "dockerpy", "moby", "podman"}),
+    (re.compile(r"\.kube/config|kubeconfig", re.I), {"kube", "kubernetes", "k8s", "kubectl", "helm"}),
+    (re.compile(r"\.pypirc", re.I), {"twine", "pypi", "flit", "poetry", "hatch", "setuptools", "pdm"}),
+    (re.compile(r"pip\.conf|pip\.ini", re.I), {"pip", "pipenv", "pipx", "uv"}),
+    (re.compile(r"\.aws/credentials", re.I), {"aws", "boto", "boto3", "botocore", "awscli", "s3", "s3fs", "moto"}),
+    (re.compile(r"\.config/gcloud", re.I), {"gcloud", "google", "gcs", "bigquery", "gcsfs"}),
+    (re.compile(r"\.git-credentials", re.I), {"git", "gitpython", "dulwich", "github", "gitlab"}),
+    (re.compile(r"\.npmrc", re.I), {"npm", "pnpm", "yarn"}),
+    (re.compile(r"\.netrc", re.I), {"netrc", "requests", "httpx", "urllib3", "curl", "pycurl"}),
+]
+
+
+def own_client_file(path_literal: str, names: set[str]) -> bool:
+    return any(rx.search(path_literal) and owners & names for rx, owners in CLIENT_FILE_OWNERS)
 NET_PREFIX = ("requests.", "httpx.", "urllib.", "urllib3.", "aiohttp.", "http.client.", "socket.", "smtplib.", "ftplib.")
 NET_ANY_ATTR = {"post", "put", "patch", "sendall", "sendto", "urlopen", "sendmail", "storbinary"}
 NET_OBJ_ATTR = {"send", "request", "get", "connect"}
@@ -108,7 +126,7 @@ def _named(key, line) -> dict | None:
     return None
 
 
-def expr_sources(expr, par, al, taint) -> list[dict]:
+def expr_sources(expr, par, al, taint, owner_names: set[str] | None = None) -> list[dict]:
     out = []
     for n in ast.walk(expr):
         if isinstance(n, (ast.Attribute, ast.Name)) and pyast.dotted(n, al) == "os.environ":
@@ -126,6 +144,8 @@ def expr_sources(expr, par, al, taint) -> list[dict]:
             if FOREIGN_FILE.search(v) or v.strip().lower() in FOREIGN_PART:
                 out.append({"kind": "foreign_file", "line": n.lineno, "what": f"secret store path '{v[:60]}'"})
             elif CLIENT_FILE.search(v):
+                if own_client_file(v, owner_names or set()):
+                    continue   # the package's own credential file (docker reading ~/.docker/config.json): not a source
                 out.append({"kind": "client_file", "line": n.lineno, "what": f"client credential file '{v[:60]}'"})
         if isinstance(n, (ast.Name, ast.Attribute)):
             key = n.id if isinstance(n, ast.Name) else pyast.dotted(n)
@@ -194,7 +214,10 @@ def _tier(src_kind: str, dest_class: str) -> str | None:
 
 # ---------------------------------------------------------------- per-file analysis
 
-def analyse_python(path: str, text: str, related_tokens: set[str]) -> tuple[list[dict], str | None]:
+def analyse_python(path: str, text: str, related_tokens: set[str], owner_names: set[str] | None = None,
+                   info: list | None = None) -> tuple[list[dict], str | None]:
+    """info: optional list that receives info-level items (no tier), e.g. no-sink reads in development tooling."""
+    owner_names = owner_names if owner_names is not None else set(related_tokens)
     tree, err = pyast.safe_parse(text)
     if tree is None:
         return [], err
@@ -213,7 +236,7 @@ def analyse_python(path: str, text: str, related_tokens: set[str]) -> tuple[list
         for st in pyast.ordered_statements(body):
             names, val = pyast.assigned_names(st)
             if val is not None and names:
-                srcs = expr_sources(val, par, al, taint)
+                srcs = expr_sources(val, par, al, taint, owner_names)
                 if isinstance(st, (ast.For, ast.AsyncFor)) and pyast.dotted(val, al) == "os.environ":
                     srcs.append({"kind": "bulk_env", "line": st.lineno, "what": "iterating os.environ"})
                 for n in names:
@@ -230,10 +253,10 @@ def analyse_python(path: str, text: str, related_tokens: set[str]) -> tuple[list
             for node in own:
                 for call in pyast.calls_in(node):
                     srcs = [s for a in list(call.args) + [k.value for k in call.keywords]
-                            for s in expr_sources(a, par, al, taint)]
+                            for s in expr_sources(a, par, al, taint, owner_names)]
                     cname = pyast.dotted(call.func, al)
                     file_call = cname in FILE_ACCESS or cname.rsplit(".", 1)[-1] in FILE_ACCESS_ATTR
-                    fsrc = [s for s in expr_sources(call, par, al, taint) if s["kind"] == "foreign_file"] if file_call else []
+                    fsrc = [s for s in expr_sources(call, par, al, taint, owner_names) if s["kind"] == "foreign_file"] if file_call else []
                     if fsrc and not _is_sink(call, al, net_objs):
                         foreign_reads += fsrc
                     if srcs and _is_sink(call, al, net_objs):
@@ -267,8 +290,14 @@ def analyse_python(path: str, text: str, related_tokens: set[str]) -> tuple[list
             findings.append({**enrich(f, DETECTOR_ID, tier, ev), "capability_evidence": True, "confidence": "data-flow"})
             break
     flowed = {(s["line"], s["what"]) for h in hits for s in h["sources"]}   # sources that already reached a sink
+    from .behavior_patterns import INFO_REASON, dev_tooling
+    where = dev_tooling(path)
     for s in {(x["line"], x["what"]): x for x in foreign_reads}.values():
         if (s["line"], s["what"]) in flowed:
+            continue
+        if where:   # single indicator, no sink, in development tooling -> info (reported separately, no tier)
+            (info if info is not None else []).append({"file": path, "line": s["line"], "rule": "Reads a foreign secret store (no network sink found)",
+                          "detail": s["what"], "info_reason": INFO_REASON.format(where=where)})
             continue
         f = {"sev": "Medium", "source": "Behavior data flow", "rule": "Reads a foreign secret store (no network sink found)",
              "file": path, "line": s["line"], "detail": f"{s['what']}; no network sink was found for the value in this file.",
@@ -296,6 +325,18 @@ def analyse_pattern(path: str, text: str) -> list[dict]:
     return [{**enrich(f, DETECTOR_ID, "review"), "capability_evidence": True, "confidence": "pattern match, no data-flow"}]
 
 
+def owner_tokens(ctx) -> set[str]:
+    """All name tokens (length >= 2, no stop list) of the package and repository, for credential-file ownership."""
+    names = [((ctx.features or {}).get("full_name") or ""), (((ctx.security or {}).get("package") or {}).get("name") or ""),
+             (((ctx.releases or {}).get("package") or {}).get("name") or "")]
+    toks = set()
+    for n in names:
+        low = n.lower()
+        toks |= {t for t in re.split(r"[/_.\-@]+", low) if len(t) >= 2}
+        toks |= {t.replace("-", "").replace("_", "") for t in low.split("/") if t}
+    return toks
+
+
 def related_tokens(ctx) -> set[str]:
     names = [((ctx.features or {}).get("full_name") or ""), (((ctx.security or {}).get("package") or {}).get("name") or "")]
     toks = set()
@@ -312,15 +353,15 @@ def detect(ctx) -> dict:
     if data is None:
         from .base import not_assessed
         return not_assessed(DETECTOR_ID, PILLAR, "repository contents not available")
-    toks = related_tokens(ctx)
-    findings, skipped, seen = [], [], 0
+    toks, owners = related_tokens(ctx), owner_tokens(ctx)
+    findings, skipped, seen, info = [], [], 0, []
     for path, text in (data.get("text") or {}).items():
         if pyast.analysable(path, (".py",)):
             seen += 1
             if seen > pyast.MAX_FILES:
                 skipped.append(f"{path}: file limit")
                 continue
-            fs, err = analyse_python(path, text, toks)
+            fs, err = analyse_python(path, text, toks, owners, info)
             if err:
                 skipped.append(f"{path}: {err}")
             findings += fs
@@ -330,4 +371,6 @@ def detect(ctx) -> dict:
     if skipped:
         cov = "partial"
         detail = "; ".join(x for x in (detail, f"{len(skipped)} Python file(s) not analysed, e.g. {skipped[0]}") if x)
-    return make_result(DETECTOR_ID, PILLAR, "ran", findings, coverage=cov, coverage_detail=detail)
+    res = make_result(DETECTOR_ID, PILLAR, "ran", findings, coverage=cov, coverage_detail=detail)
+    res["info_findings"] = info
+    return res
