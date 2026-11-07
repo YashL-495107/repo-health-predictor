@@ -12,7 +12,7 @@ from security import action_verdict, apply_gate, assess_security, content_flags,
 from repo_scan import scan_repo
 from bus_factor import run_bus_factor_analysis
 import hashlib
-from intelligence import SuccessCache, gather_repo_intel, run_ai_layer, _configured_model
+from intelligence import SuccessCache, gather_repo_intel, run_ai_layer, _configured_model, resolve_gemini_key, describe_gemini_key, _MISSING
 from blast_radius import analyze_blast_radius
 
 load_dotenv()
@@ -27,12 +27,16 @@ def server_token() -> str:
     except Exception: pass
     return os.getenv("GITHUB_TOKEN", "")
 
-def server_gemini_key() -> str:
+def _gemini_secret_raw():
     try:
-        k = st.secrets.get("GEMINI_API_KEY", "")
-        if k: return k
-    except Exception: pass
-    return os.getenv("GEMINI_API_KEY", "")
+        return st.secrets.get("GEMINI_API_KEY", _MISSING)
+    except Exception:
+        return _MISSING
+
+
+def server_gemini_key() -> str:
+    key, _, _ = resolve_gemini_key("", _gemini_secret_raw(), os.getenv("GEMINI_API_KEY", ""))
+    return key
 
 def _md_escape(text) -> str:
     return re.sub(r"([\\`*_{}\[\]()#+\-.!|<>~$])", r"\\\1", str(text))
@@ -94,7 +98,8 @@ with st.sidebar:
     user_token = st.text_input("Your own GitHub token (optional)", type="password", placeholder="Leave empty to use the shared token", help="Only needed if the shared token hits GitHub's rate limit. Never stored.")
     token = user_token.strip() or server_token()
     gemini_key_input = st.text_input("Gemini API key (optional, for AI migration & triage)", type="password", placeholder="Leave empty for deterministic heuristics", help="Used for generative architecture migration code snippets and semantic issue triage.")
-    gemini_key = gemini_key_input.strip() or server_gemini_key()
+    gemini_key, key_source, key_notes = resolve_gemini_key(gemini_key_input, _gemini_secret_raw(), os.getenv("GEMINI_API_KEY", ""))
+    st.caption(describe_gemini_key(gemini_key, key_source, key_notes))
     st.caption("Health score bands")
     st.markdown(f"- **Healthy**: {HEALTHY}+\n- **Slowing down**: {SLOWING}-{HEALTHY - 1}\n- **Likely abandoned**: below {SLOWING}")
 

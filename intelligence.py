@@ -53,6 +53,49 @@ def _is_retryable(e: Exception) -> bool:
     return "timeout" in type(e).__name__.lower() or _error_code(e) in RETRYABLE_STATUS
 
 
+_MISSING = object()
+
+
+def resolve_gemini_key(sidebar_value, secrets_value=_MISSING, env_value=None) -> tuple[str, str, list[str]]:
+    """Pick the key in order sidebar -> st.secrets -> environment. Returns (raw_key, source, notes).
+    Only string values count; notes explain anything surprising. Never returns or logs more than the key itself."""
+    notes = []
+    sidebar = str(sidebar_value or "").strip()
+    secret_is_str = isinstance(secrets_value, str)
+    secret = secrets_value.strip() if secret_is_str else ""
+    if secrets_value is not _MISSING and secrets_value is not None and not secret_is_str:
+        notes.append(f"GEMINI_API_KEY in secrets is a {type(secrets_value).__name__}, not a string, so it is ignored")
+    if sidebar and secret:
+        notes.append("a sidebar key and a secrets key both exist; the sidebar key is used")
+    if sidebar:
+        return sidebar, "sidebar", notes
+    if secret:
+        return secret, "secrets", notes
+    env = str(env_value or "").strip()
+    if env:
+        return env, "environment", notes
+    return "", "none", notes
+
+
+def describe_gemini_key(key: str, source: str, notes: list[str] | None = None) -> str:
+    """Safe one-line diagnostic: source, cleaned length and at most the last 4 characters."""
+    if source == "none" or not key:
+        text = "Gemini key from: none"
+    else:
+        cleaned, err = clean_api_key(key)
+        if err:
+            text = f"Gemini key from: {source} (unusable: {err})"
+        else:
+            # Only reveal an ending when the key is long enough that 4 characters are a small fraction of it.
+            ending = f", ends …{cleaned[-4:]}" if len(cleaned) >= 12 else ", too short to show its ending"
+            text = f"Gemini key from: {source} ({len(cleaned)} chars{ending})"
+            if len(cleaned) != len(key):
+                text += "; whitespace/quotes/hidden characters were stripped"
+    for n in notes or []:
+        text += f". Note: {n}"
+    return text
+
+
 def _sdk_error(e: Exception) -> str:
     """Exception type plus HTTP status only: never the key or the full exception text."""
     code = _error_code(e)

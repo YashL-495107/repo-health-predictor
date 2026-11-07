@@ -307,6 +307,27 @@ def test_ai_candidates_deduped():
     _record("AI: one candidate per file:line:skill (highest severity, then strong)", ok,
             "picked: " + "; ".join(f"{f['file']}:{f['line']} {f['rule']}" for f in picked))
 
+def test_gemini_key_caption():
+    from intelligence import resolve_gemini_key, describe_gemini_key
+    key = "AIzaSyFAKEFAKEFAKEFAKEFAKEFAKEFAKEFab12"   # 39 chars, fake
+    cap = lambda *a: describe_gemini_key(*resolve_gemini_key(*a))
+    from_secrets = cap("", key, "")
+    from_sidebar_both = cap(key, "AIzaOTHERsecretKEYvalue000000000000zz99", "")
+    bad_type = cap("", {"value": key}, "")
+    env_only = cap("", None, "  " + key + "\u200b ")
+    none = cap("", None, "")
+    short = cap("abcdefgh", None, "")
+    shown = [from_secrets, from_sidebar_both, bad_type, env_only, none, short]
+    ok = (from_secrets == "Gemini key from: secrets (39 chars, ends …ab12)"
+          and from_sidebar_both.startswith("Gemini key from: sidebar (39 chars, ends …ab12)") and "both exist" in from_sidebar_both
+          and "zz99" not in from_sidebar_both
+          and bad_type.startswith("Gemini key from: none") and "is a dict, not a string" in bad_type
+          and env_only.startswith("Gemini key from: environment (39 chars, ends …ab12)") and "stripped" in env_only
+          and none == "Gemini key from: none"
+          and short == "Gemini key from: sidebar (8 chars, too short to show its ending)"
+          and not any(key[:-4] in c or key[-5:] in c for c in shown))
+    _record("Sidebar key caption: source, length, last 4 only, notes", ok, "\n".join(shown))
+
 def main():
     print("=" * 72 + "\n  Phase 4 Reality Verification\n" + "=" * 72)
     for t in (test_attack1_double_encoded_dropper, test_attack2_hex_exec, test_attack3_setup_exec_net,
@@ -318,7 +339,7 @@ def main():
               test_genai_timeout_and_bad_json, test_genai_rejects_non_ascii_key,
               test_retry_504_then_success, test_retry_401_not_retried, test_retry_three_503s,
               test_ai_cache_skips_failures, test_fallback_snippet_flag,
-              test_ai_candidates_deduped):
+              test_ai_candidates_deduped, test_gemini_key_caption):
         try:
             t()
         except Exception as e:
