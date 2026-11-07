@@ -1,6 +1,6 @@
 # Project capabilities
 
-Status as of ruleset `2026.11.07-4` (branch `trust-engine`). Changes per ruleset version: [docs/RULESET_CHANGELOG.md](docs/RULESET_CHANGELOG.md). This file says what is built, what is
+Status as of ruleset `2026.11.07-5` (branch `trust-engine`). Changes per ruleset version: [docs/RULESET_CHANGELOG.md](docs/RULESET_CHANGELOG.md). This file says what is built, what is
 measured and what is not yet measured. Every number here comes from a script in this repository; anything without
 a script behind it is marked "not yet measured".
 
@@ -53,7 +53,7 @@ GitHub API. Time signals use the releases' own upload times; `as_of` is the late
 | release_delta | Integrity | what release N adds vs N-1: install hook (npm pre/install/postinstall, setup.py install-time execution, .pth start-up file), network or process capability, decoded payload, executable | high_risk only if a new install hook appears together with network access (new, or inside the hook) or decoded indicators; any single new capability is review |
 | tagless_release | Integrity | no git tag for the latest version; source files in the artifact that are in neither the tag/gitHead tree nor the default branch | missing tag = review; extra files with capabilities = high_risk; extra files without = review |
 | dependency_injection | Integrity | a dependency added in release N: young (first release < 30 days before N's upload), lookalike name, install hook (npm scripts; PyPI setup.py via Layer 2, max 3 sdists), removed from the registry, OSV MAL- | OSV MAL- = known_malicious; young + lookalike or young + install hook = high_risk; young, lookalike or removed alone = review |
-| revival_takeover | Integrity | >= 365 days without a release or commits, then a new publisher, new commit author, release burst or rename/transfer indicator | revival alone = review (not escalated by fragility); revival + new install hook or decoded payload in the revived release = high_risk |
+| revival_takeover | Integrity | >= 365 days without a release or commits, then a new publisher, new commit author (bot accounts ignored), release burst or rename/transfer indicator | revival alone = review (metadata-only: not escalated by fragility); revival + new install hook or decoded payload in the revived release = high_risk |
 | publisher_change | Integrity | publisher of release N absent from the previous releases (npm `_npmUser`; PyPI Trusted Publisher provenance); context: long gap, release burst, release_delta high-risk in the same release | review (fragility can escalate it) |
 
 Replay mode: `collect_release_context(owner, repo, package, target_version="3.3.5")` treats an older release as N;
@@ -135,9 +135,11 @@ Fragility describes the project **today**: dormancy and the maintainer count are
 release-based `as_of` used by the release detectors (tested).
 
 **These weights and the escalation threshold (60) are unvalidated design choices**, set by hand and not fitted
-or measured. At 60 or more, a review-tier finding from an Integrity detector is escalated to high_risk and marked
-`fragility_amplified` with a plain-language reason. It never escalates to known_malicious. A missing git tag on its
-own is **not** escalated (many dormant projects never tag; the finding records this reason).
+or measured. At 60 or more, a review-tier Integrity finding **with code/capability evidence** (a new install hook,
+network/process code, a decoded payload, a phantom file with a capability, release-vs-git code drift) is escalated to
+high_risk and marked `fragility_amplified` with a plain-language reason. Metadata-only findings (young dependency
+alone, new publisher alone, missing tag, revival alone, lookalike name alone) stay review and record why. It never
+escalates to known_malicious.
 
 In Phase 1, time-based signals use the scan time as `as_of`; release upload times arrive with Phase 2.
 
@@ -145,7 +147,7 @@ In Phase 1, time-based signals use the scan time as `as_of`; release upload time
 
 | Measurement | Script | Result | Caveat |
 |---|---|---|---|
-| Fixture benchmark: 8 inert malicious samples, 4 benign look-alikes | `python benchmark_fixtures.py` | 8/8 detected, 0/4 benign flagged | Hand-written fixtures, known when the rules were written. This is a regression check, not held-out evidence. |
+| Regression fixtures: 8 inert malicious samples, 4 benign look-alikes | `python benchmark_fixtures.py` | regression fixtures: 8/8 detected (written alongside the rules; not an accuracy measure); 0/4 benign look-alikes flagged | Hand-written alongside the rules. |
 | Maintenance score backtest | `backtest_collect.py`, `backtest_analyze.py` | see `data/backtest_summary.csv` | Measures the maintenance score only, not the Trust score. |
 
 ## Not yet measured

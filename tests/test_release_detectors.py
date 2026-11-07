@@ -216,12 +216,31 @@ def test_pypi_publisher_identity_change_is_review():
     assert tiers(run(publisher_change, history(rels, "PyPI"))) == ["review"]
 
 
-def test_fragile_project_escalates_publisher_change_to_high_risk():
+def _fragile():
+    return compute_fragility(10, {"bus_factor": 1, "silent_departure": True, "burnout_status": "x"}, {"days_since_last_commit": 900})
+
+
+def test_fragile_project_does_not_escalate_a_new_publisher_alone():
+    # Changed in 2026.11.07-5: a new publisher is metadata-only, so it stays review (was escalated to high_risk).
     rels = [npm_release("1.0.1", T1, publisher="mallory"), npm_release("1.0.0", T0, publisher="alice")]
-    fr = compute_fragility(10, {"bus_factor": 1, "silent_departure": True, "burnout_status": "x"}, {"days_since_last_commit": 900})
-    out = run_detectors(DetectorContext.build(releases=history(rels), fragility=fr), registry=[publisher_change])
+    out = run_detectors(DetectorContext.build(releases=history(rels), fragility=_fragile()), registry=[publisher_change])
+    assert out[0]["tier"] == "review" and not out[0]["fragility_amplified"]
+    assert "metadata-only" in out[0]["findings"][0]["no_escalation_reason"]
+
+
+def test_fragile_project_escalates_a_single_new_capability():
+    old = npm_release("1.0.0", T0)
+    new = npm_release("1.1.0", T1, files={"lib/telemetry.js": NET_JS})
+    out = run_detectors(DetectorContext.build(releases=history([new, old]), fragility=_fragile()), registry=[release_delta])
     assert out[0]["tier"] == "high_risk" and out[0]["fragility_amplified"]
-    assert "fragility index" in out[0]["findings"][0]["amplification_reason"]
+    assert "code/capability evidence" in out[0]["findings"][0]["amplification_reason"]
+
+
+def test_fragile_project_does_not_escalate_missing_tag_or_capability_free_phantom_files():
+    new = npm_release("1.2.0", T1, files={"lib/helpers.js": "module.exports = 1;\n"})
+    rc = with_git(history([new]), default_tree={"index.js"}, tags=["v1.1.0"])
+    out = run_detectors(DetectorContext.build(releases=rc, fragility=_fragile()), registry=[tagless_release])[0]
+    assert sorted(f["tier"] for f in out["findings"]) == ["review", "review"] and not out["fragility_amplified"]
 
 
 CMAKE_SETUP = (

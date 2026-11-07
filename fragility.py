@@ -20,16 +20,18 @@ escalation threshold (60) were chosen by hand, not fitted or
 measured. They are documented here so they can be challenged; do not read them as calibrated.
 
 Use: fragility does NOT lower the headline trust score. It raises the severity of Integrity signals: when the
-index is >= ESCALATION_THRESHOLD, a review-tier finding from an Integrity detector becomes high_risk, with
-fragility_amplified=True and a plain-language reason. It never escalates past high_risk; only an external
+index is >= ESCALATION_THRESHOLD, a review-tier Integrity finding WITH code/capability evidence
+(capability_evidence=True: a new install hook, network/process code, a decoded payload, a phantom file with a
+capability, release-vs-git code drift) becomes high_risk, with fragility_amplified=True and a plain-language reason.
+Metadata-only review findings (young dependency alone, new publisher alone, missing tag, revival alone, lookalike
+name alone, phantom file without a capability) stay review and carry no_escalation_reason; escalating them would
+flag projects for being fragile, not for evidence of tampering. It never escalates past high_risk; only an external
 authority can produce known_malicious.
 
 Time: fragility describes the project AS IT IS TODAY, so "days since last commit" and the maintainer count are
 measured at scan time (today's date), on purpose, and are NOT measured against the release-based as_of used by
 the release detectors. Replaying an old incident (Phase 5) must pass features recorded at that time.
 
-Not escalated: findings marked no_fragility_escalation (a missing git tag on its own: many dormant projects never
-tag, so escalating it would flag them for being dormant, not for any takeover evidence).
 """
 from __future__ import annotations
 
@@ -86,21 +88,33 @@ def compute_fragility(maintenance_score=None, bus_factor: dict | None = None, fe
             "threshold": ESCALATION_THRESHOLD, "unvalidated": True, "measured_at": "scan time (today)"}
 
 
+METADATA_ONLY_REASON = ("Not escalated by fragility: a metadata-only signal (no code or capability evidence). "
+                        "Fragility escalates only review findings backed by code: a new install hook, network/process "
+                        "code, a decoded payload, or a phantom file with a capability.")
+
+
 def amplify(result: dict, fragility: dict) -> dict:
-    """Escalate review -> high_risk for an Integrity detector when fragility >= threshold. Returns a new dict."""
+    """For an Integrity detector when fragility >= threshold: escalate review -> high_risk ONLY for findings with
+    capability_evidence=True; record why metadata-only review findings were left alone. Returns a new dict."""
     score = (fragility or {}).get("score")
     if (result.get("pillar") != "Integrity" or result.get("status") != "ran" or not isinstance(score, (int, float))
-            or score < ESCALATION_THRESHOLD
-            or not any(f.get("tier") == "review" and not f.get("no_fragility_escalation") for f in result.get("findings", []))):
+            or score < ESCALATION_THRESHOLD or not any(f.get("tier") == "review" for f in result.get("findings", []))):
         return result
     top = ", ".join((fragility.get("factors") or [])[:2])
     reason = (f"Escalated from review to high-risk because the fragility index is {score:.0f} "
-              f"(threshold {ESCALATION_THRESHOLD}): {top}. Fragile projects are takeover targets.")
-    findings = []
+              f"(threshold {ESCALATION_THRESHOLD}): {top}. Fragile projects are takeover targets, and this finding "
+              "has code/capability evidence.")
+    findings, amplified = [], False
     for f in result["findings"]:
-        if f.get("tier") == "review" and not f.get("no_fragility_escalation"):
-            f = {**f, "tier": "high_risk", "fragility_amplified": True, "amplification_reason": reason}
+        if f.get("tier") == "review":
+            if f.get("capability_evidence"):
+                f = {**f, "tier": "high_risk", "fragility_amplified": True, "amplification_reason": reason}
+                amplified = True
+            else:
+                f = {**f, "no_escalation_reason": METADATA_ONLY_REASON}
         findings.append(f)
     from detectors.base import worst_tier
-    return {**result, "findings": findings, "tier": worst_tier(x["tier"] for x in findings) or "none_found",
-            "fragility_amplified": True, "amplification_reason": reason}
+    out = {**result, "findings": findings, "tier": worst_tier(x["tier"] for x in findings) or "none_found"}
+    if amplified:
+        out.update(fragility_amplified=True, amplification_reason=reason)
+    return out

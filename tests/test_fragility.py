@@ -5,10 +5,12 @@ from detectors.context import DetectorContext
 from fragility import ESCALATION_THRESHOLD, WEIGHTS, amplify, compute_fragility
 
 
-def review_finding():
-    return enrich({"sev": "Medium", "source": "Layer 4: Release-to-Git Diff", "rule": "Release drift (review)",
-                   "file": "pkg/x.py", "line": 4, "detail": "", "fix": "", "url": None, "strong": False},
-                  "release_vs_git", "review")
+def review_finding(capability=True):
+    # release-vs-git code drift is code evidence; since 2026.11.07-5 only such findings can be escalated
+    f = enrich({"sev": "Medium", "source": "Layer 4: Release-to-Git Diff", "rule": "Release drift (review)",
+                "file": "pkg/x.py", "line": 4, "detail": "", "fix": "", "url": None, "strong": False},
+               "release_vs_git", "review")
+    return {**f, "capability_evidence": capability}
 
 
 def fragile():
@@ -83,7 +85,7 @@ def test_missing_tag_alone_is_not_escalated_and_records_why():
     f = out["findings"][0]
     assert fragile()["score"] >= ESCALATION_THRESHOLD
     assert out["tier"] == "review" and f["tier"] == "review" and not out["fragility_amplified"]
-    assert f["no_fragility_escalation"] is True and "never tag" in f["no_escalation_reason"]
+    assert "metadata-only" in f["no_escalation_reason"]   # was: per-detector no_fragility_escalation flag (-3)
 
 
 def test_live_fragility_uses_scan_time_not_release_as_of():
@@ -101,3 +103,9 @@ def test_live_fragility_uses_scan_time_not_release_as_of():
     assert fr["measured_at"] == "scan time (today)"
     assert fr["components"]["dormancy"]["value"] == round(100 * 3 / 730, 1)   # 3 days (today), not ~7 years
     assert fr["components"]["maintainers"]["value"] == 0
+
+
+def test_metadata_only_review_finding_is_not_escalated():
+    r = amplify(make_result("release_vs_git", "Integrity", "ran", [review_finding(capability=False)]), fragile())
+    assert r["tier"] == "review" and not r["fragility_amplified"]
+    assert "metadata-only" in r["findings"][0]["no_escalation_reason"]

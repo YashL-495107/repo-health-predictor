@@ -75,6 +75,7 @@ def detect(ctx) -> dict:
             f"Release {new['version']} adds {' + '.join(parts)} absent from {old['version']}",
             "New in this release: " + "; ".join(f"{LABELS[k]}: {', '.join(_items(d, k, 3))}" for k in res["kinds"]),
             ev, file=_first_path(d, ("network", "decoded", "process", "binary"))))
+        findings[-1]["capability_evidence"] = True
     else:
         for k in res["kinds"]:
             if k == "hook_network":
@@ -83,4 +84,5 @@ def detect(ctx) -> dict:
                 DETECTOR_ID, "review", f"Release {new['version']} adds {LABELS[k]} absent from {old['version']}",
                 ", ".join(_items(d, k, 5)), [pair] + [{"type": "file_line", "file": i, "line": None} for i in _items(d, k)],
                 file=_first_path(d, (k,))))
+            findings[-1]["capability_evidence"] = True   # every release_delta finding is backed by code
     return make_result(DETECTOR_ID, PILLAR, "ran", findings, coverage=coverage, coverage_detail="; ".join(detail) or None)

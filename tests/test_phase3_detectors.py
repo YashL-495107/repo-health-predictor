@@ -127,7 +127,7 @@ def test_revival_alone_is_review_and_not_escalated_by_fragility():
     fr = compute_fragility(5, {"bus_factor": 1, "silent_departure": True, "burnout_status": "x"}, {"days_since_last_commit": 900})
     out = run_detectors(DetectorContext.build(releases=history(revival_rels()), fragility=fr), registry=[revival_takeover])[0]
     f = out["findings"][0]
-    assert out["tier"] == "review" and not out["fragility_amplified"] and f["no_fragility_escalation"]
+    assert out["tier"] == "review" and not out["fragility_amplified"] and "metadata-only" in f["no_escalation_reason"]
     assert "no release for 400 days" in f["detail"] and "new publisher mallory" in f["detail"]
     assert "genuine maintainer handover" in f["detail"] and "Fragility index" in f["detail"]
 
@@ -181,3 +181,27 @@ def test_git_revival_window_is_relative_to_release_time():
     rev = revival_takeover.git_revival(commits, as_of)
     assert rev and rev["gap_days"] == 869 and rev["authors_before"] == ["a"] and rev["authors_after"] == ["b"]
     assert revival_takeover.git_revival(commits, datetime(2021, 6, 1, tzinfo=timezone.utc)) is None   # revival too long before as_of
+
+
+def test_young_dependency_alone_on_fragile_project_stays_review():
+    fr = compute_fragility(5, {"bus_factor": 1, "silent_departure": True, "burnout_status": "x"}, {"days_since_last_commit": 900})
+    out = run_detectors(DetectorContext.build(releases=dep_ctx(prof("flatmap-stream", age=12)), fragility=fr),
+                        registry=[dependency_injection])[0]
+    assert out["tier"] == "review" and "metadata-only" in out["findings"][0]["no_escalation_reason"]
+
+
+def test_bot_accounts_are_not_new_commit_authors():
+    from datetime import datetime, timezone
+    as_of = datetime(2019, 6, 1, tzinfo=timezone.utc)
+    commits = [{"date": "2019-05-25T00:00:00Z", "author": "dependabot[bot]"}, {"date": "2019-05-20T00:00:00Z", "author": "renovate[bot]"},
+               {"date": "2019-05-18T00:00:00Z", "author": "github-actions[bot]"}, {"date": "2019-05-10T00:00:00Z", "author": "alice"},
+               {"date": "2017-11-01T00:00:00Z", "author": "alice"}]
+    rev = revival_takeover.git_revival(commits, as_of)
+    assert rev["authors_after"] == ["alice"] and rev["authors_before"] == ["alice"]
+    rc = history(revival_rels(new_pub="alice", gap_days=30))
+    rc["activity"] = {"status": "ok", "complete": True, "commits": commits}
+    assert run(revival_takeover, rc)["findings"] == []          # only bots are "new": no revival under new hands
+    # bot commits alone do not end a silence either
+    only_bots = [{"date": "2019-05-25T00:00:00Z", "author": "dependabot[bot]"}, {"date": "2017-11-01T00:00:00Z", "author": "alice"},
+                 {"date": "2017-10-01T00:00:00Z", "author": "alice"}]
+    assert revival_takeover.git_revival(only_bots, as_of) is None

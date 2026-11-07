@@ -17,6 +17,7 @@ delta(new, old) compares two releases and returns the capability kinds and items
 """
 from __future__ import annotations
 
+import hashlib
 import re
 import threading
 from pathlib import PurePosixPath
@@ -59,7 +60,12 @@ def file_capabilities(path: str, text: str) -> set[str]:
 
 
 def capabilities(release: dict) -> dict:
-    key = (release.get("version"), (release.get("artifact") or {}).get("url"), id(release.get("contents")))
+    # Key on the CONTENT, not id(): ids are reused after garbage collection, which returned stale results.
+    contents_ = release.get("contents") or {}
+    key = (release.get("version"), (release.get("artifact") or {}).get("url"),
+           tuple(sorted((release.get("install_scripts") or {}).items())),
+           tuple(sorted((p, hashlib.sha256(t.encode("utf-8", "ignore")).hexdigest()) for p, t in (contents_.get("text") or {}).items())),
+           tuple(sorted((b.get("path"), b.get("sha256")) for b in contents_.get("binaries") or [])))
     with _lock:
         if key in _cache:
             return _cache[key]

@@ -11,8 +11,7 @@ Signals, all relative to as_of = the upload time of the latest release N:
             payload in N's artifact (Layer 1), or a strong Layer 2 setup.py pattern in N
 Tier: silence + at least one activity signal = review ("revival alone"). Revival + capability = high_risk.
 Silence without an activity signal (a quiet maintenance release by the usual publisher) is not flagged.
-"Revival alone" is NOT escalated by fragility: dormancy is already its precondition, so escalating would flag
-dormant projects for being dormant, not for takeover evidence. The fragility index is reported in the detail.
+"Revival alone" is metadata-only, so fragility does not escalate it (dormancy is also its precondition). The fragility index is reported in the detail.
 Legitimate cases that look the same: a genuine maintainer handover or adoption (often announced in the README or
 issues), a maintainer returning after a break, moving to CI / Trusted Publishing (new publisher identity), an
 organisation transfer. The evidence (dates, earlier and new publishers/authors) is listed so a human can judge.
@@ -32,6 +31,13 @@ DETECTOR_ID = "revival_takeover"
 SILENCE_DAYS = 365
 REVIVAL_WINDOW_DAYS = 180
 BURST_COUNT, BURST_HOURS = 3, 72
+BOT_ACCOUNTS = {"dependabot[bot]", "renovate[bot]", "github-actions[bot]", "dependabot-preview[bot]", "renovate-bot"}
+
+
+def is_bot(author: str | None) -> bool:
+    """Automation accounts are not "new commit authors": exact known names, or any GitHub App login ending [bot]."""
+    a = (author or "").strip().lower()
+    return a in BOT_ACCOUNTS or a.endswith("[bot]")
 
 
 def _t(s):
@@ -48,8 +54,10 @@ def _repo_slug(url: str | None) -> str | None:
 
 def git_revival(commits: list[dict], as_of: datetime) -> dict | None:
     """Largest gap >= SILENCE_DAYS between consecutive commits whose later commit is within REVIVAL_WINDOW_DAYS
-    before as_of. Returns {gap_days, silent_since, revived_at, authors_before, authors_after} or None."""
-    pts = sorted(((_t(c.get("date")), c.get("author")) for c in commits if _t(c.get("date"))), key=lambda x: x[0])
+    before as_of. Bot commits (dependabot, renovate, github-actions, any *[bot]) are ignored: they neither break
+    the silence nor count as new authors. Returns {gap_days, silent_since, revived_at, authors_before, authors_after}."""
+    pts = sorted(((_t(c.get("date")), c.get("author")) for c in commits if _t(c.get("date")) and not is_bot(c.get("author"))),
+                 key=lambda x: x[0])
     pts = [p for p in pts if p[0] <= as_of]
     best = None
     for (t1, _), (t2, _) in zip(pts, pts[1:]):
@@ -130,9 +138,5 @@ def detect(ctx) -> dict:
     f = release_finding(DETECTOR_ID, tier,
                         f"Release {new['version']} revives a silent project" + (" with new install-time capability" if caps else " under new hands"),
                         detail, ev, fix="Confirm the handover with the previous maintainers before installing.")
-    if tier == "review":
-        f["no_fragility_escalation"] = True
-        f["no_escalation_reason"] = ("Revival alone is not escalated by fragility: dormancy is its precondition, so it would "
-                                     "flag dormant projects for being dormant, not for takeover evidence.")
     return make_result(DETECTOR_ID, PILLAR, "ran", [f], coverage="partial" if notes else "full",
                        coverage_detail="; ".join(notes) or None)

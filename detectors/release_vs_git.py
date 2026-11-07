@@ -20,8 +20,8 @@ def detect(ctx) -> dict:
     gate = content_gate(ctx, DETECTOR_ID, PILLAR, "layer4")
     if gate:
         return gate
-    out = [enrich(f, DETECTOR_ID, t) for f in proof_findings(ctx)
-           if str(f.get("source", "")).startswith("Layer 4") and (t := legacy_tier(f))]
+    out = [{**enrich(f, DETECTOR_ID, t), "capability_evidence": True}   # release-vs-git code drift is code evidence
+           for f in proof_findings(ctx) if str(f.get("source", "")).startswith("Layer 4") and (t := legacy_tier(f))]
     st = (((ctx.scan or {}).get("malware_proof") or {}).get("layers") or {}).get("layer4") or {}
     cov, detail = text_coverage(ctx, ("py",))
     if st.get("partial"):

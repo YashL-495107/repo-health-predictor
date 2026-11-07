@@ -3,6 +3,20 @@
 Every change to detector logic, thresholds, tier mapping or fragility weights bumps `RULESET_VERSION`
 (`detectors/version.py`). Results produced under different versions are not directly comparable.
 
+## 2026.11.07-5
+
+- **Fragility escalation only for findings with code/capability evidence** (`capability_evidence=True`: a new install
+  hook, network/process code, a decoded payload, a phantom file with a capability, release-vs-git code drift).
+  Metadata-only review findings (young dependency alone, new publisher alone, missing tag, revival alone, lookalike
+  alone, phantom file without a capability) stay review and carry `no_escalation_reason`. This replaces the
+  per-detector exemptions for missing tags and revival in -3 / -4, and changes publisher_change: on a fragile
+  project a new publisher alone is now review (was escalated to high_risk).
+- revival_takeover ignores bot accounts (dependabot[bot], renovate[bot], github-actions[bot], any *[bot]) as commit
+  authors; their commits neither break a silence nor count as new authors.
+- Bug fix: the per-release capability cache was keyed by `id()` of the archive contents, which Python reuses after
+  garbage collection, and ignored npm install scripts; it could return another release's capabilities (seen as an
+  order-dependent test failure). It is now keyed by content hashes and scripts.
+
 ## 2026.11.07-4
 
 - New Integrity detectors: **dependency_injection** (new dependency in release N: young < 30 days at the release,

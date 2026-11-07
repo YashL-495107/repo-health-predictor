@@ -16,6 +16,9 @@ Evidence tiers (never blur these):
   review           a single indicator worth a human look
   none_found       the detector ran and found nothing. This is not a guarantee of anything.
   unknown          the detector could not run
+
+Findings may carry capability_evidence=True when they are backed by code (a hook, network/process code, a decoded
+payload, a phantom file with a capability). Only those can be escalated by the fragility index (fragility.py).
 """
 from __future__ import annotations
 

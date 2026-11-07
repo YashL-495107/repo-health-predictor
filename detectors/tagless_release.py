@@ -3,8 +3,8 @@
 Signals: (a) no git tag matches the latest version (tried: 1.2.3, v1.2.3, name-1.2.3, name@1.2.3, release-1.2.3,
 ...); (b) "phantom" source files in the artifact that exist neither in the repository at the matching tag (or, for
 npm, at the release's gitHead commit) nor on the default branch.
-Tier: a missing tag alone is review (many projects do not tag) and is NOT escalated by fragility, for the same
-reason. When GitHub truncates the recursive tree listing, the phantom-file check is skipped (coverage partial),
+Tier: a missing tag alone is review (many projects do not tag); it is metadata-only, so fragility does not
+escalate it. When GitHub truncates the recursive tree listing, the phantom-file check is skipped (coverage partial),
 because missing paths would look like phantom files. Phantom files that carry a capability (network,
 process, decoded payload, or an install hook that runs them) are high_risk; phantom files without one are review.
 Generated metadata (PKG-INFO, *.egg-info, *.dist-info, _version.py, package.json, ...), build outputs (dist/,
@@ -62,9 +62,6 @@ def detect(ctx) -> dict:
             "Many projects do not tag releases; this is a weak signal on its own.",
             [pair, {"type": "registry_field", "field": "tags", "count": n_tags}],
             fix="Check which commit the release was built from."))
-        findings[-1]["no_fragility_escalation"] = True
-        findings[-1]["no_escalation_reason"] = ("A missing tag on its own is not escalated by fragility: many dormant "
-                                               "projects never tag, so it would flag them for being dormant, not for takeover evidence.")
 
     contents = new.get("contents")
     trees = git.get("trees") or {}
@@ -102,6 +99,7 @@ def detect(ctx) -> dict:
                 "; ".join(f"{p} ({', '.join(c)})" for p, c in risky[:5]) + f". Compared with {ref}.",
                 [pair] + [{"type": "file_line", "file": p, "line": None, "capabilities": c} for p, c in risky[:10]],
                 file=risky[0][0], fix="Do not install until the extra files are explained by the maintainers."))
+            findings[-1]["capability_evidence"] = True
         elif phantom:
             findings.append(release_finding(
                 DETECTOR_ID, "review", f"Release {new['version']} contains {len(phantom)} source file(s) not in the repository",
