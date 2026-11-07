@@ -82,7 +82,9 @@ def capabilities(release: dict) -> dict:
         for f in scan_static_setup_py({"setup.py": text["setup.py"]}, lambda *_: None)["findings"]:
             if f.get("sev") in ("High", "Medium") or f.get("strong"):
                 caps["install_hook"]["setup.py " + str(f.get("func") or f.get("rule"))] = f"{f.get('rule')} (line {f.get('line')})"
-                if f.get("strong"):
+                if f.get("kind") == "concealed":
+                    caps["decoded"][f"setup.py:{f.get('line')}"] = f.get("rule")   # hidden code, like a decoded payload
+                elif f.get("strong"):
                     caps["hook_network"]["setup.py"] = f.get("rule")
     for p, t in text.items():
         if p.endswith(".pth") and re.search(r"^\s*import\s", t, re.M):

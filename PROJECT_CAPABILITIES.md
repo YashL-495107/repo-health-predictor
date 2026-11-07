@@ -1,6 +1,6 @@
 # Project capabilities
 
-Status as of ruleset `2026.11.07-2` (branch `trust-engine`, end of Phase 2). This file says what is built, what is
+Status as of ruleset `2026.11.07-3` (branch `trust-engine`). Changes per ruleset version: [docs/RULESET_CHANGELOG.md](docs/RULESET_CHANGELOG.md). This file says what is built, what is
 measured and what is not yet measured. Every number here comes from a script in this repository; anything without
 a script behind it is marked "not yet measured".
 
@@ -113,7 +113,9 @@ Bandit code findings stay in the findings table but do not feed a pillar.
 0-100, higher = more fragile. Relative weights: 45 (100 - maintenance score), 25 bus factor (1 -> 100, 2 -> 60,
 3 -> 30, 4+ -> 0), 15 dormancy (days since last commit / 730), 15 silent departure of the top maintainer, 10 registry
 maintainer count (1 -> 100, 2 -> 50, 3+ -> 0; npm packument `maintainers`, PyPI `ownership.roles`). Missing parts
-are dropped and the rest rescaled to 100%.
+are dropped and the rest rescaled to 100%. Bus factor and maintainer count are correlated (both measure how few
+people hold the project), as are maintenance score and dormancy; the weights do not correct for this partial double
+counting.
 
 Fragility describes the project **today**: dormancy and the maintainer count are measured at scan time, not at the
 release-based `as_of` used by the release detectors (tested).
@@ -129,7 +131,7 @@ In Phase 1, time-based signals use the scan time as `as_of`; release upload time
 
 | Measurement | Script | Result | Caveat |
 |---|---|---|---|
-| Fixture benchmark: 5 inert malicious samples, 4 benign look-alikes | `python benchmark_fixtures.py` | 5/5 detected, 0/4 benign flagged | Hand-written fixtures, known when the rules were written. This is a regression check, not held-out evidence. |
+| Fixture benchmark: 8 inert malicious samples, 4 benign look-alikes | `python benchmark_fixtures.py` | 8/8 detected, 0/4 benign flagged | Hand-written fixtures, known when the rules were written. This is a regression check, not held-out evidence. |
 | Maintenance score backtest | `backtest_collect.py`, `backtest_analyze.py` | see `data/backtest_summary.csv` | Measures the maintenance score only, not the Trust score. |
 
 ## Not yet measured

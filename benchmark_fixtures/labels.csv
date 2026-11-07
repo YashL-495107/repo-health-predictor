@@ -8,3 +8,6 @@ benign_regex_environ.py.sample,benign
 benign_git_describe_setup.py.sample,benign
 benign_wait_for_port.sh.sample,benign
 benign_readme_base64.md.sample,benign
+mal_obfuscated_exec_setup.py.sample,malicious
+mal_curl_pipe_sh_setup.py.sample,malicious
+mal_base64_exec_setup.py.sample,malicious
