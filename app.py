@@ -1,5 +1,6 @@
 """GitHub Repository Health & Abandonment Predictor - Streamlit app."""
 import os
+import re
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
@@ -26,6 +27,10 @@ def server_token() -> str:
     return os.getenv("GITHUB_TOKEN", "")
 
 @st.cache_data(ttl=3600, show_spinner=False)
+def _md_escape(text) -> str:
+    return re.sub(r"([\\`*_{}\[\]()#+\-.!|<>~$])", r"\\\1", str(text))
+
+
 def analyze(owner: str, repo: str, token: str, gemini_key: str = "") -> dict:
     client = GitHubClient(token)
     features = fetch_features(client, owner, repo)
@@ -51,9 +56,8 @@ def analyze(owner: str, repo: str, token: str, gemini_key: str = "") -> dict:
     except Exception as e: blast = {"blast_score": 0.0, "tier": "Unknown", "pinned_deps": 0, "unpinned_deps": 0, "typosquat_alerts": [], "compromise_simulation": "", "total_dependents": 0}
 
     try: 
-        malware_findings = (scan.get("malware_proof") or {}).get("findings", [])
-        intel = run_intelligence_engine(client, owner, repo, features, result, malware_findings=malware_findings, gemini_api_key=gemini_key)
-    except Exception as e: intel = {"forks": [], "issue_triage": {"counts": {}, "critical_samples": []}, "ai_report": {"executive_memo": "", "issue_triage_summary": "", "alternatives": []}}
+        intel = run_intelligence_engine(client, owner, repo, features, result, gemini_api_key=gemini_key, scan_findings=scan.get("findings", []))
+    except Exception as e: intel = {"forks": [], "issue_triage": {"counts": {}, "critical_samples": []}, "ai_report": {"executive_memo": "", "issue_triage_summary": "", "alternatives": []}, "ai_audit_trails": {}, "ai_status": f"AI layer did not run ({type(e).__name__})"}
     return {"features": features, "result": result, "security": security, "flags": flags, "scan": scan, "bus_factor": bus_factor, "blast_radius": blast, "intelligence": intel}
 
 with st.sidebar:
@@ -126,6 +130,9 @@ if go_clicked or (target and st.session_state.get("analyzed") == target):
     mal_osv = any(x.get("source") == "OSV (Confirmed Malware)" for x in sec["findings"])
     if scan.get("known_malicious_count", 0) > 0 or mal_osv:
         headline, why = ("DO NOT USE: known malicious indicator", "Do not install or run it.")
+        if scan.get("known_malicious_count", 0) == 0:
+            mal_item = next(x.get("item") for x in sec["findings"] if x.get("source") == "OSV (Confirmed Malware)")
+            why = f"Depends on a package that OSV lists as malicious: {mal_item}. Remove it before installing or running this repo."
     elif scan.get("high_risk_pattern_count", 0) > 0:
         headline, why = ("High-risk patterns found: review manually before use", "Indicators, not proof of malware.")
     elif scan["strong"] and sec["level"] not in ("Elevated", "High") and not dead:
@@ -134,10 +141,13 @@ if go_clicked or (target and st.session_state.get("analyzed") == target):
         headline, why = ("Review the code findings", f"The scan found {scan['code_high']} high-severity, high-confidence code finding(s). Static analysis is noisy, so this does not change the score on its own, but check each one before relying on this code.")
     
     st.markdown("#### Verdict")
-    box = st.error if (headline in ("Replace it", "Review urgently") or "DO NOT USE" in headline) else (st.warning if headline in ("Upgrade or review", "Use with caution", "Review the findings before using", "Plan to migrate", "Review the code findings") else st.info)
+    box = st.error if (headline in ("Replace it", "Review urgently") or "DO NOT USE" in headline) else (st.warning if headline in ("Upgrade or review", "Use with caution", "Review the findings before using", "Plan to migrate", "Review the code findings", "High-risk patterns found: review manually before use") else st.info)
     box(f"**{headline}.** {why}")
     if sec["findings"]: st.dataframe(pd.DataFrame(sec["findings"]).rename(columns={"severity": "Level", "source": "Source", "item": "Item", "detail": "Detail"}), hide_index=True, width="stretch")
 
+    intel_data = data.get("intelligence") or {}
+    audit_trails = intel_data.get("ai_audit_trails", {})
+    ai_status = intel_data.get("ai_status", "no API key")
     proof = scan.get("malware_proof")
     if proof:
         st.markdown("#### 🛡️ Malware & Supply-Chain Indicators")
@@ -154,14 +164,22 @@ if go_clicked or (target and st.session_state.get("analyzed") == target):
             st.write(" · ".join(f"**{k}**: {v}" for k, v in beh["categories"].items()))
             if beh.get("patterns"):
                 st.warning("Malware-like combination(s): " + ", ".join(beh["patterns"]) + ". Indicators, not proof of intent.")
-        if audit_trails:
-            st.markdown("##### 🧠 AI second opinion on high-risk findings")
-            st.caption("Gemini's reading of the evidence. Advisory only: it can be wrong and never changes the score.")
-            for key, trail in audit_trails.items():
-                with st.expander(f"🔍 {key}: {trail.get('verdict')} ({trail.get('confidence')} confidence)"):
-                    st.markdown(f"**Attack vector:** {trail.get('attack_vector')}")
-                    st.markdown(f"**Reasoning:** {trail.get('reasoning')}")
-                    st.markdown(f"**If executed:** {trail.get('execution_trace')}")
+
+    st.markdown("#### 🧠 AI explanation of findings (advisory, never changes the score)")
+    st.caption("Skills come from the local skills/ folder; the AI can be wrong and cannot change the verdict.")
+    ok_trails = {k: t for k, t in audit_trails.items() if "error" not in t}
+    if not ok_trails:
+        st.info("AI explanation not shown: " + str(ai_status))
+    else:
+        if ai_status and "failed" in ai_status: st.info("AI explanation status: " + str(ai_status))
+        for key, trail in ok_trails.items():
+            # verdict/confidence are validated against fixed sets; the location comes from the repo, so escape it.
+            with st.expander(f"🔍 {_md_escape(trail.get('location', key))}: {trail['verdict']} ({trail['confidence']} confidence)"):
+                st.text("Skill used: " + trail["skill_used"])
+                st.text("Issue addressed: " + trail.get("issue_addressed", ""))
+                st.text("How:\n" + "\n".join("  • " + h for h in trail.get("how", [])))
+                st.text(f"Verdict: {trail['verdict']} ({trail['confidence']} confidence)")
+                st.text("Location: " + trail.get("location", key))
 
     bf_data = data.get("bus_factor")
     if bf_data and not str(bf_data.get("burnout_status", "")).startswith("Unavailable"):
@@ -193,7 +211,7 @@ if go_clicked or (target and st.session_state.get("analyzed") == target):
     if intel:
         st.markdown("#### 🧠 AI Migration Engine, Semantic Issue Triage & Active Forks")
         ai_rep = intel.get("ai_report", {})
-        if ai_rep.get("executive_memo"): st.markdown(f"**Executive Memo:** {ai_rep['executive_memo']}")
+        if ai_rep.get("executive_memo"): st.text("Executive Memo: " + str(ai_rep["executive_memo"]))
         triage = intel.get("issue_triage", {})
         counts = triage.get("counts", {})
         if counts:
@@ -209,7 +227,8 @@ if go_clicked or (target and st.session_state.get("analyzed") == target):
         if alts:
             st.markdown("##### 🔄 Recommended Drop-in Replacements & Migration")
             for alt in alts:
-                st.markdown(f"**{alt.get('name')}** (`{alt.get('ecosystem')}`) — *Effort: {alt.get('effort')}*\n\n{alt.get('why')}")
+                status = f" [{alt['registry_status']}]" if alt.get("registry_status") else ""
+                st.text(f"{alt.get('name')} ({alt.get('ecosystem')}) — Effort: {alt.get('effort')}{status}\n{alt.get('why')}")
                 if alt.get("snippet"): st.code(alt["snippet"], language="python" if "python" in str(alt.get("ecosystem")).lower() else "javascript")
 
     if scan.get("code_scan") == "unavailable": st.warning("The Python code scan could not run on this server, so code findings are missing from this result.")

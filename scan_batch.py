@@ -1,6 +1,5 @@
 """Calibration run: scan the repos from the backtest and measure how often the scanner raises STRONG findings."""
 import argparse, os, time
-from collections import Counter
 import pandas as pd
 from dotenv import load_dotenv
 from github_client import GitHubClient, parse_repo
@@ -23,7 +22,6 @@ def main():
         owner, name = parse_repo(full)
         t0 = time.time()
         res = scan_repo(client, owner, name)
-        fs = res["findings"]
         rows.append({
             "repo": full, "ran": res["ran"], "strong": res["strong"], "review": res["review"], 
             "known_malicious_count": res.get("known_malicious_count", 0),
