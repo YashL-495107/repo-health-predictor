@@ -1,6 +1,6 @@
 # Project capabilities
 
-Status as of ruleset `2026.11.07-8` (branch `trust-engine`). Changes per ruleset version: [docs/RULESET_CHANGELOG.md](docs/RULESET_CHANGELOG.md). This file says what is built, what is
+Status as of ruleset `2026.11.07-9` (**frozen** for the Phase 5 benchmark) (branch `trust-engine`). Changes per ruleset version: [docs/RULESET_CHANGELOG.md](docs/RULESET_CHANGELOG.md). This file says what is built, what is
 measured and what is not yet measured. Every number here comes from a script in this repository; anything without
 a script behind it is marked "not yet measured".
 
@@ -97,8 +97,13 @@ Responses are cached on disk (`http_cache.py`, keyed by URL and snapshot date; `
 ## Dev set
 
 Rules were tuned (rulesets 2026.11.07-7 and -8) on 8 real clients: boto3, twine, sentry-python, docker-py, paramiko,
-keyring, certbot and pip. They are a **dev set** and must not be reported as held-out evidence. Tuning on them stopped
-at 2026.11.07-8.
+keyring, certbot and pip. They are a **dev set** and must not be reported as held-out evidence. The last tuning round
+was 2026.11.07-9 (structural: one shared non-shipping-path classifier); the ruleset is frozen from there.
+
+Non-shipping paths (`detectors/paths.py`: tests, fixtures, assets, samples, examples, docs, _static, _build, tools,
+scripts, .agents, tasks.py, noxfile.py, rule directories; never .github): review-tier single indicators there are info.
+**Known evasion:** a single-indicator payload placed in such a path is reported as info, not review. Multi-signal
+findings (high_risk, known_malicious) in those paths are unchanged.
 
 Hand-maintained lists that encode judgement (review them when adding rules): the known-API host list and stop
 tokens, the client-credential-file owner map, and the SSH client library aliases (`SSH_CLIENT_LIBS`: paramiko,

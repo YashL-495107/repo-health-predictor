@@ -196,18 +196,16 @@ SAMPLE_LOOKING = re.compile(r"example|sample|dummy|fake|test|xxxx|changeme|place
 
 
 def secret_review_reason(path: str, kind: str, line: str) -> str | None:
-    """Why a private key block or sample-looking key is review rather than strong: its path has a test / sample /
-    asset / docs / rule-definition directory (matched on name tokens, so 'certbot_integration_tests' and
-    'sample-config' count). None means keep the normal rules."""
-    if kind != "Private key block" and not SAMPLE_LOOKING.search(line or ""):
+    """Why a secret is info rather than strong: its path is non-shipping (detectors/paths.py: tests, fixtures,
+    assets, samples, examples, docs, _static, _build, tools, scripts, .agents, tasks.py, noxfile.py, rule
+    directories; matched on name tokens, so 'certbot_integration_tests' and 'sample-config' count). None means
+    keep the normal rules. Applies to every secret kind since 2026.11.07-9."""
+    from detectors.paths import non_shipping
+    where = non_shipping(path)
+    if not where:
         return None
-    tokens = {t for part in path.lower().split("/")[:-1] for t in re.split(r"[-_.]+", part) if t}
-    hit = sorted(tokens & SECRET_REVIEW_TOKENS)
-    if not hit:
-        return None
-    return (f"Downgraded from strong to info: the path contains a {'/'.join(hit)} directory, where test keys and "
-            "sample credentials are normal (same rule as exact tests/ and docs/ paths). The same key elsewhere would "
-            "be strong.")
+    return (f"Downgraded from strong to info: the path is non-shipping ({where}), where test keys and sample "
+            "credentials are normal. The same key in shipped code would be strong.")
 
 
 def scan_secrets(text: dict[str, str], limit: int = 20) -> list[dict]:

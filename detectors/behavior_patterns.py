@@ -21,20 +21,14 @@ from .base import content_gate, enrich, legacy_tier, make_result, proof_findings
 DETECTOR_ID, PILLAR = "behavior_patterns", "Behavior"
 # single-indicator regex rules that credential_exfiltration owns for Python files it analysed with ast
 DATAFLOW_OWNED = {"Credential access: reads credential files", "Credential access: dumps all environment variables"}
-DEV_TOOLING_PARTS = {"scripts", "script", "tools", "tool", ".agents", "test", "tests", "testing", "docs", "doc",
-                     "examples", "example", ".github", "ci", "bin", "benchmarks", "dev"}
-DEV_TOOLING_FILES = {"tasks.py", "noxfile.py", "fabfile.py", "dodo.py", "conftest.py", "setup_dev.py", "release.py",
-                     "Makefile", "justfile"}
 INFO_REASON = ("Downgraded to info: a single credential/environment indicator with no network sink, in a "
-               "development-tooling path ({where}). Such files read tokens to run releases, CI or tests.")
+               "non-shipping path ({where}).")
 
 
 def dev_tooling(path: str) -> str | None:
-    p = PurePosixPath(path)
-    if p.name in DEV_TOOLING_FILES:
-        return p.name
-    hit = [x for x in p.parts[:-1] if x.lower() in DEV_TOOLING_PARTS]
-    return f"{hit[0]}/" if hit else None
+    """Kept for callers; delegates to the shared non-shipping classifier (detectors/paths.py)."""
+    from .paths import non_shipping
+    return non_shipping(path)
 
 
 def detect(ctx) -> dict:

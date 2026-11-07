@@ -7,6 +7,8 @@ Tier: a missing tag alone is review (many projects do not tag); it is metadata-o
 escalate it. When GitHub truncates the recursive tree listing, the phantom-file check is skipped (coverage partial),
 because missing paths would look like phantom files. Phantom files that carry a capability (network,
 process, decoded payload, or an install hook that runs them) are high_risk; phantom files without one are review.
+Since 2026.11.07-9: capability-free phantom files in docs/, _static/ or _build/ are info, not review. Phantom files
+WITH a capability stay high_risk in any directory.
 Generated metadata (PKG-INFO, *.egg-info, *.dist-info, _version.py, package.json, ...), build outputs (dist/,
 build/, ...) and compiled .js whose .ts source is in the repository are not counted as phantom.
 Time: compares the latest release's artifact with the repository state the API returns today; tags can be added
@@ -27,6 +29,7 @@ DETECTOR_ID = "tagless_release"
 GENERATED = re.compile(r"(^|/)(PKG-INFO|setup\.cfg|MANIFEST\.in|_version\.py|version\.py|package\.json|"
                        r"npm-shrinkwrap\.json|[^/]+\.egg-info/.*|[^/]+\.dist-info/.*|RECORD|WHEEL|METADATA)$")
 BUILD_DIRS = {"dist", "build", "out", "es", "esm", "cjs", "umd", "bundles", "_build"}
+DOC_BUILD_DIRS = {"docs", "doc", "_static", "_build"}   # generated documentation assets (Sphinx _static, ...)
 
 
 def _in_repo(path: str, repo: set[str], suffixes: set[str]) -> bool:
@@ -80,18 +83,21 @@ def detect(ctx) -> dict:
         caps = capabilities(new)
         hook_files = {f for v in caps["install_hook"] for f in re.findall(r"[\w./-]+\.(?:js|cjs|mjs|sh|py)", v)}
         decoded_files = {k.rsplit(":", 1)[0] for k in caps["decoded"]}
-        phantom, risky = [], []
+        phantom, risky, info = [], [], []
         for p, t in (contents.get("text") or {}).items():
             pp = PurePosixPath(p)
             if pp.suffix.lower() not in CODE_EXT or GENERATED.search(p) or (pp.parts and pp.parts[0] in BUILD_DIRS):
                 continue
             if p.endswith((".min.js", ".map")) or _in_repo(p, repo, repo):
                 continue
-            phantom.append(p)
             fc = file_capabilities(p, t) | ({"decoded"} if p in decoded_files else set()) | \
                  ({"install hook"} if any(p.endswith(h.lstrip("./")) for h in hook_files) else set())
             if fc:
-                risky.append((p, sorted(fc)))
+                risky.append((p, sorted(fc)))           # with a capability: high_risk wherever it is
+            elif any(x.lower() in DOC_BUILD_DIRS for x in pp.parts[:-1]):
+                info.append(p)                           # capability-free phantom in docs/_static/_build: info
+            else:
+                phantom.append(p)
         ref = f"tag {git['matched_tag']}" if git.get("matched_tag") else "the default branch" + (" or the release gitHead" if "git_head" in trees else "")
         if risky:
             findings.append(release_finding(
@@ -105,4 +111,10 @@ def detect(ctx) -> dict:
                 DETECTOR_ID, "review", f"Release {new['version']} contains {len(phantom)} source file(s) not in the repository",
                 ", ".join(phantom[:8]) + f". Compared with {ref}. No network/process/decoded capability found in them.",
                 [pair] + [{"type": "file_line", "file": p, "line": None} for p in phantom[:10]], file=phantom[0]))
-    return make_result(DETECTOR_ID, PILLAR, "ran", findings, coverage=coverage, coverage_detail="; ".join(notes) or None)
+    res = make_result(DETECTOR_ID, PILLAR, "ran", findings, coverage=coverage, coverage_detail="; ".join(notes) or None)
+    if contents is not None and "default" in trees and not git.get("truncated") and info:
+        res["info_findings"] = [{"file": p, "rule": "Source file not in the repository (docs/build asset, no capability)",
+                                 "info_reason": "Downgraded to info: a capability-free phantom file in a docs/_static/_build "
+                                                "directory (generated documentation assets are often not committed)."}
+                                for p in info[:20]]
+    return res

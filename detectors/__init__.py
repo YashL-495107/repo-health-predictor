@@ -43,6 +43,28 @@ REGISTRY = [
 ]
 
 DEFAULT_BUDGET_S = 30.0   # overall wall-clock budget for all detectors together
+# Detectors whose review-tier findings are single indicators located in a file: in non-shipping paths
+# (detectors/paths.py) they become info. Release detectors work on artifact paths and handle this themselves
+# (tagless_release: A2); ci_workflow is never non-shipping (.github).
+NON_SHIPPING_APPLIES = {"behavior_patterns", "decoded_payload", "credential_exfiltration", "protestware_destructive",
+                        "repo_secrets", "committed_binary"}
+
+
+def downgrade_non_shipping(res: dict) -> dict:
+    """review-tier findings of NON_SHIPPING_APPLIES detectors in non-shipping paths -> info_findings (with reason).
+    high_risk and known_malicious findings are never touched. Returns a new dict."""
+    from .paths import info_reason, non_shipping
+    if res.get("detector") not in NON_SHIPPING_APPLIES or res.get("status") != "ran":
+        return res
+    keep, info = [], list(res.get("info_findings") or [])
+    for f in res.get("findings") or []:
+        if f.get("tier") == "review" and non_shipping(f.get("file")):
+            info.append({**f, "tier": None, "info_reason": info_reason(f["file"])})
+        else:
+            keep.append(f)
+    if len(keep) == len(res.get("findings") or []):
+        return res
+    return {**res, "findings": keep, "info_findings": info, "tier": worst_tier(f["tier"] for f in keep) or "none_found"}
 
 
 def _valid(res, mod) -> bool:
@@ -83,7 +105,7 @@ def run_detectors(ctx, budget_s: float = DEFAULT_BUDGET_S, registry=None) -> lis
                 results[mod.DETECTOR_ID] = not_assessed(mod.DETECTOR_ID, mod.PILLAR, f"crashed ({type(e).__name__})")
     finally:
         pool.shutdown(wait=False, cancel_futures=True)
-    ordered = [results[m.DETECTOR_ID] for m in registry]
+    ordered = [downgrade_non_shipping(results[m.DETECTOR_ID]) for m in registry]
     if ctx.fragility:
         from fragility import amplify
         ordered = [amplify(r, ctx.fragility) for r in ordered]

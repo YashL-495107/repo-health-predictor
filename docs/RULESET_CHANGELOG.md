@@ -3,6 +3,26 @@
 Every change to detector logic, thresholds, tier mapping or fragility weights bumps `RULESET_VERSION`
 (`detectors/version.py`). Results produced under different versions are not directly comparable.
 
+## 2026.11.07-9 (FROZEN for the Phase 5 benchmark)
+
+Third and last dev-set round (structural). After this version the ruleset is frozen: any later change must be
+logged in benchmark/CHANGELOG.md and marks the test set as contaminated.
+
+- **One shared non-shipping-path classifier** (`detectors/paths.py`): tests, testdata, fixtures, assets, sample(s),
+  example(s), docs, _static, _build, tools, scripts, .agents, tasks.py, noxfile.py and rule-definition directories
+  (matched on whole segments and name tokens); `.github/` is never non-shipping. It replaces the separate
+  dev-tooling and secret path lists of -7 / -8.
+- Applied to ALL review-tier single-indicator findings of behavior_patterns, decoded_payload, credential_exfiltration,
+  protestware_destructive, repo_secrets and committed_binary (in `run_detectors`): in non-shipping paths they become
+  info with `info_reason`. Never applied to high_risk or known_malicious.
+- Secrets of every kind (not only private keys) in non-shipping paths are info, and no longer count as strong
+  (so no 49 cap).
+- tagless_release: capability-free phantom files in docs/, _static/, _build/ are info; phantom files with a
+  capability stay high_risk anywhere.
+- Layer 1 (static decoder) now also scans test/docs/example folders but keeps only STRONG findings there, so a
+  decoded-and-executed payload under tests/ is high_risk (it was not scanned at all before).
+- **Known evasion (documented):** a single-indicator payload placed in a non-shipping path is info, not review.
+
 ## 2026.11.07-8
 
 Second dev-set round on the same 8 repositories. **This is the last tuning on them**: after this version the dev set
