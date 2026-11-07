@@ -1,11 +1,16 @@
 """GitHub Repository Health & Abandonment Predictor - Streamlit app."""
 import html
 import os
+import queue
 import re
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 from dotenv import load_dotenv
+from streamlit.runtime.scriptrunner import add_script_run_ctx, get_script_run_ctx
 
 from github_client import GitHubClient, GitHubError, fetch_features, parse_repo
 from scoring import HEALTHY, SLOWING, compute_health_score, explain
@@ -50,34 +55,64 @@ def _md_escape(text) -> str:
     return re.sub(r"([\\`*_{}\[\]()#+\-.!|<>~$])", r"\\\1", str(text))
 
 
-@st.cache_data(ttl=3600, show_spinner=False)
-def analyze(owner: str, repo: str, token: str) -> dict:
-    client = GitHubClient(token)
-    features = fetch_features(client, owner, repo)
-    security = assess_security(client, owner, repo)
-    flags = content_flags(features)
+def _stage(progress, label, fn, timings: dict, key: str):
+    """Run one analysis stage, report start/end through `progress` (a callable that may be called from worker threads, e.g. queue.put)."""
+    if progress:
+        progress(f"⏳ {label} ...")
+    t0 = time.monotonic()
     try:
-        scan = scan_repo(client, owner, repo)
-    except Exception as e:
-        scan = {"ran": False, "findings": [], "strong": 0, "review": 0, "malware_proof": None, "known_malicious_count": 0, "high_risk_pattern_count": 0, "coverage": [f"Content scan: NOT run ({type(e).__name__})"], "skip_reason": f"other: {type(e).__name__}"}
-    # bus factor runs before the gate: it feeds the fragility index used by the trust score
-    try: bus_factor = run_bus_factor_analysis(client, owner, repo)
-    except Exception as e: bus_factor = {"bus_factor": 0, "gini": 0.0, "entropy": 0.0, "burnout_status": f"Unavailable ({type(e).__name__})", "findings": [], "author_table": [], "succession_score": 0.0, "risk_level": "Unknown"}
-    try: release_ctx = collect_release_context(owner, repo, security.get("package"))
-    except Exception as e: release_ctx = {"package": security.get("package"), "history": {"status": "error", "reason": f"release fetch crashed ({type(e).__name__})", "releases": []}, "git": None}
-    result = apply_gate(compute_health_score(features), security, flags, scan, bus_factor=bus_factor, features=features, releases=release_ctx)
+        return fn()
+    finally:
+        timings[key] = round(time.monotonic() - t0, 1)
+        if progress:
+            progress(f"✓ {label} ({timings[key]:.1f}s)")
 
-    try:
-        deps_info = collect_dependencies(client, owner, repo)
-        deps_list = deps_info.get("deps", [])
-    except Exception: deps_list = []
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def analyze(owner: str, repo: str, token: str, _progress=None) -> dict:
+    """Full analysis. Independent network stages run in parallel (repository features, security lookups, content
+    scan with its zip download, bus factor); the release fetch starts when the security lookups found the package.
+    `_progress` (excluded from the cache key) receives stage messages; it must not call Streamlit itself."""
+    timings: dict[str, float] = {}
+    mk = lambda: GitHubClient(token)        # one client per thread: requests.Session is not shared across threads
+
+    def scan_stage():
+        try:
+            return scan_repo(mk(), owner, repo)
+        except Exception as e:
+            return {"ran": False, "findings": [], "strong": 0, "review": 0, "malware_proof": None, "known_malicious_count": 0, "high_risk_pattern_count": 0, "coverage": [f"Content scan: NOT run ({type(e).__name__})"], "skip_reason": f"other: {type(e).__name__}"}
+
+    def bus_stage():
+        try: return run_bus_factor_analysis(mk(), owner, repo)
+        except Exception as e: return {"bus_factor": 0, "gini": 0.0, "entropy": 0.0, "burnout_status": f"Unavailable ({type(e).__name__})", "findings": [], "author_table": [], "succession_score": 0.0, "risk_level": "Unknown"}
+
+    def release_stage(security):
+        try: return collect_release_context(owner, repo, security.get("package"))
+        except Exception as e: return {"package": security.get("package"), "history": {"status": "error", "reason": f"release fetch crashed ({type(e).__name__})", "releases": []}, "git": None}
+
+    def deps_stage():
+        try: return collect_dependencies(mk(), owner, repo).get("deps", [])
+        except Exception: return []
+
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        f_feat = pool.submit(_stage, _progress, "Repository metadata (GitHub)", lambda: fetch_features(mk(), owner, repo), timings, "features")
+        f_scan = pool.submit(_stage, _progress, "Repository download and content scan", scan_stage, timings, "content_scan")
+        f_bus = pool.submit(_stage, _progress, "Bus factor and maintainer activity", bus_stage, timings, "bus_factor")
+        f_deps = pool.submit(deps_stage)
+        security = _stage(_progress, "Security lookups (advisories, OSV, Scorecard)", lambda: assess_security(mk(), owner, repo), timings, "security")
+        release_ctx = _stage(_progress, "Release history and artifacts", lambda: release_stage(security), timings, "release_fetch")
+        features = f_feat.result()           # re-raises GitHubError (bad repo, rate limit) for the UI
+        scan, bus_factor, deps_list = f_scan.result(), f_bus.result(), f_deps.result()
+    flags = content_flags(features)
+    result = _stage(_progress, "Detectors and Trust score", lambda: apply_gate(compute_health_score(features), security, flags, scan, bus_factor=bus_factor, features=features, releases=release_ctx), timings, "detectors")
+    result["timings"] = {**timings, "zip_download": (scan.get("timings") or {}).get("zip_download")}
 
     try:
         release_diff = (scan.get("malware_proof") or {}).get("release_diff")
         blast = analyze_blast_radius(features, security, release_diff, deps=deps_list)
     except Exception as e: blast = {"blast_score": 0.0, "tier": "Unknown", "pinned_deps": 0, "unpinned_deps": 0, "typosquat_alerts": [], "compromise_simulation": "", "total_dependents": 0}
 
-    try: intel = gather_repo_intel(client, owner, repo, features)
+    try: intel = _stage(_progress, "Forks and issue triage", lambda: gather_repo_intel(mk(), owner, repo, features), timings, "intel")
     except Exception: intel = {"forks": [], "issue_triage": {"counts": {}, "critical_samples": []}}
     return {"features": features, "result": result, "security": security, "flags": flags, "scan": scan, "bus_factor": bus_factor, "blast_radius": blast, "intelligence": intel, "releases": _release_summary(release_ctx)}
 
@@ -101,6 +136,38 @@ def ai_layer(owner: str, repo: str, gemini_key: str, data: dict) -> dict:
         ai = {"ai_report": {"executive_memo": "", "issue_triage_summary": "", "alternatives": [], "source": "Heuristic engine", "error": err}, "ai_audit_trails": {}, "ai_status": err}
     _ai_cache().put(cache_key, ai)
     return ai
+
+def analyze_with_status(owner: str, repo: str, token: str) -> dict:
+    """Run the cached analyze() in a worker thread (with the script context attached) and show stage progress in
+    st.status from the main thread, so a long scan never looks frozen. A cache hit returns at once."""
+    q: queue.Queue = queue.Queue()
+    ctx = get_script_run_ctx()
+
+    def work():
+        add_script_run_ctx(threading.current_thread(), ctx)
+        return analyze(owner, repo, token, _progress=q.put)
+
+    with st.status(f"Analyzing {owner}/{repo} ...", expanded=True) as status:
+        with ThreadPoolExecutor(max_workers=1) as ex:
+            fut = ex.submit(work)
+            while True:
+                try:
+                    status.write(q.get(timeout=0.2))
+                except queue.Empty:
+                    if fut.done():
+                        break
+            while not q.empty():
+                status.write(q.get_nowait())
+            try:
+                data = fut.result()
+            except Exception:
+                status.update(label=f"Analysis of {owner}/{repo} failed", state="error", expanded=False)
+                raise
+        t = (data.get("result") or {}).get("timings") or {}
+        total = f" ({sum(v for v in t.values() if isinstance(v, (int, float))):.0f}s of stage time)" if t else ""
+        status.update(label=f"Analysis of {owner}/{repo} complete{total}", state="complete", expanded=False)
+    return data
+
 
 def _release_summary(rc: dict | None) -> dict | None:
     """Small, display-only view of the release history (no archive contents, so the cached result stays small)."""
@@ -216,8 +283,7 @@ target = st.session_state.repo_input.strip()
 if go_clicked or (target and st.session_state.get("analyzed") == target):
     try:
         owner, repo = parse_repo(target)
-        with st.spinner(f"Fetching live data for {owner}/{repo} ..."):
-            data = analyze(owner, repo, token)
+        data = analyze_with_status(owner, repo, token)
         with st.spinner("Asking Gemini (advisory only) ..." if gemini_key else "Preparing results ..."):
             data["intelligence"] = {**data["intelligence"], **ai_layer(owner, repo, gemini_key, data)}
         st.session_state.analyzed = target

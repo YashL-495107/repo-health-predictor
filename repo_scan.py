@@ -255,18 +255,27 @@ def scan_workflow(path: str, text: str) -> list[dict]:
 
 def scan_repo(client: GitHubClient, owner: str, repo: str) -> dict:
     res = {"ran": False, "findings": [], "coverage": [], "strong": 0, "review": 0, "code_high": 0, "secrets_strong": 0, "ci_high": 0, "code_scan": "not_run", "malware_proof": None, "known_malicious_count": 0, "high_risk_pattern_count": 0}
-    try: data = read_repo(download_zip(client, owner, repo))
+    t0 = time.monotonic()
+    res["timings"] = {}
+    try:
+        buf = download_zip(client, owner, repo)
+        res["timings"]["zip_download"] = round(time.monotonic() - t0, 2)
+        data = read_repo(buf)
+        res["timings"]["read_zip"] = round(time.monotonic() - t0 - res["timings"]["zip_download"], 2)
     except ScanTooLarge as e:
+        res["timings"].setdefault("zip_download", round(time.monotonic() - t0, 2))
         res["coverage"].append(f"Content scan: NOT run, repository is {e}")
         res["skip_reason"] = skip_reason(e)
         _attach_detectors(res)
         return res
     except (GitHubError, zipfile.BadZipFile, OSError) as e:
+        res["timings"].setdefault("zip_download", round(time.monotonic() - t0, 2))
         res["coverage"].append(f"Content scan: NOT run ({e})")
         res["skip_reason"] = skip_reason(e)
         _attach_detectors(res)
         return res
     res["ran"] = True
+    t_scan = time.monotonic()
     sha, findings = data["sha"], []
     def url(f, ln): return f"https://github.com/{owner}/{repo}/blob/{sha}/{f}#L{ln}" if sha else None
 
@@ -316,12 +325,15 @@ def scan_repo(client: GitHubClient, owner: str, repo: str) -> dict:
     res["ci_high"] = sum(1 for f in findings if f.get("strong") and f["source"] == "CI workflow")
     res["review"] = sum(1 for f in findings if not f.get("strong") and f["sev"] in ("High", "Medium"))
     res["scan_coverage"] = scan_coverage(data)
+    res["timings"]["scanners"] = round(time.monotonic() - t_scan, 2)
+    t_det = time.monotonic()
     try:   # Python files the data-flow detectors analyse with ast (behavior_patterns defers to them for these)
         from detectors.pyast import parse_ok
         res["ast_analysed_py"] = sorted(p for p, t in data["text"].items() if parse_ok(p, t))
     except Exception:
         res["ast_analysed_py"] = []
     _attach_detectors(res, data)
+    res["timings"]["content_detectors"] = round(time.monotonic() - t_det, 2)
     return res
 
 

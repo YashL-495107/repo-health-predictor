@@ -110,6 +110,12 @@ def main(argv=None) -> int:
     for g in groups:
         _print_summary(f"Group {g}", summary(df[df["group"] == g]))
 
+    stage_cols = [c for c in df.columns if c.startswith("t_")]
+    if stage_cols:
+        print("\n== Per-stage seconds (median / p95 over repos that ran the stage) ==")
+        for c in stage_cols:
+            v = pd.to_numeric(df[c], errors="coerce").dropna()
+            print(f"  {c[2:]:<16} " + (f"median {v.median():6.1f}s   p95 {v.quantile(0.95):6.1f}s   (n={len(v)})" if len(v) else "not run"))
     pd.set_option("display.max_colwidth", None, "display.width", 250)
     flagged = df[df["is_flagged"]]
     print(f"\n== Flagged repos ({len(flagged)}): review each by hand ==")

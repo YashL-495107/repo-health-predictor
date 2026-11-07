@@ -7,7 +7,11 @@ REPOHEALTH_CACHE (default .cache/http). Other statuses and network errors are ne
 
 REPOHEALTH_OFFLINE=1 serves only from the cache (a miss is an error "offline: not cached").
 GITHUB_TOKEN is sent only to api.github.com and is never part of the cache key or the stored data.
-A polite minimum interval is kept between requests to the same host.
+A polite minimum interval is kept between requests to the same host. Concurrency: the interval bookkeeping is
+locked, and each thread writes its own temp file before an atomic rename (parallel scan stages share the cache).
+
+parallel(): helper used by the scan stages; REPOHEALTH_SEQUENTIAL=1 runs everything in order (for timing
+comparisons and debugging).
 """
 from __future__ import annotations
 
@@ -26,6 +30,21 @@ MIN_INTERVAL_S = {"api.github.com": 0.25, "pypi.org": 0.1, "registry.npmjs.org":
 DEFAULT_INTERVAL_S = 0.1
 _last: dict[str, float] = {}
 _lock = threading.Lock()
+
+
+def sequential() -> bool:
+    return os.getenv("REPOHEALTH_SEQUENTIAL") == "1"
+
+
+def parallel(fn, items, workers: int = 4) -> list:
+    """[fn(x) for x in items], in parallel threads unless REPOHEALTH_SEQUENTIAL=1. Order is kept; exceptions are
+    re-raised in the caller like the sequential version would."""
+    items = list(items)
+    if sequential() or len(items) <= 1:
+        return [fn(x) for x in items]
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=min(workers, len(items))) as pool:
+        return list(pool.map(fn, items))
 
 
 def cache_dir() -> str:
@@ -87,7 +106,7 @@ def get_json(url: str, headers: dict | None = None, timeout: float = TIMEOUT) ->
         except ValueError:
             return None, 200, "bad JSON"
     os.makedirs(os.path.dirname(p), exist_ok=True)
-    tmp = p + ".tmp"
+    tmp = f"{p}.{os.getpid()}.{threading.get_ident()}.tmp"     # unique per thread: parallel stages share the cache
     with open(tmp, "w", encoding="utf-8") as fh:
         json.dump({"url": url, "status": r.status_code, "data": data}, fh)
     os.replace(tmp, p)
@@ -120,7 +139,8 @@ def get_bytes(url: str, max_bytes: int, timeout: float = 60) -> tuple[bytes | No
     except requests.RequestException as e:
         return None, type(e).__name__
     os.makedirs(os.path.dirname(p), exist_ok=True)
-    with open(p + ".tmp", "wb") as fh:
+    tmp = f"{p}.{os.getpid()}.{threading.get_ident()}.tmp"
+    with open(tmp, "wb") as fh:
         fh.write(bytes(buf))
-    os.replace(p + ".tmp", p)
+    os.replace(tmp, p)
     return bytes(buf), None

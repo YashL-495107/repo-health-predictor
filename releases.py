@@ -258,32 +258,39 @@ def fetch_pypi(name: str, n: int = DEFAULT_N, deadline: float | None = None, unt
         r.update({"dependencies_raw": None, "dependencies": None, "install_scripts": None, "git_head": None,
                   "artifact": None, "publisher": None, "publisher_source": "not fetched (budget)",
                   "contents": None, "artifact_status": "not_fetched"})
+    # artifact choice is local (no network) and depends on release N's type, so do it first, in order
     for i, r in enumerate(rels):
+        prefer = (rels[0].get("artifact") or {}).get("packagetype") if i else None
+        r["artifact"] = _pypi_artifact(r.pop("_files_raw"), prefer)
+    timing = {"artifacts": 0.0}
+
+    def one(item):
+        i, r = item
         if deadline and time.monotonic() > deadline:
             partial.append(f"fetch budget reached at {r['version']}")
-            break
+            return
         vj, _, verr = http_cache.get_json(f"https://pypi.org/pypi/{quote(name, safe='')}/{quote(r['version'], safe='')}/json")
         r["dependencies_raw"] = ((vj or {}).get("info") or {}).get("requires_dist") if not verr else None
         r["dependencies"] = dependency_names(r["dependencies_raw"]) if r["dependencies_raw"] is not None else None
         r["install_scripts"] = None          # npm-only concept; PyPI install hooks are read from setup.py
         r["git_head"] = None
-        prefer = (rels[0].get("artifact") or {}).get("packagetype") if i else None
-        r["artifact"] = _pypi_artifact(r.pop("_files_raw"), prefer)
         r["publisher"], r["publisher_source"] = _pypi_publisher(name, r["version"], r["artifact"]["filename"]) \
             if r["artifact"] else (None, "no files")
         if i < CONTENT_RELEASES:
+            t0 = time.monotonic()
             r["contents"], r["artifact_status"] = _load_artifact(r["artifact"])
+            timing["artifacts"] += time.monotonic() - t0
         else:
             r["contents"], r["artifact_status"] = None, "not_fetched"
-    for r in rels:
-        r.pop("_files_raw", None)
+
+    http_cache.parallel(one, list(enumerate(rels)))   # per-version JSON, provenance and artifacts in parallel
     urls = (project.get("info") or {}).get("project_urls") or {}
     repo_url = next((u for k, u in urls.items() if k.lower() in ("source", "source code", "repository", "code", "github")), None) \
         or (project.get("info") or {}).get("home_page")
     roles = ((project.get("ownership") or {}).get("roles") or [])
     users = sorted({r.get("user") for r in roles if r.get("user")})
     return {"status": "ok", "reason": None, "releases": rels, "unlisted_versions": [], "partial": partial,
-            "repository_url": repo_url,
+            "repository_url": repo_url, "t_artifacts": round(timing["artifacts"], 2),
             "maintainers": {"count": len(users) if roles else None, "names": users,
                             "source": "PyPI ownership.roles (current owners)" if roles else "not available",
                             "organization": (project.get("ownership") or {}).get("organization")},
@@ -333,14 +340,22 @@ def fetch_npm(name: str, n: int = DEFAULT_N, deadline: float | None = None, unti
     rels, unlisted = parse_npm(data, n, until_version)
     if until_version is not None and not rels:
         return {"status": "not_found", "reason": f"version {until_version} of '{name}' is not listed on npm", "releases": []}
-    for i, r in enumerate(rels):
+    t_art = [0.0]
+
+    def one(item):
+        i, r = item
         if i < CONTENT_RELEASES and not (deadline and time.monotonic() > deadline):
+            t0 = time.monotonic()
             r["contents"], r["artifact_status"] = _load_artifact(r["artifact"])
+            t_art[0] += time.monotonic() - t0
         else:
             r["contents"], r["artifact_status"] = None, "not_fetched"
+
+    http_cache.parallel(one, list(enumerate(rels)))      # the two artifact downloads in parallel
     mnt = data.get("maintainers")
     names = sorted({m.get("name") for m in mnt if isinstance(m, dict) and m.get("name")}) if isinstance(mnt, list) else []
     return {"status": "ok", "reason": None, "releases": rels, "unlisted_versions": unlisted, "partial": [],
+            "t_artifacts": round(t_art[0], 2),
             "maintainers": {"count": len(names) if isinstance(mnt, list) else None, "names": names,
                             "source": "npm packument maintainers (current)" if isinstance(mnt, list) else "not available"},
             "repository_url": (data.get("repository") or {}).get("url") if isinstance(data.get("repository"), dict) else data.get("repository"),
@@ -536,16 +551,22 @@ def fetch_dependency_changes(hist: dict, deadline: float | None = None) -> dict:
     out = {"status": "ok", "reason": None, "new_version": new["version"], "old_version": old["version"],
            "as_of": new.get("upload_time"), "added": added, "removed": sorted(set(old["dependencies"]) - set(new["dependencies"])),
            "profiles": [], "not_looked_up": added[MAX_NEW_DEPS:]}
-    downloads = 0
-    for name in added[:MAX_NEW_DEPS]:
+    todo = added[:MAX_NEW_DEPS]
+
+    def one(item):
+        i, name = item
         if deadline and time.monotonic() > deadline:
-            out["not_looked_up"] = added[added.index(name):]
-            break
-        do_dl = hist.get("ecosystem") == "PyPI" and downloads < MAX_DEP_ARTIFACTS
+            return None
+        do_dl = hist.get("ecosystem") == "PyPI" and i < MAX_DEP_ARTIFACTS   # the first 3, as before
         prof = dependency_profile(hist.get("ecosystem"), name, as_of, download=do_dl)
-        downloads += int(do_dl)
         prof.update(_dep_external(hist.get("ecosystem"), name, prof.get("version_at_as_of")))
-        out["profiles"].append(prof)
+        return prof
+
+    profs = http_cache.parallel(one, list(enumerate(todo)))
+    out["profiles"] = [p for p in profs if p is not None]
+    skipped = [n for n, p in zip(todo, profs) if p is None]
+    if skipped:
+        out["not_looked_up"] = skipped + out["not_looked_up"]
     return out
 
 
@@ -582,29 +603,38 @@ def collect_release_context(owner: str, repo: str, package: dict | None, n: int 
         return None
     deadline = time.monotonic() + budget_s
     eco, name = package["ecosystem"], package["name"]
+    t0 = time.monotonic()
+    timings = {}
     try:
         hist = fetch_pypi(name, n, deadline, target_version) if eco == "PyPI" else fetch_npm(name, n, deadline, target_version) if eco == "npm" else \
             {"status": "error", "reason": f"unsupported ecosystem {eco}", "releases": []}
     except Exception as e:  # never let a parser bug break the scan
         hist = {"status": "error", "reason": f"release fetch crashed ({type(e).__name__})", "releases": []}
     hist.update({"ecosystem": eco, "name": name})
-    git = None
+    timings["release_history"] = round(time.monotonic() - t0, 2)
+    timings["artifacts"] = hist.get("t_artifacts", 0.0)
+    git = deps = activity = None
     if hist["status"] == "ok":
-        try:
-            git = fetch_git(owner, repo, name, hist["releases"][0] if hist["releases"] else None)
-        except Exception as e:
-            git = {"status": "error", "reason": f"git lookup crashed ({type(e).__name__})"}
-    deps = activity = None
-    if hist["status"] == "ok":
-        try:
-            deps = fetch_dependency_changes(hist, deadline)
-        except Exception as e:
-            deps = {"status": "not_assessed", "reason": f"dependency lookup crashed ({type(e).__name__})"}
         latest = hist["releases"][0] if hist["releases"] else {}
-        try:
-            activity = fetch_commit_activity(owner, repo, latest.get("upload_time")) if git and git.get("status") == "ok" \
-                else {"status": "not_assessed", "reason": (git or {}).get("reason") or "repository not reachable", "commits": []}
-        except Exception as e:
-            activity = {"status": "not_assessed", "reason": f"commit lookup crashed ({type(e).__name__})", "commits": []}
+
+        def stage(which):
+            t = time.monotonic()
+            try:
+                if which == "git":
+                    out = fetch_git(owner, repo, name, latest or None)
+                elif which == "dependencies":
+                    out = fetch_dependency_changes(hist, deadline)
+                else:   # commit history; fails on its own (not_assessed) when the repository is not reachable
+                    out = fetch_commit_activity(owner, repo, latest.get("upload_time"))
+            except Exception as e:
+                out = ({"status": "error", "reason": f"git lookup crashed ({type(e).__name__})"} if which == "git" else
+                       {"status": "not_assessed", "reason": f"{which} lookup crashed ({type(e).__name__})", "commits": []})
+            timings[which] = round(time.monotonic() - t, 2)
+            return out
+        git, deps, activity = http_cache.parallel(stage, ["git", "dependencies", "activity"], workers=3)
+        if not git or git.get("status") != "ok":   # same rule as the sequential version: no git -> no commit history
+            activity = {"status": "not_assessed", "reason": (git or {}).get("reason") or "repository not reachable", "commits": []}
+    timings["total"] = round(time.monotonic() - t0, 2)
     return {"package": package, "history": hist, "git": git, "dependencies": deps, "activity": activity,
-            "requested_repo": f"{owner}/{repo}", "snapshot": http_cache.snapshot(), "target_version": target_version}
+            "requested_repo": f"{owner}/{repo}", "snapshot": http_cache.snapshot(), "target_version": target_version,
+            "timings": timings}
