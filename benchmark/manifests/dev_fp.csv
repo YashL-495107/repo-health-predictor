@@ -1,0 +1,9 @@
+repo,ecosystem,package,reason
+boto/boto3,PyPI,boto3,dev sweep (rulesets -7/-8)
+pypa/twine,PyPI,twine,dev sweep
+getsentry/sentry-python,PyPI,sentry-sdk,dev sweep
+docker/docker-py,PyPI,docker,dev sweep
+paramiko/paramiko,PyPI,paramiko,dev sweep
+jaraco/keyring,PyPI,keyring,dev sweep
+certbot/certbot,PyPI,certbot,dev sweep
+pypa/pip,PyPI,pip,dev sweep
