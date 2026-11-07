@@ -3,7 +3,7 @@
     python collect_data.py                       # uses GITHUB_TOKEN from .env
     python collect_data.py --input repos.csv --output data/dataset.csv
 
-Safe to stop and re-run: repos already present in the output file are skipped.
+Can be stopped and re-run: repos already present in the output file are skipped.
 """
 import argparse
 import os

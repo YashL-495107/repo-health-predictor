@@ -21,7 +21,7 @@ def test_app_renders_result():
         at.button[0].click().run()   # Analyze
         assert not at.exception, at.exception
         assert not at.error, [e.value for e in at.error]
-        assert any("Health score" in md.value for md in at.markdown)
+        assert any("Trust score" in md.value for md in at.markdown)  # headline relabelled in Phase 1 (trust engine)
         print("rendered OK")
 
 
@@ -39,7 +39,7 @@ def test_sample_button_autoruns():
         at = AppTest.from_file(os.path.join(os.path.dirname(__file__), "..", "app.py"), default_timeout=30).run()
         next(b for b in at.button if b.label == "pallets/flask").click().run()
         assert not at.exception and not at.error
-        assert any("Health score" in md.value for md in at.markdown)
+        assert any("Trust score" in md.value for md in at.markdown)  # headline relabelled in Phase 1 (trust engine)
         print("sample button OK")
 
 

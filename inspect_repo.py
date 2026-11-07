@@ -43,6 +43,13 @@ def report(res: dict) -> str:
             lines.append(f"     open {f['url']}")
     if not rows:
         lines.append("none")
+    dets = res.get("detectors") or []
+    if dets:
+        lines += ["", f"== Content detectors ({len(dets)}, ruleset {res.get('ruleset_version', '')}) =="]
+        for d in dets:
+            extra = d.get("not_assessed_reason") or d.get("coverage_detail") or ""
+            lines.append(f"- {d['detector']:<20} {d['pillar']:<9} {d['status']:<14} {d['tier']:<15} {extra}")
+        lines.append("  (security sources such as OSV and Scorecard are added by the app / scan_batch, not by this scan)")
     lines += ["", f"== Coverage ({len(res.get('coverage', []))}) =="] + [f"- {c}" for c in res.get("coverage", [])]
     return "\n".join(lines)
 

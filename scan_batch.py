@@ -8,9 +8,11 @@ The CSV is rewritten (atomically) after every repo, so an interrupted run loses 
 import argparse, os, re, time
 import pandas as pd
 from dotenv import load_dotenv
-from github_client import GitHubClient, parse_repo
+from github_client import GitHubClient, fetch_features, parse_repo
 from repo_scan import scan_repo
-from security import assess_security
+from scoring import compute_health_score
+from security import apply_gate, assess_security, content_flags
+from detectors import RULESET_VERSION
 
 FLAG_SOURCES = ("Layer ", "Behavior", "Secrets", "CI workflow")   # malware engine, behavior, secrets, CI
 MAX_FLAGGED, FLAG_ITEM_CHARS = 5, 120
@@ -74,7 +76,9 @@ def scan_one(client, full: str) -> dict:
         osv_items = [f.get("item", "") for f in sec.get("findings", []) if f.get("source") == "OSV (Confirmed Malware)"]
         osv_mal = bool(osv_items)
     except Exception:
+        sec = None
         osv_items, osv_mal = [], None   # unknown, not False
+    trust = trust_columns(client, owner, name, res, sec)
     return {
         "ran": bool(res["ran"]),
         "error": "",
@@ -93,7 +97,27 @@ def scan_one(client, full: str) -> dict:
         "secrets_strong": res.get("secrets_strong", 0),
         "ci_high": res.get("ci_high", 0),
         "flagged": flagged_text(all_f, osv_items),
+        **trust,
     }
+
+
+def trust_columns(client, owner: str, name: str, res: dict, sec: dict | None) -> dict:
+    """Trust score + maintenance score for the batch CSV. The bus factor is not fetched here (extra API calls),
+    so the fragility index uses maintenance and dormancy only. Missing inputs give empty values, never 0."""
+    out = {"trust_score": None, "trust_label": "", "maintenance_score": None, "maintenance_label": "",
+           "limiting": "", "partial": None, "ruleset_version": RULESET_VERSION}
+    try:
+        features = fetch_features(client, owner, name)
+        health = compute_health_score(features)
+        sec = sec or {"level": "Not assessed", "findings": [], "coverage": [],
+                      "checks": {k: "not_assessed" for k in ("github_advisories", "osv_dependencies", "own_package", "scorecard")}}
+        g = apply_gate(health, sec, content_flags(features), res, features=features)
+        out.update({"trust_score": g["trust_score"], "trust_label": g["label"], "maintenance_score": g["maintenance_score"],
+                    "maintenance_label": g["maintenance_label"], "limiting": g["limiting_reason"] or "",
+                    "partial": g["partial"]})
+    except Exception as e:
+        out["trust_label"] = f"not assessed ({type(e).__name__})"
+    return out
 
 
 def build_row(client, full: str, group: str | None = None) -> dict:
@@ -105,7 +129,8 @@ def build_row(client, full: str, group: str | None = None) -> dict:
     try:
         row.update(scan_one(client, full))
     except Exception as e:  # one bad repo must not stop the batch
-        row.update({"ran": False, "error": type(e).__name__, "skipped_reason": f"other: {type(e).__name__}"})
+        row.update({"ran": False, "error": type(e).__name__, "skipped_reason": f"other: {type(e).__name__}",
+                    "ruleset_version": RULESET_VERSION})
     row["seconds"] = round(time.time() - t0, 1)
     return row
 

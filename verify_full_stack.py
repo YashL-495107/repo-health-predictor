@@ -48,7 +48,8 @@ def main():
             scan = scan_repo(client, owner, repo)
             result = apply_gate(health, security, flags, scan)
 
-            print(f"  -> Health Score: {result['score']}/100 ({result['label']})")
+            print(f"  -> Trust score (indicators, not proof): {result['trust_score']}/100 ({result['label']}) | "
+                  f"Maintenance: {result['maintenance_score']}/100 ({result['maintenance_label']}) | {result['limiting_reason']}")
             print(f"  -> Content Scan Ran: {scan['ran']} | Strong Findings: {scan['strong']} | Known Malicious: {scan.get('known_malicious_count', 0)} | High-Risk: {scan.get('high_risk_pattern_count', 0)}")
 
             # 2. Phase 1: Bus Factor & Burnout

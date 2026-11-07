@@ -1,4 +1,5 @@
 """GitHub Repository Health & Abandonment Predictor - Streamlit app."""
+import html
 import os
 import re
 import pandas as pd
@@ -14,11 +15,17 @@ from bus_factor import run_bus_factor_analysis
 import hashlib
 from intelligence import build_ai_cards, SuccessCache, gather_repo_intel, run_ai_layer, _configured_model, resolve_gemini_key, describe_gemini_key, _MISSING
 from blast_radius import analyze_blast_radius
+from detectors import RULESET_VERSION, TIER_DISPLAY
+from pillars import (LABEL_FRAGILE, LABEL_HIGH_RISK, LABEL_KNOWN_MALICIOUS, LABEL_NO_FINDINGS, LABEL_NOT_ASSESSED,
+                     LABEL_REVIEW, MAINTENANCE_CEILING)
 
 load_dotenv()
 st.set_page_config(page_title="Repo Health Predictor", page_icon="🩺", layout="wide")
 SAMPLES = ["psf/requests", "pallets/flask", "fastapi/fastapi", "request/request", "atom/atom"]
 COLORS = {"Healthy": "#1a9850", "Slowing down": "#f4a300", "At risk": "#e66101", "Likely abandoned": "#d73027", "Archived (read-only)": "#6c757d"}
+TRUST_COLORS = {LABEL_KNOWN_MALICIOUS: "#b2182b", LABEL_HIGH_RISK: "#e66101", LABEL_REVIEW: "#f4a300",
+                LABEL_FRAGILE: "#6c757d", LABEL_NO_FINDINGS: "#1a9850", LABEL_NOT_ASSESSED: "#6c757d"}
+STATUS_TEXT = {"ran": "ran", "not_assessed": "not assessed", "not_applicable": "not applicable"}
 
 def server_token() -> str:
     try:
@@ -51,11 +58,11 @@ def analyze(owner: str, repo: str, token: str) -> dict:
     try:
         scan = scan_repo(client, owner, repo)
     except Exception as e:
-        scan = {"ran": False, "findings": [], "strong": 0, "review": 0, "malware_proof": None, "known_malicious_count": 0, "high_risk_pattern_count": 0, "coverage": [f"Content scan: NOT run ({type(e).__name__})"]}
-    result = apply_gate(compute_health_score(features), security, flags, scan)
-
+        scan = {"ran": False, "findings": [], "strong": 0, "review": 0, "malware_proof": None, "known_malicious_count": 0, "high_risk_pattern_count": 0, "coverage": [f"Content scan: NOT run ({type(e).__name__})"], "skip_reason": f"other: {type(e).__name__}"}
+    # bus factor runs before the gate: it feeds the fragility index used by the trust score
     try: bus_factor = run_bus_factor_analysis(client, owner, repo)
     except Exception as e: bus_factor = {"bus_factor": 0, "gini": 0.0, "entropy": 0.0, "burnout_status": f"Unavailable ({type(e).__name__})", "findings": [], "author_table": [], "succession_score": 0.0, "risk_level": "Unknown"}
+    result = apply_gate(compute_health_score(features), security, flags, scan, bus_factor=bus_factor, features=features)
 
     try:
         deps_info = collect_dependencies(client, owner, repo)
@@ -92,19 +99,74 @@ def ai_layer(owner: str, repo: str, gemini_key: str, data: dict) -> dict:
     _ai_cache().put(cache_key, ai)
     return ai
 
+def _pillar_text(p: dict) -> tuple[str, str]:
+    """Value and caption for one pillar card. Never a bare number: coverage is always shown."""
+    if p["pillar"] == "Maintenance":
+        return (f"{p['score']:.0f}", f"{p.get('label')}. {p.get('note')}")
+    cov = p["coverage"]
+    if p["score"] is None:
+        if p["status"] == "not_applicable":
+            return ("n/a", f"Not applicable: {p['reason']}")
+        return ("not assessed", f"Could not run: {p['reason']}")
+    return (f"{p['score']:.0f}", f"{p['score']:.0f} ({cov['text']})")
+
+
+def render_pillars(res: dict):
+    pillars = res.get("pillars") or {}
+    if not pillars:
+        return
+    st.markdown("#### Four pillars")
+    st.caption("The Trust score is the lowest of Integrity, Behavior and Exposure, then the evidence caps. "
+               "Maintenance is shown on its own: it feeds the fragility index and can lower the Trust score to "
+               f"{MAINTENANCE_CEILING} at most.")
+    cols = st.columns(4)
+    order = ["Integrity", "Behavior", "Exposure", "Maintenance"]
+    for c, name in zip(cols, order):
+        p = pillars[name]
+        val, cap = _pillar_text(p)
+        limiting = " (limiting)" if res.get("limiting_pillar") == name else ""
+        c.metric(name + limiting, val)
+        c.caption(_md_escape(cap))
+    xs = [n for n in order if pillars[n]["score"] is not None]
+    if xs:
+        bar = go.Figure(go.Bar(x=xs, y=[pillars[n]["score"] for n in xs],
+                               marker_color=["#888" if n == "Maintenance" else "#3778c2" for n in xs],
+                               text=[f"{pillars[n]['score']:.0f}" for n in xs], textposition="outside"))
+        bar.update_layout(yaxis=dict(range=[0, 110], title="0-100"), paper_bgcolor="rgba(0,0,0,0)",
+                          plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=40, r=20, t=10, b=30), height=220)
+        st.plotly_chart(bar, width="stretch")
+    if res.get("partial"):
+        st.info("Partial assessment: " + _md_escape("; ".join(res.get("partial_reasons") or [])))
+    fr = res.get("fragility") or {}
+    if fr.get("score") is not None:
+        st.caption(_md_escape(f"Fragility index {fr['score']:.0f}/100 ({', '.join(fr.get('factors') or [])}). "
+                              f"At {fr['threshold']} or more, review-tier Integrity signals are escalated to high-risk. "
+                              "Weights and threshold are unvalidated design choices."))
+    with st.expander("Detectors (status and tier)", expanded=False):
+        for d in res.get("detectors") or []:
+            status = STATUS_TEXT.get(d["status"], d["status"])
+            tier = TIER_DISPLAY.get(d["tier"], d["tier"]) if d["status"] == "ran" else ""
+            extra = d.get("not_assessed_reason") or d.get("coverage_detail") or ""
+            amp = " · escalated by fragility" if d.get("fragility_amplified") else ""
+            st.markdown(f"`{d['detector']}` · {d['pillar']} · **{status}**" + (f" · {tier}" if tier else "")
+                        + (f" · {_md_escape(extra)}" if extra else "") + amp)
+        st.caption("Phase 1 detectors adapt the existing checks; their high-risk tier comes from the existing engine's "
+                   "strong findings, not from new attack-specific detectors.")
+
+
 with st.sidebar:
     st.header("About")
-    st.write("Pulls **live data** from the GitHub REST API and turns it into a **health score** (0-100) that shows whether a repository is actively maintained or drifting towards abandonment.")
+    st.write("Pulls **live data** from the GitHub REST API and public security sources and turns it into a **Trust score** (0-100, indicators, not proof): the weakest of three evidence pillars (Integrity, Behavior, Exposure). **Maintenance** (is anyone looking after it?) is shown separately; on its own it can lower the Trust score to 50 at most.")
     user_token = st.text_input("Your own GitHub token (optional)", type="password", placeholder="Leave empty to use the shared token", help="Only needed if the shared token hits GitHub's rate limit. Never stored.")
     token = user_token.strip() or server_token()
     gemini_key_input = st.text_input("Gemini API key (optional, for AI migration & triage)", type="password", placeholder="Leave empty for deterministic heuristics", help="Used for generative architecture migration code snippets and semantic issue triage.")
     gemini_key, key_source, key_notes = resolve_gemini_key(gemini_key_input, _gemini_secret_raw(), os.getenv("GEMINI_API_KEY", ""))
     st.caption(describe_gemini_key(gemini_key, key_source, key_notes))
-    st.caption("Health score bands")
+    st.caption("Maintenance score bands")
     st.markdown(f"- **Healthy**: {HEALTHY}+\n- **Slowing down**: {SLOWING}-{HEALTHY - 1}\n- **Likely abandoned**: below {SLOWING}")
 
 st.title("GitHub Repository Health & Abandonment Predictor")
-st.caption("Paste any public GitHub repository to get its health score.")
+st.caption("Paste any public GitHub repository to get its Trust score (indicators, not proof) and its maintenance health.")
 
 if "repo_input" not in st.session_state: st.session_state.repo_input = ""
 def _pick(sample: str):
@@ -133,13 +195,16 @@ if go_clicked or (target and st.session_state.get("analyzed") == target):
         st.stop()
 
     f, res = data["features"], data["result"]
-    color = COLORS.get(res["label"], "#444")
+    color = COLORS.get(res["maintenance_label"], "#444")
+    trust_color = TRUST_COLORS.get(res.get("trust_label_base"), "#444")
+    trust_val = "n/a" if res.get("trust_score") is None else f"{res['trust_score']:.0f}"
     st.subheader(f["full_name"])
     if f["description"]: st.write(f["description"])
 
     left, right = st.columns([1, 2])
     with left:
-        st.markdown(f"<div style='border-left:8px solid {color};padding:6px 16px'><div style='font-size:14px;color:#888'>Health score</div><div style='font-size:56px;font-weight:700;line-height:1.1'>{res['score']:.0f}<span style='font-size:20px;color:#888'> / 100</span></div><div style='font-size:20px;font-weight:600;color:{color}'>{res['label']}</div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='border-left:8px solid {trust_color};padding:6px 16px'><div style='font-size:14px;color:#888'>Trust score <span style='font-size:12px'>(indicators, not proof)</span></div><div style='font-size:56px;font-weight:700;line-height:1.1'>{trust_val}<span style='font-size:20px;color:#888'> / 100</span></div><div style='font-size:20px;font-weight:600;color:{trust_color}'>{html.escape(res['label'])}</div></div>", unsafe_allow_html=True)
+        if res.get("limiting_reason"): st.caption(_md_escape(res["limiting_reason"]))
         st.write("")
         m1, m2, m3 = st.columns(3)
         m1.metric("Stars", f"{f['stars']:,}")
@@ -147,9 +212,10 @@ if go_clicked or (target and st.session_state.get("analyzed") == target):
         m3.metric("Language", f["language"] or "-")
         st.info(explain(res))
         for reason in res["gate_reasons"]: st.warning(reason)
-        if res["score"] != res["maintenance_score"]: st.caption(f"Maintenance activity alone: {res['maintenance_score']:.0f} / 100 ({res['maintenance_label']})")
+        st.caption(f"Maintenance: {res['maintenance_score']:.0f} / 100 ({res['maintenance_label']}). It feeds the fragility index and can lower the Trust score to {MAINTENANCE_CEILING} at most.")
 
     with right:
+        st.caption("Maintenance factors (0-100)")
         scored = [x for x in res["factors"] if x["score"] is not None]
         names = [x["name"] for x in scored]
         vals = [x["score"] for x in scored]
@@ -157,6 +223,8 @@ if go_clicked or (target and st.session_state.get("analyzed") == target):
         grid = "rgba(150,150,150,0.35)"
         fig.update_layout(polar=dict(bgcolor="rgba(0,0,0,0)", radialaxis=dict(range=[0, 100], tickvals=[0, 25, 50, 75, 100], gridcolor=grid, linecolor=grid), angularaxis=dict(gridcolor=grid, linecolor=grid)), paper_bgcolor="rgba(0,0,0,0)", showlegend=False, margin=dict(l=70, r=70, t=30, b=30), height=380)
         st.plotly_chart(fig, width="stretch")
+
+    render_pillars(res)
 
     sec, scan = data["security"], data["scan"]
     headline, why = action_verdict(res["maintenance_label"], sec["level"], bool(data["flags"]))
@@ -176,8 +244,15 @@ if go_clicked or (target and st.session_state.get("analyzed") == target):
         headline, why = ("Review the code findings", f"The scan found {scan['code_high']} high-severity, high-confidence code finding(s). Static analysis is noisy, so this does not change the score on its own, but check each one before relying on this code.")
     
     st.markdown("#### Verdict")
-    box = st.error if (headline in ("Replace it", "Review urgently") or "DO NOT USE" in headline) else (st.warning if headline in ("Upgrade or review", "Use with caution", "Review the findings before using", "Plan to migrate", "Review the code findings", "High-risk patterns found: review manually before use") else st.info)
-    box(f"**{headline}.** {why}")
+    base = res.get("trust_label_base")
+    if base in (LABEL_KNOWN_MALICIOUS, LABEL_HIGH_RISK, LABEL_REVIEW, LABEL_FRAGILE, LABEL_NO_FINDINGS, LABEL_NOT_ASSESSED):
+        box = st.error if base == LABEL_KNOWN_MALICIOUS else (st.warning if base in (LABEL_HIGH_RISK, LABEL_REVIEW) else st.info)
+        detail = why if "DO NOT USE" in headline else _md_escape(res.get("limiting_reason") or "")
+        box(f"**{_md_escape(res['label'])}.** {detail}")
+        st.caption(f"Maintenance advice: {headline}. {why}" if "DO NOT USE" not in headline else "")
+    else:
+        box = st.error if (headline in ("Replace it", "Review urgently") or "DO NOT USE" in headline) else (st.warning if headline in ("Upgrade or review", "Use with caution", "Review the findings before using", "Plan to migrate", "Review the code findings", "High-risk patterns found: review manually before use") else st.info)
+        box(f"**{headline}.** {why}")
     if sec["findings"]: st.dataframe(pd.DataFrame(sec["findings"]).rename(columns={"severity": "Level", "source": "Source", "item": "Item", "detail": "Detail"}), hide_index=True, width="stretch")
 
     intel_data = data.get("intelligence") or {}
@@ -287,9 +362,9 @@ if go_clicked or (target and st.session_state.get("analyzed") == target):
 
     with st.expander("What was and was not checked"):
         for c in sec["coverage"] + scan["coverage"]: st.write("- " + c)
-        st.caption("Health here = maintenance activity + known security problems + dual-use content flags. No findings does not mean safe: we look for malware indicators and known-bad packages, but static analysis can miss threats and cannot prove intent.")
+        st.caption("The Trust score combines detector findings (Integrity, Behavior, Exposure), the evidence caps and a maintenance ceiling. No findings does not mean safe: we look for malware indicators and known-bad packages, but static analysis can miss threats and cannot prove intent.")
 
-    st.markdown("#### What drives the health score")
+    st.markdown("#### What drives the maintenance score")
     table = pd.DataFrame([{"Factor": x["name"], "Score (0-100)": x["score"], "Weight %": x["effective_weight"], "Evidence": x["detail"]} for x in res["factors"]])
     st.dataframe(table, hide_index=True, width="stretch", column_config={"Score (0-100)": st.column_config.ProgressColumn(min_value=0, max_value=100, format="%.0f")})
     for n in res["notes"]: st.caption("ℹ️ " + n)
@@ -300,4 +375,5 @@ if go_clicked or (target and st.session_state.get("analyzed") == target):
     bar.update_layout(xaxis=dict(title="Weeks ago (0 = this week)", autorange="reversed"), yaxis=dict(title="Commits", range=[0, max(5, max(weeks))]), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=40, r=20, t=10, b=40), height=280)
     st.plotly_chart(bar, width="stretch")
     with st.expander("Raw metrics collected from the GitHub API"): st.json({k: v for k, v in f.items() if k != "weekly_commits"})
+    st.caption(f"Ruleset {res.get('ruleset_version', RULESET_VERSION)} · Trust score: indicators, not proof.")
     st.caption("Limitation: a *finished and stable* library can score low because it has little recent activity. The health score measures maintenance activity, not code quality.")

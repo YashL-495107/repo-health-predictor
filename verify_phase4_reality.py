@@ -586,10 +586,13 @@ def _own_pkg_check(latest, osv_by_version, registry_fails=False):
     finally:
         S.requests.get, S.requests.post = orig
 
-def _gate_score(findings, level):
+def _gate(findings, level):
     from security import apply_gate
     res = {"score": 90.0, "label": "Healthy", "factors": [], "notes": []}
-    return apply_gate(res, {"level": level, "findings": findings, "coverage": []}, [], None)["score"]
+    return apply_gate(res, {"level": level, "findings": findings, "coverage": []}, [], None)
+
+def _gate_score(findings, level):
+    return _gate(findings, level)["score"]
 
 def test_own_package_latest_affected():
     (findings, cov, mal), calls = _own_pkg_check("2.0.0", {"2.0.0": ["MAL-2026-1", "GHSA-x"], None: ["MAL-2026-1", "MAL-2020-9"]})
@@ -602,7 +605,8 @@ def test_own_package_only_old_version():
     ok = (not mal and len(findings) == 1 and findings[0]["severity"] == "Info" and findings[0]["source"] == "OSV (past malicious release)"
           and "MAL-2022-77" in findings[0]["detail"] and "current release is not listed" in findings[0]["detail"]
           and calls[1] == ("POST", "3.1.0") and ("POST", None) in calls
-          and _gate_score(findings, "No unpatched issues found") == 90.0)
+          and (g := _gate(findings, "No unpatched issues found"))["score"] == 100.0 and g["maintenance_score"] == 90.0
+          and g["trust_label_base"] == "No findings")
     _record("Own package: MAL- only on an older version -> Info only, no cap", ok, f"detail={findings[0]['detail'] if findings else None}")
 
 def test_own_package_lookup_failure():

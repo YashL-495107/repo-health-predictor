@@ -157,5 +157,5 @@ def explain(result: dict) -> str:
         weak_txt = " and ".join(
             f"{x['name'].lower()} ({x['detail'].lower()})" for x in weak)
         tail = f" Strongest signal: {strong['name'].lower()}." if strong["score"] >= 50 else ""
-        return f"Health score is held back mainly by {weak_txt}.{tail}"
+        return f"Maintenance score is held back mainly by {weak_txt}.{tail}"
     return f"No weak spots: every scored factor is above 50. Strongest signal: {strong['name'].lower()} ({strong['detail'].lower()})."

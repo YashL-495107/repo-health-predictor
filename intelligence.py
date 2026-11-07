@@ -78,7 +78,7 @@ def resolve_gemini_key(sidebar_value, secrets_value=_MISSING, env_value=None) ->
 
 
 def describe_gemini_key(key: str, source: str, notes: list[str] | None = None) -> str:
-    """Safe one-line diagnostic: source, cleaned length and at most the last 4 characters."""
+    """One-line diagnostic: source, length after normalising, and at most the last 4 characters."""
     if source == "none" or not key:
         text = "Gemini key from: none"
     else:
@@ -617,7 +617,7 @@ def _fallback_intelligence(features: dict, health_res: dict, issue_triage: dict,
 
 
 def gather_repo_intel(client: GitHubClient, owner: str, repo: str, features: dict) -> dict:
-    """GitHub-only part of the intelligence layer (forks + issue triage). Safe to cache for a long time."""
+    """GitHub-only part of the intelligence layer (forks + issue triage). Can be cached for a long time."""
     idle_days = features.get("days_since_last_commit", 0)
     return {"forks": find_active_forks(client, owner, repo, idle_days), "issue_triage": triage_open_issues(client, owner, repo)}
 
@@ -654,7 +654,7 @@ Return ONLY valid JSON with this exact structure:
       "name": "exact package name as published on its registry (PyPI or npm), for a modern, actively maintained alternative",
       "ecosystem": "e.g. PyPI / npm / Go / Rust",
       "effort": "Low (Drop-in) | Medium (Adapter needed) | High (Rewrite)",
-      "why": "1-sentence explanation of why this alternative is safer and better maintained.",
+      "why": "1-sentence explanation of why this alternative has fewer known problems and is better maintained.",
       "snippet": "Short 4-6 line code example showing how to migrate or import the replacement."
     }}
   ]

@@ -5,7 +5,7 @@
 Snapshot T = today - 365 days. Features use ONLY commits at or before T (no look-ahead).
 Outcome: y_dead = 1 if the repo had NO commits in (T + 90 days, today] or is archived now.
 (The 90-day grace gap means a repo that was still active just after T but went quiet soon after counts as dead.)
-Safe to stop and re-run: finished repos are skipped. Repos that cannot be used are logged with a reason.
+Can be stopped and re-run: finished repos are skipped. Repos that cannot be used are logged with a reason.
 """
 import argparse
 import csv
