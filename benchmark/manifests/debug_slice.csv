@@ -1,0 +1,10 @@
+# Harness-debug slice: DEV items only (at most 10) | seed=20261107 | generated=2026-11-07T19:32:00Z | snapshot=2026-11-07
+repo,reason
+boto/boto3,dev set (dev_fp)
+certbot/certbot,dev set (dev_fp)
+docker/docker-py,dev set (dev_fp)
+getsentry/sentry-python,dev set (dev_fp)
+jaraco/keyring,dev set (dev_fp)
+paramiko/paramiko,dev set (dev_fp)
+pypa/pip,dev set (dev_fp)
+pypa/twine,dev set (dev_fp)

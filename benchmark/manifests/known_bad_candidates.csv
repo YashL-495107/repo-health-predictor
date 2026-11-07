@@ -1,0 +1,302 @@
+# Known-bad candidates: seeded random sample of OSV MAL- advisories per ecosystem; registry_obtainable = code of that version still published (metadata lookup only) | seed=20261107 | generated=2026-11-07T19:31:38Z | snapshot=2026-11-07
+id,ecosystem,package,version,source,source_url,published,registry_obtainable,registry_detail,sha256,npm_integrity,in_datadog_manifest,osv_index_size
+MAL-2025-191886,PyPI,tclients-sdk,1.0.0,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-191886,2025-02-25T18:18:21Z,no,removed from PyPI,,,no,11976
+MAL-2026-17877,PyPI,saeka,1.4.0,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2026-17877,2026-10-14T21:33:49Z,no,removed from PyPI,,,no,11976
+MAL-2023-7713,PyPI,tpvirtualpywproof,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-7713,2023-02-25T23:18:14Z,no,no version listed in the advisory,,,no,11976
+MAL-2024-12310,PyPI,myhexsender,0.1.0,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2024-12310,2024-07-26T16:53:30Z,no,removed from PyPI,,,no,11976
+MAL-2023-2041,PyPI,pycodesstyle,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-2041,2023-02-11T12:33:10Z,no,no version listed in the advisory,,,no,11976
+MAL-2023-3938,PyPI,libcraftguipost,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-3938,2023-02-25T23:30:16Z,no,no version listed in the advisory,,,no,11976
+MAL-2025-47796,PyPI,python-amazon-doc-utils,0.0.1,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-47796,2025-08-20T16:30:57Z,no,removed from PyPI,,,no,11976
+MAL-2023-6600,PyPI,selfreplacead,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-6600,2023-02-25T23:12:14Z,no,no version listed in the advisory,,,no,11976
+MAL-2023-5478,PyPI,py-postultrahacked,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-5478,2023-02-27T15:21:06Z,no,no version listed in the advisory,,,no,11976
+MAL-2023-5047,PyPI,py-cpumask,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-5047,2023-02-25T17:03:15Z,no,no version listed in the advisory,,,no,11976
+MAL-2026-2963,PyPI,typelimagic,1.1.2,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2026-2963,2026-04-21T07:03:39Z,no,removed from PyPI,,,no,11976
+MAL-2023-2652,PyPI,craftram,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-2652,2023-02-24T16:57:14Z,no,no version listed in the advisory,,,no,11976
+MAL-2025-191764,PyPI,imad213tools,213,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-191764,2025-07-05T20:30:08Z,no,removed from PyPI,,,no,11976
+MAL-2023-6585,PyPI,selfrandpong,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-6585,2023-02-25T23:12:14Z,no,no version listed in the advisory,,,no,11976
+MAL-2023-2541,PyPI,cccpu,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-2541,2023-02-24T23:21:01Z,no,no version listed in the advisory,,,no,11976
+MAL-2023-3947,PyPI,libcraftreplaceencode,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-3947,2023-02-25T23:12:10Z,no,no version listed in the advisory,,,no,11976
+MAL-2023-4976,PyPI,pushping,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-4976,2023-02-25T16:18:07Z,no,no version listed in the advisory,,,no,11976
+MAL-2024-10076,PyPI,opensead,1.0.0,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2024-10076,2024-06-28T20:16:20Z,no,removed from PyPI,,,no,11976
+MAL-2023-2712,PyPI,encodemask,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-2712,2023-02-25T16:24:07Z,no,no version listed in the advisory,,,no,11976
+MAL-2023-6116,PyPI,selfgrandpipcontrol,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-6116,2023-02-25T23:48:08Z,no,no version listed in the advisory,,,no,11976
+MAL-2023-4545,PyPI,libsuperhydrainfo,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-4545,2023-02-25T22:57:10Z,no,no version listed in the advisory,,,no,11976
+MAL-2023-6909,PyPI,tpadpip,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-6909,2023-02-25T16:45:10Z,no,no version listed in the advisory,,,no,11976
+MAL-2023-4225,PyPI,libmcencodeed,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-4225,2023-02-25T23:03:04Z,no,no version listed in the advisory,,,no,11976
+MAL-2025-191652,PyPI,poc-suppentest,1.0.0,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-191652,2025-10-17T13:59:22Z,no,removed from PyPI,,,no,11976
+MAL-2023-5347,PyPI,py-mineguigrand,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-5347,2023-02-25T23:48:12Z,no,no version listed in the advisory,,,no,11976
+MAL-2023-6207,PyPI,selfinfoponged,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-6207,2023-03-09T00:39:06Z,no,no version listed in the advisory,,,yes,11976
+MAL-2026-2702,PyPI,emergentintegrations,0.1.0,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2026-2702,2026-04-16T14:03:42Z,no,removed from PyPI,,,no,11976
+MAL-2023-4340,PyPI,libpongram,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-4340,2023-02-25T23:18:17Z,no,no version listed in the advisory,,,no,11976
+MAL-2024-11629,PyPI,malware-test-pack-new,0.0.4,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2024-11629,2024-08-23T22:55:41Z,no,removed from PyPI,,,no,11976
+MAL-2025-928,PyPI,gandon-pidar1,1.0.0,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-928,2024-08-05T22:25:51Z,no,removed from PyPI,,,no,11976
+MAL-2026-16131,PyPI,aitextutils-py,0.1.1,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2026-16131,2026-09-11T15:24:15Z,no,removed from PyPI,,,no,11976
+MAL-2025-4235,PyPI,pythonbinance,0.1.1,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-4235,2025-05-22T12:33:44Z,no,removed from PyPI,,,no,11976
+MAL-2023-1915,PyPI,oenpyxl,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-1915,2023-02-11T11:33:04Z,no,no version listed in the advisory,,,no,11976
+MAL-2023-2720,PyPI,esqadcpuhacked,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-2720,2023-02-26T20:12:07Z,no,no version listed in the advisory,,,no,11976
+MAL-2026-15828,PyPI,env-validator-tool,1.0.2,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2026-15828,2026-09-03T00:44:13Z,no,removed from PyPI,,,no,11976
+MAL-2024-5830,PyPI,pytimed,1.0.0,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2024-5830,2024-06-25T13:41:07Z,no,removed from PyPI,,,no,11976
+MAL-2025-6615,PyPI,wallet-utils,0.1.0,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-6615,2025-07-01T15:51:26Z,no,removed from PyPI,,,no,11976
+MAL-2024-5898,PyPI,requests-latest,0.0.1,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2024-5898,2024-06-25T13:41:41Z,no,removed from PyPI,,,no,11976
+MAL-2023-5286,PyPI,py-libedvm,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-5286,2023-02-25T23:00:17Z,no,no version listed in the advisory,,,no,11976
+MAL-2023-5370,PyPI,py-nvidiapipint,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-5370,2023-02-25T23:30:14Z,no,no version listed in the advisory,,,no,11976
+MAL-2023-2501,PyPI,adrandom,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-2501,2023-02-25T16:06:08Z,no,no version listed in the advisory,,,no,11976
+MAL-2025-6578,PyPI,robloxextra,0.2,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-6578,2025-06-09T10:14:40Z,no,removed from PyPI,,,no,11976
+MAL-2024-11634,PyPI,midi-melody-extractions,94.6,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2024-11634,2024-11-06T18:46:10Z,no,removed from PyPI,,,yes,11976
+MAL-2024-5911,PyPI,requesxt,1.0.0,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2024-5911,2024-06-25T13:41:47Z,no,removed from PyPI,,,yes,11976
+MAL-2023-2268,PyPI,siplejson,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-2268,2023-02-11T11:48:04Z,no,no version listed in the advisory,,,no,11976
+MAL-2024-4730,PyPI,adm3,1.8.0,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2024-4730,2024-06-25T13:32:07Z,no,removed from PyPI,,,no,11976
+MAL-2024-5870,PyPI,reqoests,1.0.0,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2024-5870,2024-06-25T13:41:28Z,no,removed from PyPI,,,no,11976
+MAL-2023-3986,PyPI,libencodestringver,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-3986,2023-02-25T23:48:10Z,no,no version listed in the advisory,,,no,11976
+MAL-2025-6438,PyPI,atlasctf-21-prod-01,99.99.99,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-6438,2025-06-07T14:05:45Z,no,removed from PyPI,,,yes,11976
+MAL-2023-3707,PyPI,hackedcc,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-3707,2023-02-25T16:24:09Z,no,no version listed in the advisory,,,no,11976
+MAL-2023-3622,PyPI,getmc,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-3622,2023-02-24T00:00:02Z,no,no version listed in the advisory,,,no,11976
+MAL-2024-5864,PyPI,reqeosts,1.0.0,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2024-5864,2024-06-25T13:41:25Z,no,removed from PyPI,,,no,11976
+MAL-2023-2674,PyPI,cvmc,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-2674,2023-02-24T23:27:08Z,no,no version listed in the advisory,,,no,11976
+MAL-2024-4933,PyPI,coloramqs,1.0.0,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2024-4933,2024-06-25T13:33:44Z,no,removed from PyPI,,,no,11976
+MAL-2026-15577,PyPI,auth-app-streamlit,2.1.1,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2026-15577,2026-08-30T06:31:06Z,no,removed from PyPI,,,no,11976
+MAL-2024-10413,PyPI,dbt-bytedhouse,99.7,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2024-10413,2024-11-06T08:21:31Z,no,removed from PyPI,,,yes,11976
+MAL-2026-904,PyPI,strands-agents-anthropic,1.0.0,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2026-904,2026-02-15T07:34:00Z,no,removed from PyPI,,,no,11976
+MAL-2025-6440,PyPI,atlasctf-21-prod-03,99.99.99,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-6440,2025-06-07T14:05:45Z,no,removed from PyPI,,,yes,11976
+MAL-2024-6061,PyPI,synthetictest1,0.0.1,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2024-6061,2024-06-25T13:42:59Z,no,removed from PyPI,,,yes,11976
+MAL-2023-3143,PyPI,esqnvidiaultrapep,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-3143,2023-02-27T15:30:18Z,no,no version listed in the advisory,,,yes,11976
+MAL-2024-4966,PyPI,colorizepip,1.0.0,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2024-4966,2024-06-25T13:34:01Z,no,removed from PyPI,,,no,11976
+MAL-2025-5121,PyPI,netspear,1.0.7,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-5121,2025-05-15T18:11:34Z,no,removed from PyPI,,,no,11976
+MAL-2024-11709,PyPI,sol-regex-gener,1.6.7,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2024-11709,2024-10-07T22:16:18Z,no,removed from PyPI,,,no,11976
+MAL-2023-4858,PyPI,pipcpu,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-4858,2023-02-23T23:33:15Z,no,no version listed in the advisory,,,no,11976
+MAL-2023-3677,PyPI,guicv,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-3677,2023-02-24T23:15:11Z,no,no version listed in the advisory,,,no,11976
+MAL-2023-2557,PyPI,ccpip,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-2557,2023-02-24T16:45:07Z,no,no version listed in the advisory,,,no,11976
+MAL-2025-6429,PyPI,aistac-foundation,0.0.1,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-6429,2025-07-31T19:13:54Z,no,removed from PyPI,,,no,11976
+MAL-2024-5336,PyPI,lucifer5033,0.2,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2024-5336,2024-06-25T13:37:01Z,no,removed from PyPI,,,no,11976
+MAL-2023-5105,PyPI,py-gamecv,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-5105,2023-02-25T16:48:06Z,no,no version listed in the advisory,,,no,11976
+MAL-2023-3226,PyPI,esqpostcraft,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-3226,2023-02-25T23:06:20Z,no,no version listed in the advisory,,,no,11976
+MAL-2023-1670,PyPI,btcoinlib,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-1670,2023-02-09T18:54:10Z,no,no version listed in the advisory,,,no,11976
+MAL-2023-5757,PyPI,py-virtualpip,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-5757,2023-02-25T23:03:18Z,no,no version listed in the advisory,,,no,11976
+MAL-2023-7209,PyPI,tplibhydrainfo,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-7209,2023-02-27T15:24:20Z,no,no version listed in the advisory,,,yes,11976
+MAL-2023-6678,PyPI,selfsuperpyw,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-6678,2023-02-25T16:48:09Z,no,no version listed in the advisory,,,no,11976
+MAL-2026-5824,PyPI,testpgagent,0.2,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2026-5824,2026-06-15T17:24:46Z,no,removed from PyPI,,,no,11976
+MAL-2023-7372,PyPI,tppipstrstr,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-7372,2023-02-25T23:15:15Z,no,no version listed in the advisory,,,no,11976
+MAL-2026-449,PyPI,icloudprocessor,1.0.7,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2026-449,2026-01-22T07:31:50Z,no,removed from PyPI,,,no,11976
+MAL-2025-192953,PyPI,aiogram-types-v3,3.3.1,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-192953,2025-12-28T01:44:36Z,no,removed from PyPI,,,yes,11976
+MAL-2024-5042,PyPI,dero-pip,1.0.0,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2024-5042,2024-06-25T13:34:37Z,no,removed from PyPI,,,no,11976
+MAL-2026-469,PyPI,cflashfiles,2.2,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2026-469,2026-01-22T20:58:55Z,no,removed from PyPI,,,no,11976
+MAL-2023-1850,PyPI,frqetrade,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-1850,2023-02-09T18:42:12Z,no,no version listed in the advisory,,,no,11976
+MAL-2023-6274,PyPI,selflibmineload,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-6274,2023-03-07T21:21:04Z,no,no version listed in the advisory,,,yes,11976
+MAL-2023-7600,PyPI,tpstrcccv,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-7600,2023-02-25T23:00:21Z,no,no version listed in the advisory,,,no,11976
+MAL-2023-6148,PyPI,selfhackedintload,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-6148,2023-02-25T23:15:19Z,no,no version listed in the advisory,,,no,11976
+MAL-2023-1613,PyPI,beautifulsooup4,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-1613,2023-02-10T12:45:08Z,no,no version listed in the advisory,,,no,11976
+MAL-2023-1397,PyPI,pytorch-pygame,0.6.19,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-1397,2023-05-20T14:00:40Z,no,removed from PyPI,,,yes,11976
+MAL-2023-5560,PyPI,py-randad,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-5560,2023-02-25T16:48:12Z,no,no version listed in the advisory,,,no,11976
+MAL-2023-4619,PyPI,libvirtualcandyint,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-4619,2023-02-27T15:33:06Z,no,no version listed in the advisory,,,no,11976
+MAL-2026-3413,PyPI,django-b64-img,1.1,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2026-3413,2026-05-10T20:29:46Z,no,removed from PyPI,,,no,11976
+MAL-2023-5264,PyPI,py-killnvidia,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-5264,2023-02-25T16:57:06Z,no,no version listed in the advisory,,,no,11976
+MAL-2026-14556,PyPI,sap-quarterly-report,1.0.0,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2026-14556,2026-08-27T13:01:04Z,no,removed from PyPI,,,no,11976
+MAL-2023-4123,PyPI,libintelurllgtb,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-4123,2023-02-27T15:39:11Z,no,no version listed in the advisory,,,no,11976
+MAL-2024-4823,PyPI,blazeted,1.0,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2024-4823,2024-06-25T13:32:51Z,no,removed from PyPI,,,yes,11976
+MAL-2024-11568,PyPI,cryptograohy,0.6.7,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2024-11568,2024-09-28T16:06:10Z,no,removed from PyPI,,,yes,11976
+MAL-2026-3405,PyPI,ggfmttygl,1.0.0,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2026-3405,2026-05-09T17:29:06Z,no,removed from PyPI,,,no,11976
+MAL-2026-2840,PyPI,sher-server-tool,0.0.1,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2026-2840,2026-04-17T10:48:02Z,no,removed from PyPI,,,no,11976
+MAL-2023-3601,PyPI,gametool,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-3601,2023-02-24T00:03:09Z,no,no version listed in the advisory,,,no,11976
+MAL-2023-5703,PyPI,py-ultracc,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-5703,2023-02-25T16:51:11Z,no,no version listed in the advisory,,,no,11976
+MAL-2023-5226,PyPI,py-intedreplace,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-5226,2023-02-27T02:45:14Z,no,no version listed in the advisory,,,no,11976
+MAL-2024-1397,PyPI,reqwestss,0.1.0,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2024-1397,2024-05-31T08:07:21Z,no,removed from PyPI,,,no,11976
+MAL-2023-1375,PyPI,libtpu-nightly,0.1.dev20230207,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-1375,2023-05-03T04:09:26Z,no,removed from PyPI,,,no,11976
+MAL-2023-3135,PyPI,esqnvidiamaskint,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-3135,2023-02-25T23:12:11Z,no,no version listed in the advisory,,,no,11976
+MAL-2026-14308,PyPI,libasync,1.0.0,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2026-14308,2026-08-19T22:38:13Z,no,removed from PyPI,,,no,11976
+MAL-2023-1635,PyPI,beautiifulsoup4,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-1635,2023-02-10T12:45:08Z,no,no version listed in the advisory,,,no,11976
+MAL-2025-41654,PyPI,ctf-q21-empire-tmp-test123,9999.0.4,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-41654,2025-08-28T07:10:55Z,no,removed from PyPI,,,no,11976
+MAL-2023-6448,PyPI,selfpippushhttp,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-6448,2023-02-25T23:24:02Z,no,no version listed in the advisory,,,no,11976
+MAL-2025-905,PyPI,byted-df,99.1.1,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-905,2024-11-29T13:03:21Z,no,removed from PyPI,,,yes,11976
+MAL-2023-6982,PyPI,tpcvadlib,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-6982,2023-03-12T12:21:06Z,no,no version listed in the advisory,,,yes,11976
+MAL-2023-5793,PyPI,pycandy,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-5793,2023-02-23T23:45:11Z,no,no version listed in the advisory,,,no,11976
+MAL-2025-41750,PyPI,ros2-demo-py,1.2,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-41750,2025-08-28T07:11:48Z,no,removed from PyPI,,,no,11976
+MAL-2023-2524,PyPI,candymc,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-2524,2023-02-23T23:39:03Z,no,no version listed in the advisory,,,no,11976
+MAL-2024-11571,PyPI,detecron2,94.6,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2024-11571,2024-11-06T18:46:10Z,no,removed from PyPI,,,yes,11976
+MAL-2024-12280,PyPI,google-play-store,0.6.0,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2024-12280,2024-10-01T11:25:46Z,no,removed from PyPI,,,no,11976
+MAL-2023-7202,PyPI,tplgtbmcultra,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-7202,2023-02-25T23:15:15Z,no,no version listed in the advisory,,,no,11976
+MAL-2023-4822,PyPI,paypalpush,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-4822,2023-02-25T16:18:10Z,no,no version listed in the advisory,,,no,11976
+MAL-2025-191912,PyPI,tronlinknet,0.1.0,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-191912,2025-08-19T19:32:21Z,no,removed from PyPI,,,no,11976
+MAL-2025-41762,PyPI,solution-maker,0.1.6,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-41762,2025-08-28T07:11:56Z,no,removed from PyPI,,,no,11976
+MAL-2023-2796,PyPI,esqcpupy,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-2796,2023-02-25T17:03:06Z,no,no version listed in the advisory,,,no,11976
+MAL-2026-6280,PyPI,ip-rotat,0.0.1,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2026-6280,2026-06-23T10:23:00Z,no,removed from PyPI,,,no,11976
+MAL-2023-1615,PyPI,beautifulsop4,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-1615,2023-02-10T12:45:07Z,no,no version listed in the advisory,,,no,11976
+MAL-2023-4990,PyPI,py-adping,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-4990,2023-02-25T23:00:16Z,no,no version listed in the advisory,,,no,11976
+MAL-2024-11714,PyPI,stackstorm-runner-action-chain,1.0.0,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2024-11714,2024-07-26T16:53:30Z,no,removed from PyPI,,,no,11976
+MAL-2025-191921,PyPI,voicemetterr,1.0.0,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-191921,2025-11-21T19:23:01Z,no,removed from PyPI,,,no,11976
+MAL-2023-6639,PyPI,selfstringpaypalcandy,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-6639,2023-02-25T23:09:15Z,no,no version listed in the advisory,,,no,11976
+MAL-2026-18328,PyPI,netweavex,1.1.1,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2026-18328,2026-10-26T09:58:20Z,no,removed from PyPI,,,no,11976
+MAL-2025-192928,PyPI,livekit-agents-hedra,1.1.1,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-192928,2025-12-24T20:38:01Z,no,removed from PyPI,,,no,11976
+MAL-2026-2029,PyPI,pipinpeace-reverse,0.0.0,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2026-2029,2026-03-22T16:50:18Z,no,removed from PyPI,,,no,11976
+MAL-2025-2987,PyPI,piauthorizer,0.0.0.1,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-2987,2025-03-28T13:06:02Z,no,removed from PyPI,,,no,11976
+MAL-2026-4775,PyPI,wdt-erpmcp,0.1.5,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2026-4775,2026-05-21T06:46:46Z,yes,bdist_wheel wdt_erpmcp-0.1.5-py3-none-any.whl (4541 bytes),3961b4cdbf887c8c30c43451ea31a36cc72842b1d1e562b0fa19c5e57c66a7c0,,no,11976
+MAL-2023-3427,PyPI,esqstringpushload,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-3427,2023-02-25T23:03:19Z,no,no version listed in the advisory,,,no,11976
+MAL-2026-505,PyPI,flask-hookserver,999.0.0,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2026-505,2026-01-25T11:13:11Z,no,removed from PyPI,,,no,11976
+MAL-2023-6520,PyPI,selfpushstr,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-6520,2023-02-25T23:18:14Z,no,no version listed in the advisory,,,no,11976
+MAL-2024-6080,PyPI,sysfontingpkgv1,1.1.0,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2024-6080,2024-06-25T13:43:08Z,no,removed from PyPI,,,no,11976
+MAL-2025-1969,PyPI,d5e54ncy1337,1.0.0,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-1969,2024-07-26T16:53:30Z,no,removed from PyPI,,,no,11976
+MAL-2023-1700,PyPI,crpytocompare,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-1700,2023-02-09T18:51:10Z,no,no version listed in the advisory,,,no,11976
+MAL-2023-6525,PyPI,selfpyintpaypal,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-6525,2023-05-08T01:51:01Z,no,no version listed in the advisory,,,yes,11976
+MAL-2023-6660,PyPI,selfstudyhydra,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-6660,2023-02-25T17:09:11Z,no,no version listed in the advisory,,,no,11976
+MAL-2026-2171,PyPI,globally,99.0.0,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2026-2171,2026-03-25T05:05:53Z,no,removed from PyPI,,,no,11976
+MAL-2025-5139,PyPI,solana-trade,1.0.0,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-5139,2025-05-16T10:41:32Z,no,removed from PyPI,,,no,11976
+MAL-2025-6501,PyPI,exorigsim,0.1.0,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-6501,2025-07-31T19:14:58Z,no,removed from PyPI,,,no,11976
+MAL-2023-2051,PyPI,pycodesyle,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-2051,2023-02-11T12:33:11Z,no,no version listed in the advisory,,,no,11976
+MAL-2024-11513,PyPI,afrit-name,1.4,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2024-11513,2024-12-09T06:49:40Z,no,removed from PyPI,,,no,11976
+MAL-2026-2269,PyPI,claude-lite,2.33.0,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2026-2269,2026-03-27T16:45:20Z,no,removed from PyPI,,,no,11976
+MAL-2024-5549,PyPI,pirlow,1.0.0,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2024-5549,2024-06-25T13:38:42Z,no,removed from PyPI,,,no,11976
+MAL-2023-5726,PyPI,py-urlponggame,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-5726,2023-02-26T20:21:18Z,no,no version listed in the advisory,,,no,11976
+MAL-2026-3245,PyPI,system-update-tool,1.0.0,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2026-3245,2026-05-03T12:30:31Z,no,removed from PyPI,,,no,11976
+MAL-2025-47795,PyPI,pytensorlite,0.1.1,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-47795,2025-08-17T19:36:01Z,no,removed from PyPI,,,no,11976
+MAL-2025-6468,PyPI,broccoli-server,0.0.1,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-6468,2025-07-31T19:14:25Z,no,removed from PyPI,,,no,11976
+MAL-2023-2262,PyPI,simplesjon,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-2262,2023-02-11T11:45:10Z,no,no version listed in the advisory,,,no,11976
+MAL-2023-1690,PyPI,coloarma,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-1690,2023-02-10T12:39:06Z,no,no version listed in the advisory,,,no,11976
+MAL-2025-140498,npm,castor-weywot-kinetic-chalk,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-140498,2025-11-12T04:29:11Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-107284,npm,printed_pony_0xrequest,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-107284,2025-11-11T07:26:13Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-186228,npm,command-blazar-node-config-phylogenetics,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-186228,2025-11-13T03:23:14Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-128154,npm,laila-tomat17-riris,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-128154,2025-11-11T20:46:25Z,no,version not listed (unpublished),,,no,222873
+MAL-2024-2737,npm,new_tricks_new-updated-psn_gift_generator_free_2023_no_human_today_opshs6,5.2.7,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2024-2737,2024-06-25T12:52:25Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-100236,npm,candra-rujak44-ruro,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-100236,2025-11-11T07:16:30Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-19974,npm,evergreen-opaline-igu642-project,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-19974,2025-08-14T18:52:04Z,no,replaced by an npm security holding package,,,no,222873
+MAL-2025-19866,npm,esolutions-ui-framework,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-19866,2025-08-14T18:52:04Z,no,replaced by an npm security holding package,,,no,222873
+MAL-2022-6745,npm,uhclabs_local_check,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2022-6745,2022-09-13T06:05:51Z,no,replaced by an npm security holding package,,,no,222873
+MAL-2025-103435,npm,gvzkch-devapptea,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-103435,2025-11-11T07:44:04Z,no,version not listed (unpublished),,,yes,222873
+MAL-2026-14141,npm,test-npm-snurkeburk-hackerone,1.999.0,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2026-14141,2026-08-18T23:22:36Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-105404,npm,lutfi-ketoprak100-ruro,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-105404,2025-11-11T07:16:30Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-109845,npm,tropical_viper_dumbs,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-109845,2025-11-11T07:26:13Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-1946,npm,traceviz-client-core,19.9.9,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-1946,2025-03-03T07:33:20Z,no,replaced by an npm security holding package,,,yes,222873
+MAL-2025-106809,npm,orthodox_lemming_0xrequest,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-106809,2025-11-11T07:26:13Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-52985,npm,jaja-tempe95-sluey,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-52985,2025-11-10T04:40:39Z,no,version not listed (unpublished),,,yes,222873
+MAL-2025-68507,npm,gentle-plum-wildcat,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-68507,2025-11-11T00:41:25Z,no,version not listed (unpublished),,,no,222873
+MAL-2026-4625,npm,oh-langfuse,0.1.51,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2026-4625,2026-05-21T08:17:27Z,yes,tarball (310469 bytes unpacked),,sha512-YSlLKLoDUZvUohmPwn3V4AxDyK+RRM9uOH49nJ6msDOPH4989HeNy2/5PxS8bbzyz2LjgsvSSNUiiBkRUM92Nw==,no,222873
+MAL-2025-39332,npm,winstorm,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-39332,2025-08-14T18:52:04Z,no,replaced by an npm security holding package,,,no,222873
+MAL-2025-58316,npm,qori-kupat87-sukiwir,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-58316,2025-11-10T17:21:43Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-152376,npm,alita-poke64,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-152376,2025-11-12T16:47:05Z,no,version not listed (unpublished),,,no,222873
+MAL-2024-9611,npm,exporter-trace-otlp-http,213.21.24,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2024-9611,2024-10-16T12:51:52Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-104293,npm,intellectual_chimpanzee_z3n,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-104293,2025-11-11T07:31:13Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-39189,npm,whiskey-foxtrot-oskl,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-39189,2025-08-14T18:52:04Z,no,replaced by an npm security holding package,,,no,222873
+MAL-2025-68930,npm,integrated-aquamarine-pheasant,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-68930,2025-11-11T00:41:25Z,no,version not listed (unpublished),,,yes,222873
+MAL-2025-121317,npm,kurnia-oblok19-breki,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-121317,2025-11-11T20:11:48Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-12231,npm,@zalastax/nolb-lion-lio,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-12231,2025-08-14T18:52:04Z,no,replaced by an npm security holding package,,,no,222873
+MAL-2026-17314,npm,test-supply-npm-lib-4,3.3.6,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2026-17314,2026-09-30T01:47:02Z,yes,tarball (680 bytes unpacked),,sha512-W9IvO4rSj0roaUytb3IAZixk3DM2wQQevaaFNsqWtV6jqm0xaJ4WDrVadPPqej6qCR481QolfWm5sixsiuTNvA==,no,222873
+MAL-2025-105591,npm,managing_koala_z3n,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-105591,2025-11-11T07:31:13Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-129748,npm,riana-bakwan47-riris,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-129748,2025-11-11T20:46:25Z,no,replaced by an npm security holding package,,,yes,222873
+MAL-2025-9795,npm,@zalastax/nolb-_azu,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-9795,2025-08-14T18:52:04Z,no,replaced by an npm security holding package,,,no,222873
+MAL-2025-17587,npm,coronalmassejection-grunt-commitizen-biotechnology,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-17587,2025-08-14T18:52:04Z,no,replaced by an npm security holding package,,,no,222873
+MAL-2023-61,npm,@superbet-group/web.lib.flags,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-61,2023-02-09T00:26:23Z,no,replaced by an npm security holding package,,,no,222873
+MAL-2025-39380,npm,wmdnrzxkeviufbhc,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-39380,2025-08-14T18:52:04Z,no,replaced by an npm security holding package,,,no,222873
+MAL-2025-169443,npm,uafagarug-midefafoi-ftusut,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-169443,2025-11-12T16:47:05Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-97462,npm,yabbering_leopon_z3n,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-97462,2025-11-11T05:18:27Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-10560,npm,@zalastax/nolb-_vb,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-10560,2025-08-14T18:52:04Z,no,replaced by an npm security holding package,,,no,222873
+MAL-2025-73209,npm,gita-tapai15-breki,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-73209,2025-11-11T02:29:13Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-4038,npm,wal-eth,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-4038,2025-05-19T07:37:19Z,no,replaced by an npm security holding package,,,no,222873
+MAL-2025-122052,npm,nana-telurtahu26-breki,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-122052,2025-11-11T20:11:48Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-92314,npm,wispy_cow_z3n,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-92314,2025-11-11T04:25:34Z,no,replaced by an npm security holding package,,,no,222873
+MAL-2025-49351,npm,@isv-occ-payment/occ-payment-service,77.77.79,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-49351,2025-11-04T12:05:40Z,no,replaced by an npm security holding package,,,yes,222873
+MAL-2025-41807,npm,example-multipass,10.0.1,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-41807,2025-08-29T09:30:50Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-23541,npm,jackrust,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-23541,2025-08-14T18:52:04Z,no,replaced by an npm security holding package,,,no,222873
+MAL-2024-8194,npm,@diotoborg/corporis-voluptatum-saepe,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2024-8194,2024-09-02T01:42:12Z,no,removed from npm,,,no,222873
+MAL-2025-34561,npm,tardigrade-public-rehype-uninstall,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-34561,2025-08-14T18:52:04Z,no,replaced by an npm security holding package,,,no,222873
+MAL-2025-19175,npm,echo_bc67m_cf5am_fern,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-19175,2025-08-14T18:52:04Z,no,replaced by an npm security holding package,,,no,222873
+MAL-2025-15833,npm,blocksqt,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-15833,2025-08-14T18:52:04Z,no,replaced by an npm security holding package,,,no,222873
+MAL-2025-76805,npm,ancient_beetle_z3n,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-76805,2025-11-11T03:48:15Z,no,version not listed (unpublished),,,yes,222873
+MAL-2025-126593,npm,fitri-peyek30-riris,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-126593,2025-11-11T20:46:25Z,no,version not listed (unpublished),,,yes,222873
+MAL-2025-87423,npm,kresna-kue37-miaww,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-87423,2025-11-11T04:25:34Z,no,version not listed (unpublished),,,yes,222873
+MAL-2025-178590,npm,sahunim-satf-anj,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-178590,2025-11-12T19:18:14Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-25085,npm,legoquiz,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-25085,2025-08-14T18:52:04Z,no,replaced by an npm security holding package,,,no,222873
+MAL-2025-61719,npm,absent_penguin_z3n,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-61719,2025-11-11T00:17:57Z,no,replaced by an npm security holding package,,,yes,222873
+MAL-2025-31943,npm,redshift-bravo-odvs,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-31943,2025-08-14T18:52:04Z,no,replaced by an npm security holding package,,,no,222873
+MAL-2025-172306,npm,augis-pomoi9r-ndc,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-172306,2025-11-12T18:09:08Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-63346,npm,hendra-brongkos49-sluey,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-63346,2025-11-11T00:17:57Z,no,version not listed (unpublished),,,yes,222873
+MAL-2025-164829,npm,rinto-poke55,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-164829,2025-11-12T16:47:05Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-49855,npm,bayu-jengkol16-sukiwir,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-49855,2025-11-10T04:05:19Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-63689,npm,joko-lapis13-sluey,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-63689,2025-11-11T00:17:57Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-30827,npm,pucclass,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-30827,2025-08-14T18:52:04Z,no,replaced by an npm security holding package,,,no,222873
+MAL-2023-859,npm,testnebb,1.0.1,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-859,2023-02-06T00:10:33Z,no,replaced by an npm security holding package,,,no,222873
+MAL-2025-94693,npm,glamorous_hedgehog_z3n,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-94693,2025-11-11T05:18:27Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-108220,npm,royal_duck_0xrequest,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-108220,2025-11-11T07:26:13Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-84255,npm,constitutional_bee_z3n,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-84255,2025-11-11T04:25:34Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-135508,npm,maya-kripik42-sluey,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-135508,2025-11-11T22:56:38Z,no,version not listed (unpublished),,,yes,222873
+MAL-2025-170468,npm,verify-taic-alu,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-170468,2025-11-12T16:47:05Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-20832,npm,fox-lagoon-hub517-project,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-20832,2025-08-14T18:52:04Z,no,replaced by an npm security holding package,,,no,222873
+MAL-2025-140301,npm,callback-optimize-css-assets-webpack-plugin-indus-markdown,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-140301,2025-11-12T04:29:11Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-35498,npm,test-mlw2-hazan-forth,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-35498,2025-08-14T18:52:04Z,no,replaced by an npm security holding package,,,no,222873
+MAL-2025-97861,npm,gita-oncom49-pore,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-97861,2025-11-11T05:50:15Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-73193,npm,gita-rujaksoto97-breki,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-73193,2025-11-11T02:29:13Z,no,version not listed (unpublished),,,no,222873
+MAL-2026-12788,npm,editor_application,9999.0.0,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2026-12788,2026-08-05T13:17:36Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-84926,npm,eka-tahu21-riris,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-84926,2025-11-11T04:25:34Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-52922,npm,hendra-tahu39-ruro,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-52922,2025-11-10T04:40:39Z,no,version not listed (unpublished),,,yes,222873
+MAL-2025-132585,npm,common_wasp_z3n,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-132585,2025-11-11T22:56:38Z,no,replaced by an npm security holding package,,,no,222873
+MAL-2025-27496,npm,nift-contract-viewer,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-27496,2025-08-14T18:52:04Z,no,replaced by an npm security holding package,,,no,222873
+MAL-2025-91442,npm,umi-empal79-riris,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-91442,2025-11-11T04:25:34Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-99599,npm,arif-telur35-ruro,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-99599,2025-11-11T07:16:30Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-104115,npm,indah-lontong56-remi,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-104115,2025-11-11T07:16:30Z,no,version not listed (unpublished),,,no,222873
+MAL-2024-1537,npm,e2e-frontend,1.0.0,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2024-1537,2024-06-05T18:34:01Z,no,version not listed (unpublished),,,no,222873
+MAL-2024-2576,npm,jwt-angular11-client,1.1.0,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2024-2576,2024-06-25T12:48:18Z,no,version not listed (unpublished),,,no,222873
+MAL-2023-1297,npm,skyscanner-themes,5.0.0,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2023-1297,2023-05-01T02:21:13Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-75063,npm,putri-tempe10-breki,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-75063,2025-11-11T02:29:13Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-27925,npm,nutmeg-shack-yyt7,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-27925,2025-08-14T18:52:04Z,no,replaced by an npm security holding package,,,no,222873
+MAL-2025-83120,npm,alive_orangutan_z3n,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-83120,2025-11-11T04:25:34Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-5241,npm,taskcluster-db,111.99.99,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-5241,2025-06-18T17:41:54Z,no,replaced by an npm security holding package,,,yes,222873
+MAL-2025-182985,npm,itale-dci-jygwuyrfwuyr,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-182985,2025-11-12T22:25:03Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-65484,npm,surya-pisang15-sluey,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-65484,2025-11-11T00:17:57Z,no,version not listed (unpublished),,,yes,222873
+MAL-2025-179363,npm,unimuna-safiagiaf-afcuga,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-179363,2025-11-12T19:18:14Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-165273,npm,ruji-46,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-165273,2025-11-12T16:47:05Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-184304,npm,modiov-kifni-ufavcseqinsdxaoycurptvmaduuban,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-184304,2025-11-12T22:25:03Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-181130,npm,teate-thy-sonic-zeigu,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-181130,2025-11-12T20:46:07Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-129250,npm,oktafian-tahutek75-riris,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-129250,2025-11-11T20:46:25Z,no,version not listed (unpublished),,,no,222873
+MAL-2026-10117,npm,nodemon-slint,3.1.13,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2026-10117,2026-07-10T10:18:08Z,no,replaced by an npm security holding package,,,no,222873
+MAL-2024-9170,npm,new-script-clipox-gt-a-v-h-a-c-k-mon-ey-tp-guns-esp-vehicles-more-1-52-undetected-2023-6yc1p7,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2024-9170,2024-10-09T07:04:42Z,no,replaced by an npm security holding package,,,no,222873
+MAL-2025-79600,npm,left_puma_z3n,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-79600,2025-11-11T03:48:15Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-107644,npm,quesadilla-notthedevs,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-107644,2025-11-11T07:44:04Z,no,version not listed (unpublished),,,yes,222873
+MAL-2025-87061,npm,joko-kacang87-riris,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-87061,2025-11-11T04:25:34Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-35337,npm,test-mlw2-figos-crump,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-35337,2025-08-14T18:52:04Z,no,replaced by an npm security holding package,,,no,222873
+MAL-2025-53639,npm,ocha-takokak39-breki,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-53639,2025-11-10T04:40:39Z,no,replaced by an npm security holding package,,,no,222873
+MAL-2025-130929,npm,utomo-rangginang78-riris,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-130929,2025-11-11T20:46:25Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-125409,npm,cici-tek38-riris,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-125409,2025-11-11T20:46:25Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-175048,npm,kaka-poke20,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-175048,2025-11-12T19:18:14Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-144831,npm,meissa-rate-limiter-materialize-forever,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-144831,2025-11-12T04:29:11Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-174051,npm,divata-tuga-ivabaitnfo,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-174051,2025-11-12T19:18:14Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-62049,npm,bayu-serimuka41-sluey,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-62049,2025-11-11T00:17:57Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-171041,npm,ciaracollins,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-171041,2025-11-12T18:00:57Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-14438,npm,amber-jewel-kov220-project,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-14438,2025-08-14T18:52:04Z,no,replaced by an npm security holding package,,,no,222873
+MAL-2025-58405,npm,riana-sambel43-sukiwir,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-58405,2025-11-10T17:21:43Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-62048,npm,bayu-sate83-sluey,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-62048,2025-11-11T00:17:57Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-100191,npm,burch-teadev,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-100191,2025-11-11T07:26:13Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-151296,npm,abiba-aviun-abupmaavu,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-151296,2025-11-12T16:47:05Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-113965,npm,fauzi-tahu8-miaww,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-113965,2025-11-11T15:19:32Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-144882,npm,metalsmith-materialize-gacrux-commitizen,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-144882,2025-11-12T04:29:11Z,no,version not listed (unpublished),,,no,222873
+MAL-2022-2027,npm,colourize,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2022-2027,2022-05-31T13:35:15Z,no,replaced by an npm security holding package,,,no,222873
+MAL-2025-150038,npm,@mipta1/gqasaass,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-150038,2025-11-12T16:47:05Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-20962,npm,frizbot,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-20962,2025-08-14T18:52:04Z,no,replaced by an npm security holding package,,,no,222873
+MAL-2025-121421,npm,laila-rangi14-breki,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-121421,2025-11-11T20:11:48Z,no,version not listed (unpublished),,,yes,222873
+MAL-2025-143004,npm,graphql-javascript-sedna-weywot,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-143004,2025-11-12T04:29:11Z,no,version not listed (unpublished),,,no,222873
+MAL-2026-1220,npm,corp-build-utils-poc,99.9.28,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2026-1220,2026-03-03T16:11:08Z,no,replaced by an npm security holding package,,,yes,222873
+MAL-2025-84772,npm,dono-rujak89-miaww,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-84772,2025-11-11T04:25:34Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-44841,npm,kaleidoscope_amyqx_0apfl_ripple,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-44841,2025-09-05T17:10:25Z,no,version not listed (unpublished),,,no,222873
+MAL-2024-1527,npm,win66lib,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2024-1527,2024-06-03T18:53:29Z,no,replaced by an npm security holding package,,,no,222873
+MAL-2025-79320,npm,joni-ronde68-sukiwir,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-79320,2025-11-11T03:48:15Z,no,version not listed (unpublished),,,yes,222873
+MAL-2025-16767,npm,chakra-ui-blitz-blitz-webpack,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-16767,2025-08-14T18:52:04Z,no,replaced by an npm security holding package,,,no,222873
+MAL-2025-192470,npm,elf-stats-aurora-sleigh-694,1.0.0,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-192470,2025-12-11T19:46:09Z,no,replaced by an npm security holding package,,,yes,222873
+MAL-2025-149794,npm,yaml-loopback-cors-postcss,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-149794,2025-11-12T04:29:11Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-13904,npm,a-lbum-do-wnload-avai-lable-file-12058-selling-live-water-a3lks-kuffcc,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-13904,2025-08-14T18:52:04Z,no,replaced by an npm security holding package,,,no,222873
+MAL-2025-189277,npm,root-analyze-short-warn-byte,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-189277,2025-11-13T03:23:14Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-126934,npm,gleaming_porcupine_z3n,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-126934,2025-11-11T20:46:25Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-133095,npm,empirical_cat_z3n,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-133095,2025-11-11T22:56:38Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-130304,npm,splendid_caribou_z3n,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-130304,2025-11-11T20:46:25Z,no,version not listed (unpublished),,,yes,222873
+MAL-2025-123644,npm,tomi-martabak71-breki,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-123644,2025-11-11T20:11:48Z,no,version not listed (unpublished),,,yes,222873
+MAL-2025-131849,npm,zul-rendang79-riris,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-131849,2025-11-11T20:46:25Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-20742,npm,fomalhaut-australis-isostasy-ora,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-20742,2025-08-14T18:52:04Z,no,replaced by an npm security holding package,,,no,222873
+MAL-2025-80634,npm,permanent_reindeer_z3n,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-80634,2025-11-11T03:48:15Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-114377,npm,greasy_primate_z3n,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-114377,2025-11-11T15:19:32Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-121527,npm,lisa-brongkos38-breki,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-121527,2025-11-11T20:11:48Z,no,version not listed (unpublished),,,yes,222873
+MAL-2024-8482,npm,@diotoborg/nulla-tempora-voluptate,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2024-8482,2024-09-02T01:42:10Z,no,removed from npm,,,no,222873
+MAL-2025-56862,npm,international_mouse_z3n,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-56862,2025-11-10T17:21:43Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-149078,npm,ursa-venus-terser-luna,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-149078,2025-11-12T04:29:11Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-141982,npm,element-ui-rocket-vuetify-quark,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-141982,2025-11-12T04:29:11Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-77184,npm,candra-sasag69-sukiwir,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-77184,2025-11-11T03:48:15Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-139134,npm,distant_chickadee_z3n,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-139134,2025-11-12T03:28:16Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-67010,npm,blushing-aquamarine-trout,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-67010,2025-11-11T00:41:25Z,no,version not listed (unpublished),,,yes,222873
+MAL-2025-138544,npm,zul-martabak80-sluey,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-138544,2025-11-11T22:56:38Z,no,version not listed (unpublished),,,no,222873
+MAL-2025-122050,npm,nana-soto65-breki,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-122050,2025-11-11T20:11:48Z,no,version not listed (unpublished),,,yes,222873
+MAL-2025-31822,npm,react-native-pankanis-log,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-31822,2025-08-14T18:52:04Z,no,replaced by an npm security holding package,,,no,222873
+MAL-2025-32767,npm,scalaris,,OSV MAL- (OpenSSF malicious-packages),https://osv.dev/vulnerability/MAL-2025-32767,2025-08-14T18:52:04Z,no,replaced by an npm security holding package,,,no,222873
