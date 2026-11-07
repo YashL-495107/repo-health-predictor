@@ -123,12 +123,29 @@ def test_ai_prompt_injection_wrapped():
           and "A" * (EVIDENCE_LIMIT + 1) not in p and len(inner) < 6 * (EVIDENCE_LIMIT + 20))
     _record("AI: injected evidence stays inside <untrusted_evidence> and is truncated", ok)
 
+def test_app_cache_decorator():
+    import ast
+    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "app.py"), encoding="utf-8") as fh:
+        tree = ast.parse(fh.read())
+    funcs = {n.name: n for n in ast.walk(tree) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
+    def names(fn):
+        out = []
+        for d in fn.decorator_list:
+            d = d.func if isinstance(d, ast.Call) else d
+            out.append(ast.unparse(d))
+        return out
+    analyze = names(funcs["analyze"]) if "analyze" in funcs else []
+    esc = names(funcs["_md_escape"]) if "_md_escape" in funcs else []
+    ok = "st.cache_data" in analyze and not any("cache_data" in d for d in esc)
+    _record("app.py: analyze() is cached, _md_escape is not", ok, f"analyze={analyze} _md_escape={esc}")
+
 def main():
     print("=" * 72 + "\n  Phase 4 Reality Verification\n" + "=" * 72)
     for t in (test_attack1_double_encoded_dropper, test_attack2_hex_exec, test_attack3_setup_exec_net,
               test_attack4_behavior_fixture, test_benign_setup_versions_and_env, test_benign_wait_for_it,
               test_benign_regex_literal, test_typosquat,
-              test_skill_map_routing, test_ai_output_validation, test_ai_prompt_injection_wrapped):
+              test_skill_map_routing, test_ai_output_validation, test_ai_prompt_injection_wrapped,
+              test_app_cache_decorator):
         try:
             t()
         except Exception as e:

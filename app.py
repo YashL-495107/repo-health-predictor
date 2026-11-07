@@ -33,11 +33,11 @@ def server_gemini_key() -> str:
     except Exception: pass
     return os.getenv("GEMINI_API_KEY", "")
 
-@st.cache_data(ttl=3600, show_spinner=False)
 def _md_escape(text) -> str:
     return re.sub(r"([\\`*_{}\[\]()#+\-.!|<>~$])", r"\\\1", str(text))
 
 
+@st.cache_data(ttl=3600, show_spinner=False)
 def analyze(owner: str, repo: str, token: str, gemini_key: str = "") -> dict:
     client = GitHubClient(token)
     features = fetch_features(client, owner, repo)
