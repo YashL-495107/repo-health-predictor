@@ -1,6 +1,6 @@
 # Project capabilities
 
-Status as of ruleset `2026.11.07-7` (branch `trust-engine`). Changes per ruleset version: [docs/RULESET_CHANGELOG.md](docs/RULESET_CHANGELOG.md). This file says what is built, what is
+Status as of ruleset `2026.11.07-8` (branch `trust-engine`). Changes per ruleset version: [docs/RULESET_CHANGELOG.md](docs/RULESET_CHANGELOG.md). This file says what is built, what is
 measured and what is not yet measured. Every number here comes from a script in this repository; anything without
 a script behind it is marked "not yet measured".
 
@@ -23,7 +23,8 @@ Four pillars (`pillars.py`):
 
 Pillar rule (Integrity, Behavior, Exposure): start at 100; known_malicious -> at most 10; high_risk -> -35 each
 (not below 20 once there are 2 or more); review -> -8 each, at most -30 in total. One location counts once per
-tier inside a pillar. A pillar is `None` when none of its detectors ran: "not assessed" if they failed, "not
+tier inside a pillar, and review findings count once per (rule, top-level directory) group (the kept finding lists
+all files of the group). A pillar is `None` when none of its detectors ran: "not assessed" if they failed, "not
 applicable" (for example "no published package") if they do not apply.
 
 Headline = the lowest assessed pillar, then: any high_risk finding caps it at 49 and any known_malicious at 15
@@ -95,8 +96,13 @@ Responses are cached on disk (`http_cache.py`, keyed by URL and snapshot date; `
 
 ## Dev set
 
-Rules were tuned (ruleset 2026.11.07-7) on 8 real clients: boto3, twine, sentry-python, docker-py, paramiko, keyring,
-certbot and pip. They are a **dev set** and must not be reported as held-out evidence.
+Rules were tuned (rulesets 2026.11.07-7 and -8) on 8 real clients: boto3, twine, sentry-python, docker-py, paramiko,
+keyring, certbot and pip. They are a **dev set** and must not be reported as held-out evidence. Tuning on them stopped
+at 2026.11.07-8.
+
+Hand-maintained lists that encode judgement (review them when adding rules): the known-API host list and stop
+tokens, the client-credential-file owner map, and the SSH client library aliases (`SSH_CLIENT_LIBS`: paramiko,
+asyncssh, fabric) in `detectors/credential_exfiltration.py`.
 
 ## Behavior data-flow detectors (Phase 4)
 
@@ -133,7 +139,7 @@ exfil endpoint, release-vs-git drift with new capabilities), mapped by `detector
 | lookalike_name | Exposure | behavior scan name-similarity check | review |
 | committed_binary | Exposure | behavior scan committed-executable check | review |
 | virustotal | Exposure | Layer 3 VirusTotal hash lookup (needs VT_API_KEY) | 5+ engines -> known_malicious, 1-4 -> review |
-| repo_secrets | Exposure | secret scan | strong -> review (the 49 evidence cap still applies); private keys or sample-looking keys in test/sample/asset/docs/rule paths -> review without the cap |
+| repo_secrets | Exposure | secret scan | strong -> review (the 49 evidence cap still applies); private keys or sample-looking keys in test/sample/asset/fixture/docs/rule paths -> info (no tier, no cap) |
 | ci_workflow | Exposure | GitHub Actions checks | High/Medium -> review (the 49 cap still applies for High) |
 
 Each detector's docstring lists what it detects, known evasions and false-positive sources. Every finding is

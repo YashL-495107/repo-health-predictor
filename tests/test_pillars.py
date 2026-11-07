@@ -113,8 +113,9 @@ def test_known_malicious_evidence_cap_sets_the_label_even_without_a_detector_fin
 
 
 def test_pillar_arithmetic():
+    # distinct rules, so review findings are not grouped (grouping is tested separately, 2026.11.07-8)
     def score(*tiers, same_place=False):
-        fs = [finding(t, line=1 if same_place else i) for i, t in enumerate(tiers)]
+        fs = [finding(t, line=1 if same_place else i, rule=f"rule {i}") for i, t in enumerate(tiers)]
         return score_pillar("Behavior", [make_result("decoded_payload", "Behavior", "ran", fs)])["score"]
     assert score() == 100
     assert score("review") == 92

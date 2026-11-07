@@ -10,6 +10,10 @@ Pillar rule (Integrity, Behavior, Exposure): start at 100.
   review          -> -8 each, at most -30 in total from review findings alone
   One location (file:line, or detector + rule when there is no file) counts once per tier inside a pillar, so the
   same evidence reported by two adapters is not double-counted.
+  Review-tier findings are then grouped by (rule, top-level directory): one rule firing in 40 files under
+  tests/ is ONE review penalty, not 40. The group keeps one finding whose evidence lists every file of the group
+  (evidence type "group"). Root-level files form their own group ("."); findings without a file group by
+  (detector, rule). high_risk and known_malicious findings are never grouped.
   All feeding detectors not_assessed -> None ("not assessed"); all not_applicable -> None with the reason
   (for example "no published package"), which is not a failed check.
 
@@ -54,6 +58,36 @@ def _key(f: dict) -> tuple:
     return (f.get("detector"), f.get("rule"), f["tier"])
 
 
+def _top_dir(f: dict) -> str:
+    path = str(f.get("file") or "")
+    return path.split("/", 1)[0] if "/" in path else "."
+
+
+def group_review(findings: list[dict]) -> list[dict]:
+    """Collapse review-tier findings with the same (rule, top-level directory) into one finding that lists all
+    files in a "group" evidence entry. Other tiers pass through unchanged. Returns new dicts; inputs untouched."""
+    groups: dict[tuple, list[dict]] = {}
+    out: list[dict] = []
+    for f in findings:
+        if f.get("tier") != "review":
+            out.append(f)
+            continue
+        key = (f.get("rule"), _top_dir(f)) if f.get("file") else (f.get("detector"), f.get("rule"))
+        groups.setdefault(key, []).append(f)
+    for (_, _), fs in groups.items():
+        first = fs[0]
+        if len(fs) == 1:
+            out.append(first)
+            continue
+        files = sorted({f"{x.get('file')}:{x.get('line')}" if x.get("line") not in (None, "") else str(x.get("file"))
+                        for x in fs if x.get("file")})
+        out.append({**first, "group_size": len(fs),
+                    "evidence": list(first.get("evidence") or []) + [
+                        {"type": "group", "rule": first.get("rule"), "top_dir": _top_dir(first),
+                         "count": len(fs), "files": files}]})
+    return out
+
+
 def _where(f: dict) -> str:
     if not f.get("file"):
         return ""
@@ -87,7 +121,7 @@ def score_pillar(pillar: str, results: list[dict]) -> dict:
     for r in ran:
         for f in r["findings"]:
             uniq.setdefault(_key(f), f)
-    findings = sorted(uniq.values(), key=lambda f: -TIER_RANK[f["tier"]])
+    findings = sorted(group_review(list(uniq.values())), key=lambda f: -TIER_RANK[f["tier"]])
     n_hr = sum(1 for f in findings if f["tier"] == "high_risk")
     n_rv = sum(1 for f in findings if f["tier"] == "review")
     score = START - HIGH_RISK_PENALTY * n_hr - min(REVIEW_PENALTY * n_rv, REVIEW_PENALTY_CAP)

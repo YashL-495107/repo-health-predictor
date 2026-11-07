@@ -33,7 +33,7 @@ RULES = [
                 r"|\.onion\b|ngrok(?:-free)?\.(?:io|app)|webhook\.site|requestbin|pipedream\.net"),
      "Medium", "Webhook, bot, paste or tunnel endpoint: a typical place to send stolen data or fetch a payload."),
     ("Credential access", "reads credential files",
-     re.compile(r"\.ssh/(?:id_|authorized_keys)|\.aws/credentials|\.git-credentials|\.docker/config\.json|\.kube/config"
+     re.compile(r"\.ssh/(?:id_|[\w.-]+(?:\.pem|_rsa|_ed25519|_ecdsa|_dsa)\b)|\.aws/credentials|\.git-credentials|\.docker/config\.json|\.kube/config"
                 r"|\.config/gcloud|wallet\.dat|Login Data|/etc/shadow|\.netrc\b"),
      "Medium", "References files that hold keys, tokens or browser/wallet secrets."),
     ("Credential access", "dumps all environment variables",

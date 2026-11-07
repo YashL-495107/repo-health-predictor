@@ -3,8 +3,10 @@
 Python (data flow, ast only; see detectors/pyast.py for the taint model and parsing limits):
   BULK sources   the whole environment (dict(os.environ), os.environ.copy()/items()/keys()/values(), iterating it,
                  {**os.environ}, json.dumps(os.environ), os.environ passed whole to a call other than env=), and
-                 foreign secret stores (~/.ssh keys, browser "Login Data"/Cookies/Local State, crypto wallets,
-                 keystores, /etc/shadow, ~/.gnupg)
+                 foreign secret stores (SSH PRIVATE-KEY files only: id_*, *.pem, *_rsa, *_ed25519, *_ecdsa; not
+                 ~/.ssh/config, known_hosts or authorized_keys; browser "Login Data"/Cookies/Local State, crypto
+                 wallets, keystores, /etc/shadow, ~/.gnupg). For the SSH client libraries in the HAND-MAINTAINED
+                 SSH_CLIENT_LIBS list (paramiko, asyncssh, fabric) SSH keys and SSH_AUTH_SOCK are not sources.
   NAMED sources  one credential-like environment variable read by name (name contains TOKEN, SECRET, PASSWORD, KEY,
                  CREDENTIAL, AUTH, SESSION, COOKIE ...) or a client's own credential file (~/.aws/credentials,
                  ~/.config/gcloud, ~/.netrc, ~/.pypirc, ~/.git-credentials, ~/.npmrc, ~/.docker/config.json,
@@ -47,9 +49,16 @@ NEEDS_DATA = True
 
 CRED_NAME = re.compile(r"TOKEN|SECRET|PASSW|PASSPHRASE|API_?KEY|ACCESS_?KEY|PRIVATE_?KEY|CREDENTIAL|AUTH|SESSION|COOKIE|_KEY$", re.I)
 NOT_CRED_NAME = re.compile(r"_PROXY$|^NO_PROXY$|CA_BUNDLE|_CERT|KEY_?(FILE|PATH|ID)$", re.I)
-FOREIGN_FILE = re.compile(r"\.ssh/|(^|/)id_(rsa|dsa|ecdsa|ed25519)\b|Login Data|(^|/)Cookies$|Local State|wallet\.dat|\.electrum|Exodus|"
+# SSH: only private-key files count (id_*, *.pem, *_rsa, *_ed25519, *_ecdsa, *_dsa under .ssh, or a bare id_* name);
+# ~/.ssh/config, known_hosts and authorized_keys are not secrets.
+SSH_KEY = re.compile(r"\.ssh/(?:id_[\w.-]+|[\w.-]+\.pem|[\w.-]+_(?:rsa|ed25519|ecdsa|dsa))\b|(?:^|/)id_(?:rsa|dsa|ecdsa|ed25519)\b", re.I)
+FOREIGN_FILE = re.compile(r"\.ssh/(?:id_[\w.-]+|[\w.-]+\.pem|[\w.-]+_(?:rsa|ed25519|ecdsa|dsa))\b|(^|/)id_(rsa|dsa|ecdsa|ed25519)\b|Login Data|(^|/)Cookies$|Local State|wallet\.dat|\.electrum|Exodus|"
                           r"\.bitcoin|\.ethereum|keystore|/etc/shadow|\.gnupg|Local Storage/leveldb", re.I)
-FOREIGN_PART = {".ssh", "id_rsa", "id_ed25519", "id_ecdsa", "id_dsa", "login data", "local state", "wallet.dat", ".gnupg", ".electrum"}
+FOREIGN_PART = {"id_rsa", "id_ed25519", "id_ecdsa", "id_dsa", "login data", "local state", "wallet.dat", ".gnupg", ".electrum"}
+# HAND-MAINTAINED alias list: SSH client libraries whose OWN job is to use the user's SSH private keys and the SSH agent
+# socket (SSH_AUTH_SOCK). For these packages neither is a source. Add a library here only after checking it is an SSH
+# client; any other package reading an SSH private key keeps the foreign-secret-store rules.
+SSH_CLIENT_LIBS = {"paramiko", "asyncssh", "fabric"}
 CLIENT_FILE = re.compile(r"\.aws/credentials|\.config/gcloud|\.netrc|\.pypirc|\.git-credentials|\.npmrc|\.docker/config\.json|"
                          r"\.kube/config|kubeconfig|pip\.conf|pip\.ini", re.I)
 # Which tools own which credential file: a client reading its OWN file (docker -> ~/.docker/config.json) is normal,
@@ -68,6 +77,8 @@ CLIENT_FILE_OWNERS = [
 
 
 def own_client_file(path_literal: str, names: set[str]) -> bool:
+    if SSH_KEY.search(path_literal) and SSH_CLIENT_LIBS & names:
+        return True
     return any(rx.search(path_literal) and owners & names for rx, owners in CLIENT_FILE_OWNERS)
 NET_PREFIX = ("requests.", "httpx.", "urllib.", "urllib3.", "aiohttp.", "http.client.", "socket.", "smtplib.", "ftplib.")
 NET_ANY_ATTR = {"post", "put", "patch", "sendall", "sendto", "urlopen", "sendmail", "storbinary"}
@@ -98,16 +109,16 @@ SH_EXFIL = re.compile(r"\b(?:env|printenv)\b\s*\|\s*(?:curl|wget|nc)\b|cat\s+[^|
 
 # ---------------------------------------------------------------- source classification
 
-def _env_occurrence(node, par, al) -> dict | None:
+def _env_occurrence(node, par, al, owner_names: set[str] | None = None) -> dict | None:
     """Classify one use of os.environ: bulk, named credential, or None (not a source)."""
     p = par.get(id(node))
     if isinstance(p, ast.Subscript) and p.value is node:
         key = pyast.fold_str(p.slice)
-        return _named(key, node.lineno)
+        return _named(key, node.lineno, owner_names)
     if isinstance(p, ast.Attribute) and p.value is node:
         gp = par.get(id(p))
         if p.attr in ("get", "setdefault", "pop") and isinstance(gp, ast.Call) and gp.args:
-            return _named(pyast.fold_str(gp.args[0]), node.lineno)
+            return _named(pyast.fold_str(gp.args[0]), node.lineno, owner_names)
         if p.attr in ("items", "keys", "values", "copy"):
             return {"kind": "bulk_env", "line": node.lineno, "what": f"os.environ.{p.attr}()"}
         return None
@@ -120,7 +131,9 @@ def _env_occurrence(node, par, al) -> dict | None:
     return None
 
 
-def _named(key, line) -> dict | None:
+def _named(key, line, owner_names: set[str] | None = None) -> dict | None:
+    if key == "SSH_AUTH_SOCK" and SSH_CLIENT_LIBS & (owner_names or set()):
+        return None   # the SSH agent socket is an SSH client library's own credential channel
     if key and CRED_NAME.search(key) and not NOT_CRED_NAME.search(key):
         return {"kind": "named_env", "line": line, "what": f"environment variable {key}"}
     return None
@@ -131,16 +144,18 @@ def expr_sources(expr, par, al, taint, owner_names: set[str] | None = None) -> l
     for n in ast.walk(expr):
         if isinstance(n, (ast.Attribute, ast.Name)) and pyast.dotted(n, al) == "os.environ":
             if isinstance(n, ast.Name) or isinstance(n.value, ast.Name):
-                s = _env_occurrence(n, par, al)
+                s = _env_occurrence(n, par, al, owner_names)
                 if s:
                     out.append(s)
         elif isinstance(n, ast.Call) and pyast.dotted(n.func, al) in ("os.getenv", "os.environ.get") and n.args:
             if pyast.dotted(n.func, al) == "os.getenv":
-                s = _named(pyast.fold_str(n.args[0]), n.lineno)
+                s = _named(pyast.fold_str(n.args[0]), n.lineno, owner_names)
                 if s:
                     out.append(s)
         elif isinstance(n, ast.Constant) and isinstance(n.value, str):
             v = n.value
+            if (FOREIGN_FILE.search(v) or v.strip().lower() in FOREIGN_PART) and own_client_file(v, owner_names or set()):
+                continue   # an SSH client library using the user's own keys (hand-maintained SSH_CLIENT_LIBS)
             if FOREIGN_FILE.search(v) or v.strip().lower() in FOREIGN_PART:
                 out.append({"kind": "foreign_file", "line": n.lineno, "what": f"secret store path '{v[:60]}'"})
             elif CLIENT_FILE.search(v):

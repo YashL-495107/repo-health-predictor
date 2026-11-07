@@ -3,6 +3,25 @@
 Every change to detector logic, thresholds, tier mapping or fragility weights bumps `RULESET_VERSION`
 (`detectors/version.py`). Results produced under different versions are not directly comparable.
 
+## 2026.11.07-8
+
+Second dev-set round on the same 8 repositories. **This is the last tuning on them**: after this version the dev set
+is frozen for rule changes (they stay a dev set, never held-out evidence).
+
+- **Pillar penalty grouping:** review-tier findings count once per distinct (rule, top-level directory) group, not
+  once per file. The kept finding lists every file of the group in a "group" evidence entry. Root-level files form
+  one group per rule; findings without a file group by (detector, rule). high_risk and known_malicious are never
+  grouped. Changes pillar scores for repositories with one rule firing in many files.
+- **Secrets in test / sample / asset / fixture / docs / rule paths are info** (no tier, no cap; `info_reason`
+  recorded), consistent with the existing exact tests/ and docs/ fixture rule. In -7 these were review.
+- **SSH:** only private-key files are secret sources (id_*, *.pem, *_rsa, *_ed25519, *_ecdsa, *_dsa under .ssh, or a
+  bare id_* name). ~/.ssh/config, known_hosts and authorized_keys are not, in credential_exfiltration and in the
+  legacy behavior regex (which no longer lists authorized_keys).
+- **SSH client libraries:** for paramiko, asyncssh and fabric (a hand-maintained alias list, `SSH_CLIENT_LIBS` in
+  detectors/credential_exfiltration.py) SSH private keys and the agent socket SSH_AUTH_SOCK are the client's own
+  credentials, not sources. Any other package reading an SSH private key is unchanged (dynamic destination =
+  review, exfil/raw IP/unrelated host = high_risk).
+
 ## 2026.11.07-7
 
 Dev-set tuning from a sweep of 8 real clients (boto3, twine, sentry-python, docker-py, paramiko, keyring, certbot, pip)
