@@ -190,6 +190,7 @@ def assess_security(client: GitHubClient, owner: str, repo: str) -> dict:
     # Values: "ran" | "not_applicable" | "not_assessed"; *_detail keys add counts.
     checks = {"github_advisories": "not_assessed", "osv_dependencies": "not_assessed",
               "own_package": "not_assessed", "scorecard": "not_assessed"}
+    package = None   # {"ecosystem", "name"} of the repo's own published package, from its manifest
     try:
         advs = repo_advisories(client, owner, repo)
         checked += 1
@@ -240,6 +241,7 @@ def assess_security(client: GitHubClient, owner: str, repo: str) -> dict:
             t = _read_file(client, owner, repo, fn)
             if t is not None: files[fn] = t
         pkg = _detect_package_identity(files)
+        package = pkg
         if pkg:
             own_findings, own_cov, own_mal = check_own_package_malware(pkg)
             findings += own_findings
@@ -267,7 +269,10 @@ def assess_security(client: GitHubClient, owner: str, repo: str) -> dict:
     except (requests.RequestException, ValueError) as e: coverage.append(f"OpenSSF Scorecard: NOT checked ({type(e).__name__})")
     
     if checked == 0: level = 0
-    return {"level": LEVELS[level], "findings": findings, "coverage": coverage, "scorecard": sc, "checks": checks}
+    out = {"level": LEVELS[level], "findings": findings, "coverage": coverage, "scorecard": sc, "checks": checks}
+    if checks["own_package"] != "not_assessed" or package:
+        out["package"] = package   # only set when the manifest lookup ran (None = no published package)
+    return out
 
 
 def action_verdict(maintenance_label: str, risk_level: str, flagged: bool = False) -> tuple[str, str]:
@@ -292,7 +297,8 @@ def content_flags(f: dict) -> list[str]:
     return sorted(w for w in words if w in OFFENSIVE_TERMS)
 
 def apply_gate(res: dict, sec: dict, flags: list[str], scan: dict | None = None, *,
-               bus_factor: dict | None = None, features: dict | None = None, as_of=None) -> dict:
+               bus_factor: dict | None = None, features: dict | None = None, as_of=None,
+               releases: dict | None = None) -> dict:
     """Combine the maintenance result with security/content evidence into the headline Trust score.
 
     Keeps the existing evidence caps (known malicious 15; high-risk pattern 49; strong secret/CI 49; unpatched
@@ -343,8 +349,14 @@ def apply_gate(res: dict, sec: dict, flags: list[str], scan: dict | None = None,
     out["gate_reasons"] = reasons
     archived = res.get("label") == "Archived (read-only)" or bool((features or {}).get("archived"))
     fragility = compute_fragility(res["score"], bus_factor, features, archived=archived)
-    ctx = DetectorContext.build(as_of=as_of, scan=scan or None, security=sec, features=features,
-                                bus_factor=bus_factor, health=res, fragility=fragility)
+    as_of_source = "scan time"
+    latest = (((releases or {}).get("history") or {}).get("releases") or [None])[0]
+    if as_of is None and latest and latest.get("upload_time"):
+        from releases import _dt
+        as_of, as_of_source = _dt(latest["upload_time"]), f"upload time of {latest['version']}"
+    ctx = DetectorContext.build(as_of=as_of, as_of_source=as_of_source, scan=scan or None, security=sec,
+                                features=features, bus_factor=bus_factor, health=res, fragility=fragility,
+                                releases=releases)
     detector_results = run_detectors(ctx)
     trust = compute_trust(detector_results, {"score": res["score"], "label": res["label"]}, archived=archived,
                           evidence_caps=caps, security_level=sec.get("level"), content_flags=flags)
@@ -356,5 +368,6 @@ def apply_gate(res: dict, sec: dict, flags: list[str], scan: dict | None = None,
         "limiting_reason": trust["limiting_reason"], "partial": trust["partial"],
         "partial_reasons": trust["partial_reasons"], "detectors": detector_results, "fragility": fragility,
         "evidence_caps": [{"value": v, "rule": n, "tier": t} for v, n, t in caps], "ruleset_version": RULESET_VERSION,
+        "as_of": ctx.as_of.isoformat() if ctx.as_of else None, "as_of_source": as_of_source,
     })
     return out

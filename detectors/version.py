@@ -2,4 +2,4 @@
 
 Format YYYY.MM.DD-n. Bump it whenever a detector's logic, thresholds or tier mapping changes.
 """
-RULESET_VERSION = "2026.11.07-1"
+RULESET_VERSION = "2026.11.07-2"

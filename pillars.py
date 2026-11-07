@@ -55,7 +55,9 @@ def _key(f: dict) -> tuple:
 
 
 def _where(f: dict) -> str:
-    return f" at {f['file']}:{f['line']}" if f.get("file") else ""
+    if not f.get("file"):
+        return ""
+    return f" at {f['file']}:{f['line']}" if f.get("line") not in (None, "") else f" in {f['file']}"
 
 
 def score_pillar(pillar: str, results: list[dict]) -> dict:

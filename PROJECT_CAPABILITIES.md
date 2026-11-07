@@ -1,6 +1,6 @@
 # Project capabilities
 
-Status as of ruleset `2026.11.07-1` (branch `trust-engine`, end of Phase 1). This file says what is built, what is
+Status as of ruleset `2026.11.07-2` (branch `trust-engine`, end of Phase 2). This file says what is built, what is
 measured and what is not yet measured. Every number here comes from a script in this repository; anything without
 a script behind it is marked "not yet measured".
 
@@ -42,9 +42,38 @@ when no evidence pillar could be assessed.
 "Likely abandoned" or "Archived". That exception is removed: an abandoned repository with a known-malicious or
 high-risk finding is now capped like any other.
 
-## Detectors (Phase 1)
+## Release-based detectors (Phase 2)
 
-All twelve Phase 1 detectors are **adapters around checks that already existed**. They reuse the findings of the
+New detectors with their own tier logic. They read the release history fetched by `releases.py` (last 5 releases;
+artifacts of the 2 newest, at most 5 MB each, read in memory and never executed or installed) and git refs from the
+GitHub API. Time signals use the releases' own upload times; `as_of` is the latest release's upload time.
+
+| Detector | Pillar | Signals | Tier |
+|---|---|---|---|
+| release_delta | Integrity | what release N adds vs N-1: install hook (npm pre/install/postinstall, setup.py install-time execution, .pth start-up file), network or process capability, decoded payload, executable | high_risk only if a new install hook appears together with network access (new, or inside the hook) or decoded indicators; any single new capability is review |
+| tagless_release | Integrity | no git tag for the latest version; source files in the artifact that are in neither the tag/gitHead tree nor the default branch | missing tag = review; extra files with capabilities = high_risk; extra files without = review |
+| publisher_change | Integrity | publisher of release N absent from the previous releases (npm `_npmUser`; PyPI Trusted Publisher provenance); context: long gap, release burst, release_delta high-risk in the same release | review (fragility can escalate it) |
+
+What the APIs expose (checked live on 2026-11-07, see `releases.py`):
+- **PyPI does not expose the uploading user per release.** The `ownership` field lists the current owners only and
+  cannot be replayed. The per-release publisher comes from PEP 740 provenance (Trusted Publishing); for releases
+  without it, publisher_change reports "publisher identity not available" (not applicable, not a failed check).
+- npm exposes a per-version `_npmUser`, install scripts, dependencies and `gitHead`. Unpublished versions disappear
+  from `versions` and are listed as "unlisted" (they cannot be compared).
+- GitHub tags: only the tag `name` is used. The tag list response shape was not checked live from this environment
+  (the test repository has no tags); the trees endpoint was checked with a branch name and a commit SHA.
+
+Benign cases handled on purpose: known build hooks (`node-gyp rebuild`, `prebuild-install`, ...), native-build
+`setup.py` changes without network, vendored/test/docs folders, build-output folders and compiled `.js` with a `.ts`
+source. Each detector's docstring lists its evasions and false-positive sources.
+
+Responses are cached on disk (`http_cache.py`, keyed by URL and snapshot date; `REPOHEALTH_SNAPSHOT` replays a date,
+`REPOHEALTH_OFFLINE=1` uses the cache only). Recorded, trimmed registry responses for offline tests are in
+`tests/fixtures/releases/`.
+
+## Detectors adapted from existing checks (Phase 1)
+
+These twelve detectors are **adapters around checks that already existed**. They reuse the findings of the
 existing engine and do not compute anything new, so results on the existing fixtures are unchanged.
 
 **Honest note on tiers:** in Phase 1, the `high_risk` tier comes from the existing engine's "strong" findings
@@ -98,11 +127,13 @@ In Phase 1, time-based signals use the scan time as `as_of`; release upload time
 - Per-detector precision, recall and false-positive rate: **not yet measured** (Phase 5 benchmark).
 - The Trust score on real packages, known-bad or known-good: **not yet measured**.
 - The fragility weights and threshold: **not validated**.
-- Release-based, dependency, takeover and data-flow detectors: **not built yet** (Phases 2-4).
+- Release-based detectors (Phase 2): unit-tested on synthetic release pairs only; accuracy on real releases **not
+  yet measured** (Phase 5). The real incidents (event-stream, ua-parser-js, ...) have not been replayed yet.
+- Dependency, takeover and data-flow detectors: **not built yet** (Phases 3-4).
 
 ## Tests
 
 - `python -m pytest tests` (needs `pip install -r requirements-dev.txt`): contract, pillars, fragility,
-  wording rule, consumers, app smoke test.
+  wording rule, consumers, release history parsing and the release detectors, app smoke test.
 - `python verify_phase4_reality.py`: offline end-to-end checks of the detectors, AI layer and batch tools.
 - `python benchmark_fixtures.py`: the fixture benchmark above.

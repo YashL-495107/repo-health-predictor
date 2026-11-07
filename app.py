@@ -16,6 +16,7 @@ import hashlib
 from intelligence import build_ai_cards, SuccessCache, gather_repo_intel, run_ai_layer, _configured_model, resolve_gemini_key, describe_gemini_key, _MISSING
 from blast_radius import analyze_blast_radius
 from detectors import RULESET_VERSION, TIER_DISPLAY
+from releases import collect_release_context
 from pillars import (LABEL_FRAGILE, LABEL_HIGH_RISK, LABEL_KNOWN_MALICIOUS, LABEL_NO_FINDINGS, LABEL_NOT_ASSESSED,
                      LABEL_REVIEW, MAINTENANCE_CEILING)
 
@@ -62,7 +63,9 @@ def analyze(owner: str, repo: str, token: str) -> dict:
     # bus factor runs before the gate: it feeds the fragility index used by the trust score
     try: bus_factor = run_bus_factor_analysis(client, owner, repo)
     except Exception as e: bus_factor = {"bus_factor": 0, "gini": 0.0, "entropy": 0.0, "burnout_status": f"Unavailable ({type(e).__name__})", "findings": [], "author_table": [], "succession_score": 0.0, "risk_level": "Unknown"}
-    result = apply_gate(compute_health_score(features), security, flags, scan, bus_factor=bus_factor, features=features)
+    try: release_ctx = collect_release_context(owner, repo, security.get("package"))
+    except Exception as e: release_ctx = {"package": security.get("package"), "history": {"status": "error", "reason": f"release fetch crashed ({type(e).__name__})", "releases": []}, "git": None}
+    result = apply_gate(compute_health_score(features), security, flags, scan, bus_factor=bus_factor, features=features, releases=release_ctx)
 
     try:
         deps_info = collect_dependencies(client, owner, repo)
@@ -76,7 +79,7 @@ def analyze(owner: str, repo: str, token: str) -> dict:
 
     try: intel = gather_repo_intel(client, owner, repo, features)
     except Exception: intel = {"forks": [], "issue_triage": {"counts": {}, "critical_samples": []}}
-    return {"features": features, "result": result, "security": security, "flags": flags, "scan": scan, "bus_factor": bus_factor, "blast_radius": blast, "intelligence": intel}
+    return {"features": features, "result": result, "security": security, "flags": flags, "scan": scan, "bus_factor": bus_factor, "blast_radius": blast, "intelligence": intel, "releases": _release_summary(release_ctx)}
 
 
 @st.cache_resource
@@ -98,6 +101,22 @@ def ai_layer(owner: str, repo: str, gemini_key: str, data: dict) -> dict:
         ai = {"ai_report": {"executive_memo": "", "issue_triage_summary": "", "alternatives": [], "source": "Heuristic engine", "error": err}, "ai_audit_trails": {}, "ai_status": err}
     _ai_cache().put(cache_key, ai)
     return ai
+
+def _release_summary(rc: dict | None) -> dict | None:
+    """Small, display-only view of the release history (no archive contents, so the cached result stays small)."""
+    if not rc:
+        return None
+    h = rc.get("history") or {}
+    git = rc.get("git") or {}
+    return {"package": rc.get("package"), "status": h.get("status"), "reason": h.get("reason"),
+            "fields": h.get("fields"), "unlisted": h.get("unlisted_versions") or [], "matched_tag": git.get("matched_tag"),
+            "n_tags": len(git.get("tags") or []) if git.get("tags") is not None else None,
+            "rows": [{"Version": r["version"], "Uploaded": (r.get("upload_time") or "")[:19].replace("T", " "),
+                      "Publisher": r.get("publisher") or f"not available ({r.get('publisher_source')})",
+                      "Install scripts": ", ".join((r.get("install_scripts") or {}).keys()) or "-",
+                      "Artifact": f"{(r.get('artifact') or {}).get('kind', '-')}: {r.get('artifact_status')}"}
+                     for r in h.get("releases") or []]}
+
 
 def _pillar_text(p: dict) -> tuple[str, str]:
     """Value and caption for one pillar card. Never a bare number: coverage is always shown."""
@@ -142,6 +161,18 @@ def render_pillars(res: dict):
         st.caption(_md_escape(f"Fragility index {fr['score']:.0f}/100 ({', '.join(fr.get('factors') or [])}). "
                               f"At {fr['threshold']} or more, review-tier Integrity signals are escalated to high-risk. "
                               "Weights and threshold are unvalidated design choices."))
+    rs = st.session_state.get("_release_summary")
+    if rs:
+        with st.expander("Release history used by the Integrity detectors", expanded=False):
+            pkg = rs.get("package") or {}
+            st.caption(_md_escape(f"{pkg.get('ecosystem')} package {pkg.get('name')}: " + (rs.get("reason") or rs.get("status") or "")))
+            if rs.get("rows"):
+                st.dataframe(pd.DataFrame(rs["rows"]), hide_index=True, width="stretch")
+            if rs.get("fields"):
+                st.caption(_md_escape("Publisher source: " + str(rs["fields"].get("publisher"))))
+            if rs.get("unlisted"):
+                st.caption(_md_escape("Versions no longer listed by the registry (unpublished): " + ", ".join(rs["unlisted"])))
+            st.caption(_md_escape(f"Git tags: {rs['n_tags'] if rs.get('n_tags') is not None else 'not available'}; matching tag: {rs.get('matched_tag') or 'none'}"))
     with st.expander("Detectors (status and tier)", expanded=False):
         for d in res.get("detectors") or []:
             status = STATUS_TEXT.get(d["status"], d["status"])
@@ -224,6 +255,7 @@ if go_clicked or (target and st.session_state.get("analyzed") == target):
         fig.update_layout(polar=dict(bgcolor="rgba(0,0,0,0)", radialaxis=dict(range=[0, 100], tickvals=[0, 25, 50, 75, 100], gridcolor=grid, linecolor=grid), angularaxis=dict(gridcolor=grid, linecolor=grid)), paper_bgcolor="rgba(0,0,0,0)", showlegend=False, margin=dict(l=70, r=70, t=30, b=30), height=380)
         st.plotly_chart(fig, width="stretch")
 
+    st.session_state["_release_summary"] = data.get("releases")
     render_pillars(res)
 
     sec, scan = data["security"], data["scan"]

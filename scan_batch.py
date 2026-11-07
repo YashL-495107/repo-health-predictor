@@ -13,6 +13,7 @@ from repo_scan import scan_repo
 from scoring import compute_health_score
 from security import apply_gate, assess_security, content_flags
 from detectors import RULESET_VERSION
+from releases import collect_release_context
 
 FLAG_SOURCES = ("Layer ", "Behavior", "Secrets", "CI workflow")   # malware engine, behavior, secrets, CI
 MAX_FLAGGED, FLAG_ITEM_CHARS = 5, 120
@@ -111,7 +112,11 @@ def trust_columns(client, owner: str, name: str, res: dict, sec: dict | None) ->
         health = compute_health_score(features)
         sec = sec or {"level": "Not assessed", "findings": [], "coverage": [],
                       "checks": {k: "not_assessed" for k in ("github_advisories", "osv_dependencies", "own_package", "scorecard")}}
-        g = apply_gate(health, sec, content_flags(features), res, features=features)
+        try:
+            rc = collect_release_context(owner, name, sec.get("package"))
+        except Exception:
+            rc = None
+        g = apply_gate(health, sec, content_flags(features), res, features=features, releases=rc)
         out.update({"trust_score": g["trust_score"], "trust_label": g["label"], "maintenance_score": g["maintenance_score"],
                     "maintenance_label": g["maintenance_label"], "limiting": g["limiting_reason"] or "",
                     "partial": g["partial"]})

@@ -3,22 +3,27 @@
 Add a detector: create detectors/<id>.py with DETECTOR_ID, PILLAR and detect(ctx), then add one line to REGISTRY.
 See detectors/base.py for the result contract and tier definitions.
 
-Phase 1 note: every detector below ADAPTS an existing check (the malware engine, behavior scan, secret/CI scans
+Phase 1 note: the Phase 1 detectors ADAPT an existing check (the malware engine, behavior scan, secret/CI scans
 and security.assess_security). Their high_risk tier is today's "strong" finding mapped by base.legacy_tier(),
-not a new multi-signal detector. Attack-specific detectors arrive in later phases.
+not a new multi-signal detector. Phase 2 adds release_delta, tagless_release and publisher_change, which read
+release history (releases.py) and are new detectors with their own tier logic.
 """
 from __future__ import annotations
 
 import concurrent.futures as cf
 
 from . import (behavior_patterns, ci_workflow, committed_binary, decoded_payload, lookalike_name, osv_advisories,
-               osv_known_malicious, release_vs_git, repo_secrets, scorecard, setup_py_hook, virustotal)
+               osv_known_malicious, publisher_change, release_delta, release_vs_git, repo_secrets, scorecard,
+               setup_py_hook, tagless_release, virustotal)
 from .base import (FINDING_TIERS, PILLARS, STATUSES, TIER_DISPLAY, TIERS, make_result, not_assessed,  # noqa: F401
                    worst_tier)
 from .version import RULESET_VERSION  # noqa: F401
 
 REGISTRY = [
     release_vs_git,        # Integrity
+    release_delta,         # Integrity (Phase 2)
+    tagless_release,       # Integrity (Phase 2)
+    publisher_change,      # Integrity (Phase 2)
     decoded_payload,       # Behavior
     setup_py_hook,         # Behavior
     behavior_patterns,     # Behavior
