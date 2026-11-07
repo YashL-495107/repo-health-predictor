@@ -1,6 +1,6 @@
 # Project capabilities
 
-Status as of ruleset `2026.11.07-3` (branch `trust-engine`). Changes per ruleset version: [docs/RULESET_CHANGELOG.md](docs/RULESET_CHANGELOG.md). This file says what is built, what is
+Status as of ruleset `2026.11.07-4` (branch `trust-engine`). Changes per ruleset version: [docs/RULESET_CHANGELOG.md](docs/RULESET_CHANGELOG.md). This file says what is built, what is
 measured and what is not yet measured. Every number here comes from a script in this repository; anything without
 a script behind it is marked "not yet measured".
 
@@ -52,7 +52,17 @@ GitHub API. Time signals use the releases' own upload times; `as_of` is the late
 |---|---|---|---|
 | release_delta | Integrity | what release N adds vs N-1: install hook (npm pre/install/postinstall, setup.py install-time execution, .pth start-up file), network or process capability, decoded payload, executable | high_risk only if a new install hook appears together with network access (new, or inside the hook) or decoded indicators; any single new capability is review |
 | tagless_release | Integrity | no git tag for the latest version; source files in the artifact that are in neither the tag/gitHead tree nor the default branch | missing tag = review; extra files with capabilities = high_risk; extra files without = review |
+| dependency_injection | Integrity | a dependency added in release N: young (first release < 30 days before N's upload), lookalike name, install hook (npm scripts; PyPI setup.py via Layer 2, max 3 sdists), removed from the registry, OSV MAL- | OSV MAL- = known_malicious; young + lookalike or young + install hook = high_risk; young, lookalike or removed alone = review |
+| revival_takeover | Integrity | >= 365 days without a release or commits, then a new publisher, new commit author, release burst or rename/transfer indicator | revival alone = review (not escalated by fragility); revival + new install hook or decoded payload in the revived release = high_risk |
 | publisher_change | Integrity | publisher of release N absent from the previous releases (npm `_npmUser`; PyPI Trusted Publisher provenance); context: long gap, release burst, release_delta high-risk in the same release | review (fragility can escalate it) |
+
+Replay mode: `collect_release_context(owner, repo, package, target_version="3.3.5")` treats an older release as N;
+the window, `as_of`, commit history and dependency ages end at its upload time. Registry data is still today's, so
+unpublished releases cannot be replayed, and the git tag/tree comparison uses today's repository. Example (a replay /
+regression case, not held-out evidence): event-stream at 3.3.5 gives review from publisher_change and
+revival_takeover (779 days without a release, then publisher right9ctrl instead of dominictarr). The malicious
+3.3.6 release and its flatmap-stream dependency are unpublished, so dependency_injection cannot be replayed on them
+from live data.
 
 What the APIs expose (checked live on 2026-11-07, see `releases.py`):
 - **PyPI does not expose the uploading user per release.** The `ownership` field lists the current owners only and
@@ -60,6 +70,10 @@ What the APIs expose (checked live on 2026-11-07, see `releases.py`):
   without it, publisher_change reports "publisher identity not available" (not applicable, not a failed check).
 - npm exposes a per-version `_npmUser`, install scripts, dependencies and `gitHead`. Unpublished versions disappear
   from `versions` and are listed as "unlisted" (they cannot be compared).
+- deps.dev (dependents count) and api.osv.dev could not be reached from this environment, so their response fields
+  were not re-checked here; the dependents count is evidence only (never used for a tier) and shows "not
+  available" when the lookup fails; a failed OSV lookup is reported as not assessed. GitHub commits
+  (`commit.author.date/name`, `author.login`) and repository `full_name` were checked live.
 - GitHub tags: only the tag `name` is used. The tag list response shape was not checked live from this environment
   (the test repository has no tags); the trees endpoint was checked with a branch name and a commit SHA.
 
@@ -141,7 +155,9 @@ In Phase 1, time-based signals use the scan time as `as_of`; release upload time
 - The fragility weights and threshold: **not validated**.
 - Release-based detectors (Phase 2): unit-tested on synthetic release pairs only; accuracy on real releases **not
   yet measured** (Phase 5). The real incidents (event-stream, ua-parser-js, ...) have not been replayed yet.
-- Dependency, takeover and data-flow detectors: **not built yet** (Phases 3-4).
+- Dependency and takeover detectors (Phase 3): tested on synthetic histories and one replay (event-stream 3.3.5);
+  accuracy **not yet measured**.
+- Data-flow detectors: **not built yet** (Phase 4).
 
 ## Tests
 

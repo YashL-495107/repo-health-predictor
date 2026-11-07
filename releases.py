@@ -208,8 +208,9 @@ def _pypi_artifact(files: list[dict], prefer: str | None = None) -> dict | None:
     return None
 
 
-def parse_pypi(project: dict, n: int = DEFAULT_N) -> list[dict]:
-    """Newest-first list of the last n releases (no network). Versions without files are skipped."""
+def parse_pypi(project: dict, n: int = DEFAULT_N, until_version: str | None = None) -> list[dict]:
+    """Newest-first list of the last n releases (no network). Versions without files are skipped.
+    until_version: replay mode, the window ends at that release (later releases are ignored)."""
     rels = []
     for v, files in (project.get("releases") or {}).items():
         times = [f.get("upload_time_iso_8601") for f in files if f.get("upload_time_iso_8601")]
@@ -219,6 +220,9 @@ def parse_pypi(project: dict, n: int = DEFAULT_N) -> list[dict]:
                      "files": [{k: f.get(k) for k in ("filename", "url", "size", "packagetype")} for f in files],
                      "_files_raw": files})
     rels.sort(key=lambda r: _dt(r["upload_time"]) or datetime.min)
+    if until_version is not None:
+        idx = next((i for i, r in enumerate(rels) if r["version"] == until_version), None)
+        rels = rels[:idx + 1] if idx is not None else []
     return list(reversed(rels[-n:]))
 
 
@@ -240,13 +244,15 @@ def _pypi_publisher(name: str, version: str, filename: str) -> tuple[str | None,
     return ident, "PyPI provenance (Trusted Publisher)"
 
 
-def fetch_pypi(name: str, n: int = DEFAULT_N, deadline: float | None = None) -> dict:
+def fetch_pypi(name: str, n: int = DEFAULT_N, deadline: float | None = None, until_version: str | None = None) -> dict:
     project, status, err = http_cache.get_json(f"https://pypi.org/pypi/{quote(name, safe='')}/json")
     if status == 404:
         return {"status": "not_found", "reason": f"'{name}' is not on PyPI", "releases": []}
     if err or not isinstance(project, dict):
         return {"status": "error", "reason": f"PyPI lookup failed ({err})", "releases": []}
-    rels = parse_pypi(project, n)
+    rels = parse_pypi(project, n, until_version)
+    if until_version is not None and not rels:
+        return {"status": "not_found", "reason": f"version {until_version} of '{name}' is not on PyPI", "releases": []}
     partial = []
     for r in rels:   # defaults, so releases skipped by the fetch budget still have every key
         r.update({"dependencies_raw": None, "dependencies": None, "install_scripts": None, "git_head": None,
@@ -271,9 +277,13 @@ def fetch_pypi(name: str, n: int = DEFAULT_N, deadline: float | None = None) -> 
             r["contents"], r["artifact_status"] = None, "not_fetched"
     for r in rels:
         r.pop("_files_raw", None)
+    urls = (project.get("info") or {}).get("project_urls") or {}
+    repo_url = next((u for k, u in urls.items() if k.lower() in ("source", "source code", "repository", "code", "github")), None) \
+        or (project.get("info") or {}).get("home_page")
     roles = ((project.get("ownership") or {}).get("roles") or [])
     users = sorted({r.get("user") for r in roles if r.get("user")})
     return {"status": "ok", "reason": None, "releases": rels, "unlisted_versions": [], "partial": partial,
+            "repository_url": repo_url,
             "maintainers": {"count": len(users) if roles else None, "names": users,
                             "source": "PyPI ownership.roles (current owners)" if roles else "not available",
                             "organization": (project.get("ownership") or {}).get("organization")},
@@ -283,13 +293,17 @@ def fetch_pypi(name: str, n: int = DEFAULT_N, deadline: float | None = None) -> 
 
 # ---------------------------------------------------------------- npm
 
-def parse_npm(packument: dict, n: int = DEFAULT_N) -> tuple[list[dict], list[str]]:
+def parse_npm(packument: dict, n: int = DEFAULT_N, until_version: str | None = None) -> tuple[list[dict], list[str]]:
     times = {v: t for v, t in (packument.get("time") or {}).items() if v not in ("created", "modified")}
     versions = packument.get("versions") or {}
     listed = sorted((v for v in versions if v in times), key=lambda v: _dt(times[v]) or datetime.min)
+    if until_version is not None:   # replay mode: the window ends at that release
+        listed = listed[:listed.index(until_version) + 1] if until_version in listed else []
     window = listed[-n:]
     first = _dt(times[window[0]]) if window else None
-    unlisted = sorted((v for v in times if v not in versions and first and (_dt(times[v]) or datetime.min) >= first),
+    last = _dt(times[window[-1]]) if window else None
+    unlisted = sorted((v for v in times if v not in versions and first and (_dt(times[v]) or datetime.min) >= first
+                       and (until_version is None or (_dt(times[v]) or datetime.max) <= last)),
                       key=lambda v: _dt(times[v]) or datetime.min)
     rels = []
     for v in reversed(window):
@@ -310,13 +324,15 @@ def parse_npm(packument: dict, n: int = DEFAULT_N) -> tuple[list[dict], list[str
     return rels, unlisted
 
 
-def fetch_npm(name: str, n: int = DEFAULT_N, deadline: float | None = None) -> dict:
+def fetch_npm(name: str, n: int = DEFAULT_N, deadline: float | None = None, until_version: str | None = None) -> dict:
     data, status, err = http_cache.get_json(f"https://registry.npmjs.org/{quote(name, safe='@/')}")
     if status == 404:
         return {"status": "not_found", "reason": f"'{name}' is not on npm", "releases": []}
     if err or not isinstance(data, dict):
         return {"status": "error", "reason": f"npm lookup failed ({err})", "releases": []}
-    rels, unlisted = parse_npm(data, n)
+    rels, unlisted = parse_npm(data, n, until_version)
+    if until_version is not None and not rels:
+        return {"status": "not_found", "reason": f"version {until_version} of '{name}' is not listed on npm", "releases": []}
     for i, r in enumerate(rels):
         if i < CONTENT_RELEASES and not (deadline and time.monotonic() > deadline):
             r["contents"], r["artifact_status"] = _load_artifact(r["artifact"])
@@ -327,6 +343,7 @@ def fetch_npm(name: str, n: int = DEFAULT_N, deadline: float | None = None) -> d
     return {"status": "ok", "reason": None, "releases": rels, "unlisted_versions": unlisted, "partial": [],
             "maintainers": {"count": len(names) if isinstance(mnt, list) else None, "names": names,
                             "source": "npm packument maintainers (current)" if isinstance(mnt, list) else "not available"},
+            "repository_url": (data.get("repository") or {}).get("url") if isinstance(data.get("repository"), dict) else data.get("repository"),
             "fields": {"publisher": "npm per-version _npmUser.name", "dependencies": "versions[v].dependencies",
                        "install_scripts": "versions[v].scripts preinstall/install/postinstall"}}
 
@@ -392,6 +409,7 @@ def fetch_git(owner: str, repo: str, name: str, latest: dict | None) -> dict:
     if err or not isinstance(meta, dict):
         return {**out, "status": "error", "reason": f"GitHub repository lookup failed ({err})"}
     out["default_branch"] = meta.get("default_branch")
+    out["full_name"] = meta.get("full_name")   # differs from owner/repo after a rename or transfer (API redirects)
     tag = find_tag(owner, repo, name, latest["version"]) if latest else {"tags": None, "tags_error": "no release"}
     out.update(tags=tag.get("tags"), tags_error=tag.get("tags_error"), tags_complete=tag.get("complete", False),
                tag_method=tag.get("method"), matched_tag=tag.get("matched_tag"))
@@ -417,15 +435,155 @@ def fetch_git(owner: str, repo: str, name: str, latest: dict | None) -> dict:
     return out
 
 
+MAX_NEW_DEPS = 10           # new dependencies looked up per release pair
+MAX_DEP_ARTIFACTS = 3       # PyPI dependency sdists downloaded to look for install hooks
+MAX_COMMIT_PAGES = 3        # commits before the release (100 per page) for the revival check
+
+
+def _version_at(times: dict[str, str], as_of: datetime | None) -> str | None:
+    """Latest version published at or before as_of (by upload time)."""
+    cands = [(t, v) for v, t in times.items() if (tt := _dt(t)) and (as_of is None or tt <= as_of)]
+    return max(cands, key=lambda x: _dt(x[0]))[1] if cands else None
+
+
+def dependency_profile(ecosystem: str, name: str, as_of: datetime | None, download: bool = True) -> dict:
+    """Registry facts about one dependency, all relative to as_of (the upload time of the release that added it):
+    first release time, age in days at as_of, the version current at as_of, and whether that version carries an
+    install hook (npm: registry scripts; PyPI: setup.py in its sdist, only if `download`)."""
+    out = {"name": name, "ecosystem": ecosystem, "status": "ok", "reason": None, "first_release": None,
+           "age_days": None, "version_at_as_of": None, "install_hook": None, "install_hook_source": None}
+    if ecosystem == "npm":
+        data, status, err = http_cache.get_json(f"https://registry.npmjs.org/{quote(name, safe='@/')}")
+        if status == 404:
+            return {**out, "status": "not_found", "reason": "not on the registry now (never published, or removed)"}
+        if err or not isinstance(data, dict):
+            return {**out, "status": "error", "reason": f"npm lookup failed ({err})"}
+        times = {v: t for v, t in (data.get("time") or {}).items() if v not in ("created", "modified")}
+        out["first_release"] = (data.get("time") or {}).get("created") or (min(times.values(), key=lambda t: _dt(t) or datetime.max) if times else None)
+        v = _version_at({k: t for k, t in times.items() if k in (data.get("versions") or {})}, as_of)
+        out["version_at_as_of"] = v
+        scripts = ((data.get("versions") or {}).get(v) or {}).get("scripts") or {} if v else {}
+        hooks = {k: scripts[k] for k in ("preinstall", "install", "postinstall") if k in scripts}
+        out["install_hook"] = hooks or ({} if v else None)
+        out["install_hook_source"] = "npm registry scripts" if v else "no version at as_of"
+    elif ecosystem == "PyPI":
+        data, status, err = http_cache.get_json(f"https://pypi.org/pypi/{quote(name, safe='')}/json")
+        if status == 404:
+            return {**out, "status": "not_found", "reason": "not on the registry now (never published, or removed)"}
+        if err or not isinstance(data, dict):
+            return {**out, "status": "error", "reason": f"PyPI lookup failed ({err})"}
+        times = {v: min(ts) for v, fs in (data.get("releases") or {}).items()
+                 if (ts := [f.get("upload_time_iso_8601") for f in fs if f.get("upload_time_iso_8601")])}
+        out["first_release"] = min(times.values(), key=lambda t: _dt(t) or datetime.max) if times else None
+        v = _version_at(times, as_of)
+        out["version_at_as_of"] = v
+        if v and download:
+            art = _pypi_artifact((data.get("releases") or {}).get(v) or [], "sdist")
+            if art and art["kind"] == "sdist":
+                contents, st = _load_artifact(art)
+                if contents is not None:
+                    from detectors.release_analysis import capabilities
+                    hooks = capabilities({"version": v, "artifact": art, "contents": contents})["install_hook"]
+                    out["install_hook"], out["install_hook_source"] = dict(hooks), "setup.py in the sdist (Layer 2)"
+                else:
+                    out["install_hook_source"] = f"sdist not read ({st})"
+            else:
+                out["install_hook"], out["install_hook_source"] = {}, "wheel only: no install-time setup.py"
+        elif v:
+            out["install_hook_source"] = "not checked (download limit)"
+    else:
+        return {**out, "status": "error", "reason": f"unsupported ecosystem {ecosystem}"}
+    first = _dt(out["first_release"])
+    if first and as_of:
+        out["age_days"] = (as_of - first).days
+    return out
+
+
+def _dep_external(ecosystem: str, name: str, version: str | None) -> dict:
+    """OSV MAL- advisories and deps.dev dependents for one dependency. Failures are 'not assessed'."""
+    out = {"osv_mal": None, "osv_status": "not_assessed", "dependents": None, "dependents_status": "not available"}
+    try:
+        from security import _osv_mal_ids
+        out["osv_mal"] = _osv_mal_ids({"name": name, "ecosystem": ecosystem}, version)
+        out["osv_status"] = "ran"
+    except Exception as e:
+        out["osv_status"] = f"not assessed ({type(e).__name__})"
+    try:
+        from blast_radius import _deps_dev_dependents
+        d = _deps_dev_dependents(ecosystem, name, version or "")
+        if d:
+            out["dependents"], out["dependents_status"] = d.get("total_dependents"), "deps.dev (current count)"
+    except Exception:
+        pass
+    try:
+        from blast_radius import confirm_typosquat
+        out["lookalike_of"] = confirm_typosquat(name, ecosystem)
+    except Exception:
+        out["lookalike_of"] = None
+    return out
+
+
+def fetch_dependency_changes(hist: dict, deadline: float | None = None) -> dict:
+    """New and removed declared dependencies of release N vs N-1, with a profile of each new one."""
+    rels = hist.get("releases") or []
+    if len(rels) < 2:
+        return {"status": "not_applicable", "reason": "fewer than 2 releases"}
+    new, old = rels[0], rels[1]
+    if new.get("dependencies") is None or old.get("dependencies") is None:
+        return {"status": "not_assessed", "reason": "declared dependencies not available for both releases"}
+    as_of = _dt(new.get("upload_time"))
+    added = sorted(set(new["dependencies"]) - set(old["dependencies"]))
+    out = {"status": "ok", "reason": None, "new_version": new["version"], "old_version": old["version"],
+           "as_of": new.get("upload_time"), "added": added, "removed": sorted(set(old["dependencies"]) - set(new["dependencies"])),
+           "profiles": [], "not_looked_up": added[MAX_NEW_DEPS:]}
+    downloads = 0
+    for name in added[:MAX_NEW_DEPS]:
+        if deadline and time.monotonic() > deadline:
+            out["not_looked_up"] = added[added.index(name):]
+            break
+        do_dl = hist.get("ecosystem") == "PyPI" and downloads < MAX_DEP_ARTIFACTS
+        prof = dependency_profile(hist.get("ecosystem"), name, as_of, download=do_dl)
+        downloads += int(do_dl)
+        prof.update(_dep_external(hist.get("ecosystem"), name, prof.get("version_at_as_of")))
+        out["profiles"].append(prof)
+    return out
+
+
+def fetch_commit_activity(owner: str, repo: str, until_iso: str | None, max_pages: int = MAX_COMMIT_PAGES) -> dict:
+    """Commits up to the release time (newest first): [{"date", "author"}]. GitHub fields used (checked live):
+    commit.author.date, commit.author.name, author.login."""
+    if not until_iso:
+        return {"status": "not_assessed", "reason": "no release time", "commits": []}
+    commits, complete = [], False
+    for page in range(1, max_pages + 1):
+        data, _, err = http_cache.get_json(
+            f"https://api.github.com/repos/{owner}/{repo}/commits?until={quote(until_iso, safe='')}&per_page=100&page={page}")
+        if err or not isinstance(data, list):
+            if not commits:
+                return {"status": "not_assessed", "reason": f"commit history lookup failed ({err})", "commits": []}
+            break
+        for c in data:
+            a = (c.get("commit") or {}).get("author") or {}
+            commits.append({"date": a.get("date"), "author": (c.get("author") or {}).get("login") or a.get("name")})
+        if len(data) < 100:
+            complete = True
+            break
+    return {"status": "ok", "reason": None, "commits": commits, "complete": complete}
+
+
 def collect_release_context(owner: str, repo: str, package: dict | None, n: int = DEFAULT_N,
-                            budget_s: float = FETCH_BUDGET_S) -> dict | None:
-    """Everything the release detectors need. None when the repository publishes no package."""
+                            budget_s: float = FETCH_BUDGET_S, target_version: str | None = None) -> dict | None:
+    """Everything the release detectors need. None when the repository publishes no package.
+
+    target_version (replay mode): treat that release as N; the history window, as_of, commit history and dependency
+    ages all end at its upload time. Registry data is still today's (unpublished versions are gone), and the git
+    tag/tree comparison uses today's repository, so tagless_release is only meaningful for the latest release."""
     if not package:
         return None
     deadline = time.monotonic() + budget_s
     eco, name = package["ecosystem"], package["name"]
     try:
-        hist = fetch_pypi(name, n, deadline) if eco == "PyPI" else fetch_npm(name, n, deadline) if eco == "npm" else \
+        hist = fetch_pypi(name, n, deadline, target_version) if eco == "PyPI" else fetch_npm(name, n, deadline, target_version) if eco == "npm" else \
             {"status": "error", "reason": f"unsupported ecosystem {eco}", "releases": []}
     except Exception as e:  # never let a parser bug break the scan
         hist = {"status": "error", "reason": f"release fetch crashed ({type(e).__name__})", "releases": []}
@@ -436,4 +594,17 @@ def collect_release_context(owner: str, repo: str, package: dict | None, n: int 
             git = fetch_git(owner, repo, name, hist["releases"][0] if hist["releases"] else None)
         except Exception as e:
             git = {"status": "error", "reason": f"git lookup crashed ({type(e).__name__})"}
-    return {"package": package, "history": hist, "git": git, "snapshot": http_cache.snapshot()}
+    deps = activity = None
+    if hist["status"] == "ok":
+        try:
+            deps = fetch_dependency_changes(hist, deadline)
+        except Exception as e:
+            deps = {"status": "not_assessed", "reason": f"dependency lookup crashed ({type(e).__name__})"}
+        latest = hist["releases"][0] if hist["releases"] else {}
+        try:
+            activity = fetch_commit_activity(owner, repo, latest.get("upload_time")) if git and git.get("status") == "ok" \
+                else {"status": "not_assessed", "reason": (git or {}).get("reason") or "repository not reachable", "commits": []}
+        except Exception as e:
+            activity = {"status": "not_assessed", "reason": f"commit lookup crashed ({type(e).__name__})", "commits": []}
+    return {"package": package, "history": hist, "git": git, "dependencies": deps, "activity": activity,
+            "requested_repo": f"{owner}/{repo}", "snapshot": http_cache.snapshot(), "target_version": target_version}

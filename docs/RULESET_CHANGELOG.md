@@ -3,6 +3,15 @@
 Every change to detector logic, thresholds, tier mapping or fragility weights bumps `RULESET_VERSION`
 (`detectors/version.py`). Results produced under different versions are not directly comparable.
 
+## 2026.11.07-4
+
+- New Integrity detectors: **dependency_injection** (new dependency in release N: young < 30 days at the release,
+  lookalike, install hook, removed from the registry, OSV MAL-) and **revival_takeover** (>= 365 days of silence,
+  then a new publisher / new commit author / release burst / rename indicator; high_risk only with a new install-time
+  capability or decoded payload in the revived release). Revival alone is not escalated by fragility.
+- release findings of tier known_malicious are now marked strong / High (were Medium).
+- Replay mode: `collect_release_context(..., target_version=)` treats an older release as N.
+
 ## 2026.11.07-3
 
 - **Fragility: a missing git tag on its own is no longer escalated** from review to high_risk (findings carry

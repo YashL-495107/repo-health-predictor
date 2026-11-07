@@ -12,9 +12,9 @@ from __future__ import annotations
 
 import concurrent.futures as cf
 
-from . import (behavior_patterns, ci_workflow, committed_binary, decoded_payload, lookalike_name, osv_advisories,
-               osv_known_malicious, publisher_change, release_delta, release_vs_git, repo_secrets, scorecard,
-               setup_py_hook, tagless_release, virustotal)
+from . import (behavior_patterns, ci_workflow, committed_binary, decoded_payload, dependency_injection, lookalike_name,
+               osv_advisories, osv_known_malicious, publisher_change, release_delta, release_vs_git, repo_secrets,
+               revival_takeover, scorecard, setup_py_hook, tagless_release, virustotal)
 from .base import (FINDING_TIERS, PILLARS, STATUSES, TIER_DISPLAY, TIERS, make_result, not_assessed,  # noqa: F401
                    worst_tier)
 from .version import RULESET_VERSION  # noqa: F401
@@ -24,6 +24,8 @@ REGISTRY = [
     release_delta,         # Integrity (Phase 2)
     tagless_release,       # Integrity (Phase 2)
     publisher_change,      # Integrity (Phase 2)
+    dependency_injection,  # Integrity (Phase 3)
+    revival_takeover,      # Integrity (Phase 3)
     decoded_payload,       # Behavior
     setup_py_hook,         # Behavior
     behavior_patterns,     # Behavior

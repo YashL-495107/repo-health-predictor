@@ -240,3 +240,23 @@ def test_truncated_tree_is_partial_not_no_phantom_files():
     r = tagless_release.detect(DetectorContext.build(releases=rc))
     assert r["status"] == "ran" and r["coverage"] == "partial"
     assert "phantom-file check skipped" in r["coverage_detail"] and r["findings"] == []
+
+
+# ------------------------------------------------------------------ replay mode (target_version)
+
+def test_parse_npm_until_version_ends_the_window_at_that_release():
+    p = load("npm_left-pad_packument.json")
+    rels, _ = R.parse_npm(p, 5, until_version="1.2.0")
+    assert [r["version"] for r in rels] == ["1.2.0", "1.1.3", "1.1.2"]
+    assert R.parse_npm(p, 5, until_version="9.9.9")[0] == []
+
+
+def test_parse_pypi_until_version():
+    rels = R.parse_pypi(load("pypi_idna_project.json"), 5, until_version="3.18")
+    assert [r["version"] for r in rels][0] == "3.18" and "3.20" not in [r["version"] for r in rels]
+
+
+def test_fetch_npm_unknown_target_version_is_not_found(monkeypatch):
+    pack = load("npm_left-pad_packument.json")
+    monkeypatch.setattr(http_cache, "get_json", lambda url, headers=None, timeout=None: (pack, 200, None))
+    assert R.fetch_npm("left-pad", 5, until_version="0.0.0")["status"] == "not_found"

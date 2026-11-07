@@ -27,9 +27,9 @@ def release_gate(ctx, detector: str, min_releases: int = 1) -> tuple[dict | None
 
 def release_finding(detector: str, tier: str, rule: str, detail: str, evidence: list[dict], file: str = "",
                     fix: str = "Compare the two releases by hand before installing.") -> dict:
-    base = {"sev": "High" if tier == "high_risk" else "Medium", "source": f"Release history ({detector})",
-            "rule": rule, "file": file, "line": None, "detail": detail, "fix": fix, "url": None,
-            "strong": tier == "high_risk"}
+    severe = tier in ("high_risk", "known_malicious")
+    base = {"sev": "High" if severe else "Medium", "source": f"Release history ({detector})",
+            "rule": rule, "file": file, "line": None, "detail": detail, "fix": fix, "url": None, "strong": severe}
     return enrich(base, detector, tier, evidence)
 
 
