@@ -453,6 +453,9 @@ def test_scan_batch_rows():
     from benchmark_fixtures import scan_fixture
     with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "benchmark_fixtures", "mal_credential_stealer.py.sample")) as fh:
         fs = scan_fixture("mal_credential_stealer.py.sample", fh.read())
+    # scan_fixture also returns the Phase 4 data-flow detectors' findings; in a real scan those live in the
+    # detector results, not in malware_proof["findings"], so keep only the malware engine's own findings here
+    fs = [f for f in fs if f.get("source") not in ("Behavior data flow", "Behavior pattern match")]
     secret = {"sev": "High", "source": "Secrets", "rule": "Possible exposed AWS key", "file": "cfg.py", "line": 2, "strong": True}
     bandit = {"sev": "High", "source": "Code (Bandit)", "rule": "B602 shell", "file": "x.py", "line": 1, "strong": False}
     fake = {"ran": True, "findings": [secret, bandit], "coverage": [], "strong": 3, "review": 0, "code_high": 0, "secrets_strong": 1,

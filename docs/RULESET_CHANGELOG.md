@@ -3,6 +3,26 @@
 Every change to detector logic, thresholds, tier mapping or fragility weights bumps `RULESET_VERSION`
 (`detectors/version.py`). Results produced under different versions are not directly comparable.
 
+## 2026.11.07-6
+
+- New Behavior detectors with Python data flow (ast only; nothing compiled or executed):
+  - **credential_exfiltration**: BULK sources (whole environment, foreign secret stores such as ~/.ssh, browser
+    and wallet files) sent to an exfil endpoint / raw IP / .onion / unrelated host = high_risk; to a known or
+    related host or a dynamic destination = review. NAMED credentials (one TOKEN/SECRET/KEY-like variable or a
+    client's own credential file) = review only when sent to an unrelated/exfil/dynamic destination, not flagged
+    when sent to a known/related API. A foreign secret store read with no sink = review. Configuration variables
+    (proxies, HOME, PATH, ...) are not sources. The sink destination and its class are in the evidence.
+  - **protestware_destructive**: destructive action gated on locale / timezone / IP geolocation / country /
+    hostname / fixed date = high_risk; destructive alone or gate alone = not flagged; sys.platform / os.name /
+    platform.system() checks are not gates.
+  - JS / shell for both: regex only, "pattern match, no data-flow", review at most.
+  - Parsing limits: 400 KB per file, 200,000 AST nodes, 2000 files; SyntaxError / RecursionError / MemoryError /
+    ValueError caught per file (coverage partial).
+- Both new detectors set capability_evidence on their findings.
+- Detectors that need repository contents run inside scan_repo; apply_gate reuses their results.
+- Raw-IP classification: only RFC 1918, loopback, link-local and unique-local addresses count as local (Python's
+  is_private also covers documentation ranges).
+
 ## 2026.11.07-5
 
 - **Fragility escalation only for findings with code/capability evidence** (`capability_evidence=True`: a new install

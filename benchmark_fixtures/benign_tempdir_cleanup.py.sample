@@ -1,0 +1,8 @@
+# INERT BENCHMARK FIXTURE - never import or run. Read as text by benchmark_fixtures.py only.
+import shutil, tempfile
+def build():
+    tmp = tempfile.mkdtemp()
+    try:
+        pass
+    finally:
+        shutil.rmtree(tmp)

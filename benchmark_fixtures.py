@@ -43,6 +43,13 @@ def scan_fixture(fixture_name: str, content: str) -> list[dict]:
     findings += scan_ast_deobfuscation(files, _url)["findings"]
     findings += scan_static_setup_py(files, _url)["findings"]
     findings += scan_behavior({"text": files, "binaries": []}, "benchmark", _url)["findings"]
+    # Phase 4 data-flow detectors (Python: ast; JS/shell: pattern match, review at most)
+    from detectors import credential_exfiltration as CE, protestware_destructive as PD
+    for path, text in files.items():
+        if path.endswith(".py"):
+            findings += CE.analyse_python(path, text, set())[0] + PD.analyse_python(path, text)[0]
+        elif path.endswith((".js", ".mjs", ".cjs", ".ts", ".sh", ".bash")):
+            findings += CE.analyse_pattern(path, text) + PD.analyse_pattern(path, text)
     return findings
 
 

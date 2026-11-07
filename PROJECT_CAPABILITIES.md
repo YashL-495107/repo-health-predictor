@@ -1,6 +1,6 @@
 # Project capabilities
 
-Status as of ruleset `2026.11.07-5` (branch `trust-engine`). Changes per ruleset version: [docs/RULESET_CHANGELOG.md](docs/RULESET_CHANGELOG.md). This file says what is built, what is
+Status as of ruleset `2026.11.07-6` (branch `trust-engine`). Changes per ruleset version: [docs/RULESET_CHANGELOG.md](docs/RULESET_CHANGELOG.md). This file says what is built, what is
 measured and what is not yet measured. Every number here comes from a script in this repository; anything without
 a script behind it is marked "not yet measured".
 
@@ -91,6 +91,19 @@ Responses are cached on disk (`http_cache.py`, keyed by URL and snapshot date; `
 `REPOHEALTH_OFFLINE=1` uses the cache only). Recorded, trimmed registry responses for offline tests are in
 `tests/fixtures/releases/`.
 
+## Behavior data-flow detectors (Phase 4)
+
+| Detector | Pillar | What it tracks | Tier |
+|---|---|---|---|
+| credential_exfiltration | Behavior | Python: a source (whole environment; ~/.ssh, browser, wallet stores; or one credential-like named variable / a client's own credential file) reaching a network sink in the same function or through module-level variables; the sink's destination is classified (exfil endpoint, raw IP, .onion, unrelated host, known/related host, dynamic) | bulk -> exfil/raw IP/.onion/unrelated = high_risk; bulk -> known/related/dynamic = review; named -> unrelated/exfil/dynamic = review; named -> known/related API = not flagged; foreign secret store read without a sink = review |
+| protestware_destructive | Behavior | Python: delete / kill / mass overwrite / infinite loop inside an if/while (or after a guard clause) whose test uses locale, timezone, IP geolocation, country, hostname or a fixed date | gated destructive = high_risk; destructive alone or a gate alone = not flagged; OS checks (sys.platform, os.name) are not gates |
+
+JavaScript and shell are checked by regex only ("pattern match, no data-flow") and are **review at most**. So the
+node-ipc protestware (JavaScript) would be review here, not high_risk. colors.js / faker.js style sabotage (no gate)
+is not flagged by design. The taint tracking is deliberately simple: values passed through function calls, returns
+or other modules are not followed. Parsing uses `ast.parse` only, with size/node/file limits and per-file error
+handling; nothing is compiled or executed (tested).
+
 ## Detectors adapted from existing checks (Phase 1)
 
 These twelve detectors are **adapters around checks that already existed**. They reuse the findings of the
@@ -147,7 +160,7 @@ In Phase 1, time-based signals use the scan time as `as_of`; release upload time
 
 | Measurement | Script | Result | Caveat |
 |---|---|---|---|
-| Regression fixtures: 8 inert malicious samples, 4 benign look-alikes | `python benchmark_fixtures.py` | regression fixtures: 8/8 detected (written alongside the rules; not an accuracy measure); 0/4 benign look-alikes flagged | Hand-written alongside the rules. |
+| Regression fixtures: 10 inert malicious samples, 8 benign look-alikes | `python benchmark_fixtures.py` | regression fixtures: 10/10 detected (written alongside the rules; not an accuracy measure); 0/8 benign look-alikes flagged | Hand-written alongside the rules. |
 | Maintenance score backtest | `backtest_collect.py`, `backtest_analyze.py` | see `data/backtest_summary.csv` | Measures the maintenance score only, not the Trust score. |
 
 ## Not yet measured
@@ -159,7 +172,7 @@ In Phase 1, time-based signals use the scan time as `as_of`; release upload time
   yet measured** (Phase 5). The real incidents (event-stream, ua-parser-js, ...) have not been replayed yet.
 - Dependency and takeover detectors (Phase 3): tested on synthetic histories and one replay (event-stream 3.3.5);
   accuracy **not yet measured**.
-- Data-flow detectors: **not built yet** (Phase 4).
+- Data-flow detectors (Phase 4): tested on synthetic code (positive and benign); accuracy **not yet measured**.
 
 ## Tests
 

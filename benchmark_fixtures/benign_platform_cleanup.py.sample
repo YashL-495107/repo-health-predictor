@@ -1,0 +1,4 @@
+# INERT BENCHMARK FIXTURE - never import or run. Read as text by benchmark_fixtures.py only.
+import sys, shutil
+if sys.platform == "win32":
+    shutil.rmtree("build")

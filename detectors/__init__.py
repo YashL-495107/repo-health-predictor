@@ -12,9 +12,10 @@ from __future__ import annotations
 
 import concurrent.futures as cf
 
-from . import (behavior_patterns, ci_workflow, committed_binary, decoded_payload, dependency_injection, lookalike_name,
-               osv_advisories, osv_known_malicious, publisher_change, release_delta, release_vs_git, repo_secrets,
-               revival_takeover, scorecard, setup_py_hook, tagless_release, virustotal)
+from . import (behavior_patterns, ci_workflow, committed_binary, credential_exfiltration, decoded_payload,
+               dependency_injection, lookalike_name, osv_advisories, osv_known_malicious, protestware_destructive,
+               publisher_change, release_delta, release_vs_git, repo_secrets, revival_takeover, scorecard, setup_py_hook,
+               tagless_release, virustotal)
 from .base import (FINDING_TIERS, PILLARS, STATUSES, TIER_DISPLAY, TIERS, make_result, not_assessed,  # noqa: F401
                    worst_tier)
 from .version import RULESET_VERSION  # noqa: F401
@@ -29,6 +30,8 @@ REGISTRY = [
     decoded_payload,       # Behavior
     setup_py_hook,         # Behavior
     behavior_patterns,     # Behavior
+    credential_exfiltration,  # Behavior (Phase 4, data flow)
+    protestware_destructive,  # Behavior (Phase 4, data flow)
     osv_known_malicious,   # Exposure
     osv_advisories,        # Exposure
     scorecard,             # Exposure
@@ -56,9 +59,18 @@ def run_detectors(ctx, budget_s: float = DEFAULT_BUDGET_S, registry=None) -> lis
     """
     registry = REGISTRY if registry is None else registry
     results: dict[str, dict] = {}
+    # Detectors that need the repository contents (NEEDS_DATA) can only run inside scan_repo, where the contents are
+    # in memory. When ctx has no data, reuse the result scan_repo already produced for them.
+    if ctx.data is None and ctx.scan is not None:
+        pre = {d.get("detector"): d for d in (ctx.scan.get("detectors") or []) if isinstance(d, dict)}
+        for m in [m for m in registry if getattr(m, "NEEDS_DATA", False) and m.DETECTOR_ID in pre]:
+            results[m.DETECTOR_ID] = pre[m.DETECTOR_ID]
+        registry_run = [m for m in registry if m.DETECTOR_ID not in results]
+    else:
+        registry_run = list(registry)
     pool = cf.ThreadPoolExecutor(max_workers=min(8, max(1, len(registry))))
     try:
-        futs = {pool.submit(m.detect, ctx): m for m in registry}
+        futs = {pool.submit(m.detect, ctx): m for m in registry_run}
         done, _pending = cf.wait(futs, timeout=budget_s)
         for fut, mod in futs.items():
             if fut not in done:

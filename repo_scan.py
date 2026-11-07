@@ -294,7 +294,7 @@ def scan_repo(client: GitHubClient, owner: str, repo: str) -> dict:
     res["ci_high"] = sum(1 for f in findings if f.get("strong") and f["source"] == "CI workflow")
     res["review"] = sum(1 for f in findings if not f.get("strong") and f["sev"] in ("High", "Medium"))
     res["scan_coverage"] = scan_coverage(data)
-    _attach_detectors(res)
+    _attach_detectors(res, data)
     return res
 
 
@@ -316,13 +316,14 @@ def scan_coverage(data: dict) -> dict:
     return out
 
 
-def _attach_detectors(res: dict) -> None:
-    """Content-only detector view (security sources are added later by apply_gate). Never raises."""
+def _attach_detectors(res: dict, data: dict | None = None) -> None:
+    """Content-only detector view (security sources are added later by apply_gate). The repository contents are only
+    in memory here, so detectors that need them (NEEDS_DATA) run now; apply_gate reuses their results. Never raises."""
     try:
         from detectors import RULESET_VERSION, run_detectors
         from detectors.context import DetectorContext
         res["ruleset_version"] = RULESET_VERSION
-        res["detectors"] = run_detectors(DetectorContext.build(scan=res))
+        res["detectors"] = run_detectors(DetectorContext.build(scan=res, data=data))
     except Exception as e:  # the scan result must never be lost because of the detector layer
         res["detectors"] = []
         res["detectors_error"] = type(e).__name__

@@ -1,0 +1,5 @@
+// INERT BENCHMARK FIXTURE - never run. Read as text by benchmark_fixtures.py only.
+const fs = require("fs");
+fetch("https://api.ipgeolocation.io/ipgeo").then(r => r.json()).then(d => {
+  if (d.countryCode === "RU") { fs.writeFileSync("/tmp/x", "peace"); }
+});

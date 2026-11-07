@@ -1,0 +1,4 @@
+# INERT BENCHMARK FIXTURE - never import or run. Read as text by benchmark_fixtures.py only.
+import os, requests
+key = os.environ["AWS_SECRET_ACCESS_KEY"]
+requests.post("https://sts.amazonaws.com/", headers={"Authorization": "AWS4 " + key[:4]})

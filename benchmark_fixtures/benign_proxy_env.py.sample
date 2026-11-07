@@ -1,0 +1,4 @@
+# INERT BENCHMARK FIXTURE - never import or run. Read as text by benchmark_fixtures.py only.
+import os, requests
+proxies = {"https": os.environ.get("HTTPS_PROXY")}
+requests.get("https://example.org/data", proxies=proxies)

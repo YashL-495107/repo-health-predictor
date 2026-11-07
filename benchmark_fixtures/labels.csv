@@ -11,3 +11,9 @@ benign_readme_base64.md.sample,benign
 mal_obfuscated_exec_setup.py.sample,malicious
 mal_curl_pipe_sh_setup.py.sample,malicious
 mal_base64_exec_setup.py.sample,malicious
+mal_geo_gated_wipe.py.sample,malicious
+mal_node_ipc_style.js.sample,malicious
+benign_boto_style_client.py.sample,benign
+benign_tempdir_cleanup.py.sample,benign
+benign_platform_cleanup.py.sample,benign
+benign_proxy_env.py.sample,benign
