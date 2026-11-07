@@ -222,3 +222,33 @@ def test_fragile_project_escalates_publisher_change_to_high_risk():
     out = run_detectors(DetectorContext.build(releases=history(rels), fragility=fr), registry=[publisher_change])
     assert out[0]["tier"] == "high_risk" and out[0]["fragility_amplified"]
     assert "fragility index" in out[0]["findings"][0]["amplification_reason"]
+
+
+CMAKE_SETUP = (
+    "import subprocess\n"
+    "from setuptools import setup, Extension\n"
+    "from setuptools.command.build_ext import build_ext\n"
+    "class CMakeBuild(build_ext):\n"
+    "    def run(self):\n"
+    "        subprocess.check_call(['cmake', '--build', '.'])\n"
+    "setup(name='demo', version='1.1', ext_modules=[Extension('demo._fast', [])], cmdclass={'build_ext': CMakeBuild})\n")
+GIT_VERSION_SETUP = (
+    "import subprocess\n"
+    "from setuptools import setup\n"
+    "v = subprocess.check_output(['git', 'describe', '--tags']).decode().strip()\n"
+    "setup(name='demo', version=v)\n")
+
+
+def test_native_build_that_runs_cmake_is_at_most_review_never_high_risk():
+    """A legitimate native build that starts a process at install time but makes no network access: the new
+    capability is surfaced for review, but it is never high_risk (no network, no decoded payload)."""
+    old = pypi_release("1.0", T0, files={"setup.py": BENIGN_SETUP})
+    new = pypi_release("1.1", T1, files={"setup.py": CMAKE_SETUP})
+    r = run(release_delta, history([new, old], "PyPI"))
+    assert "high_risk" not in tiers(r) and set(tiers(r)) <= {"review"}
+
+
+def test_git_describe_version_lookup_in_setup_py_is_not_flagged():
+    old = pypi_release("1.0", T0, files={"setup.py": BENIGN_SETUP})
+    new = pypi_release("1.1", T1, files={"setup.py": GIT_VERSION_SETUP})
+    assert run(release_delta, history([new, old], "PyPI"))["findings"] == []

@@ -348,7 +348,9 @@ def apply_gate(res: dict, sec: dict, flags: list[str], scan: dict | None = None,
 
     out["gate_reasons"] = reasons
     archived = res.get("label") == "Archived (read-only)" or bool((features or {}).get("archived"))
-    fragility = compute_fragility(res["score"], bus_factor, features, archived=archived)
+    # fragility describes the project today: dormancy and maintainer count are measured at scan time, not at as_of
+    maintainers = ((releases or {}).get("history") or {}).get("maintainers")
+    fragility = compute_fragility(res["score"], bus_factor, features, archived=archived, maintainers=maintainers)
     as_of_source = "scan time"
     latest = (((releases or {}).get("history") or {}).get("releases") or [None])[0]
     if as_of is None and latest and latest.get("upload_time"):

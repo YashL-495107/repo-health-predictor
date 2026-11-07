@@ -63,8 +63,14 @@ What the APIs expose (checked live on 2026-11-07, see `releases.py`):
 - GitHub tags: only the tag `name` is used. The tag list response shape was not checked live from this environment
   (the test repository has no tags); the trees endpoint was checked with a branch name and a commit SHA.
 
+Archive limits (beyond the 5 MB download): at most 3000 members; listing stops once the declared member sizes pass
+50 MB of decompressed data; at most 1 MB per text file and 25 MB of text in total; executables over 10 MB are listed
+but not hashed. Any limit hit makes the result partial and is named. Tags are matched by paging through the tag list
+(up to 1000 tags, stopping at the first match) and, if the list is incomplete, by looking up `v{version}` and
+`{version}` directly. A truncated recursive tree listing skips the phantom-file check (coverage partial).
+
 Benign cases handled on purpose: known build hooks (`node-gyp rebuild`, `prebuild-install`, ...), native-build
-`setup.py` changes without network, vendored/test/docs folders, build-output folders and compiled `.js` with a `.ts`
+`setup.py` changes without network (a cmake call is at most review), `git describe` version lookups in `setup.py`, vendored/test/docs folders, build-output folders and compiled `.js` with a `.ts`
 source. Each detector's docstring lists its evasions and false-positive sources.
 
 Responses are cached on disk (`http_cache.py`, keyed by URL and snapshot date; `REPOHEALTH_SNAPSHOT` replays a date,
@@ -104,14 +110,18 @@ Bandit code findings stay in the findings table but do not feed a pillar.
 
 ## Fragility index (`fragility.py`)
 
-0-100, higher = more fragile: 45% (100 - maintenance score), 25% bus factor (1 -> 100, 2 -> 60, 3 -> 30, 4+ -> 0),
-15% dormancy (days since last commit / 730), 15% silent departure of the top maintainer. Missing parts are
-dropped and the weights rescaled. Publisher/maintainer count is **not available** until registry release data is
-added (Phase 2).
+0-100, higher = more fragile. Relative weights: 45 (100 - maintenance score), 25 bus factor (1 -> 100, 2 -> 60,
+3 -> 30, 4+ -> 0), 15 dormancy (days since last commit / 730), 15 silent departure of the top maintainer, 10 registry
+maintainer count (1 -> 100, 2 -> 50, 3+ -> 0; npm packument `maintainers`, PyPI `ownership.roles`). Missing parts
+are dropped and the rest rescaled to 100%.
+
+Fragility describes the project **today**: dormancy and the maintainer count are measured at scan time, not at the
+release-based `as_of` used by the release detectors (tested).
 
 **These weights and the escalation threshold (60) are unvalidated design choices**, set by hand and not fitted
 or measured. At 60 or more, a review-tier finding from an Integrity detector is escalated to high_risk and marked
-`fragility_amplified` with a plain-language reason. It never escalates to known_malicious.
+`fragility_amplified` with a plain-language reason. It never escalates to known_malicious. A missing git tag on its
+own is **not** escalated (many dormant projects never tag; the finding records this reason).
 
 In Phase 1, time-based signals use the scan time as `as_of`; release upload times arrive with Phase 2.
 

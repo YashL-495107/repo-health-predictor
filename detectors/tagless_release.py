@@ -3,7 +3,9 @@
 Signals: (a) no git tag matches the latest version (tried: 1.2.3, v1.2.3, name-1.2.3, name@1.2.3, release-1.2.3,
 ...); (b) "phantom" source files in the artifact that exist neither in the repository at the matching tag (or, for
 npm, at the release's gitHead commit) nor on the default branch.
-Tier: a missing tag alone is review (many projects do not tag). Phantom files that carry a capability (network,
+Tier: a missing tag alone is review (many projects do not tag) and is NOT escalated by fragility, for the same
+reason. When GitHub truncates the recursive tree listing, the phantom-file check is skipped (coverage partial),
+because missing paths would look like phantom files. Phantom files that carry a capability (network,
 process, decoded payload, or an install hook that runs them) are high_risk; phantom files without one are review.
 Generated metadata (PKG-INFO, *.egg-info, *.dist-info, _version.py, package.json, ...), build outputs (dist/,
 build/, ...) and compiled .js whose .ts source is in the repository are not counted as phantom.
@@ -60,6 +62,9 @@ def detect(ctx) -> dict:
             "Many projects do not tag releases; this is a weak signal on its own.",
             [pair, {"type": "registry_field", "field": "tags", "count": n_tags}],
             fix="Check which commit the release was built from."))
+        findings[-1]["no_fragility_escalation"] = True
+        findings[-1]["no_escalation_reason"] = ("A missing tag on its own is not escalated by fragility: many dormant "
+                                               "projects never tag, so it would flag them for being dormant, not for takeover evidence.")
 
     contents = new.get("contents")
     trees = git.get("trees") or {}
@@ -69,11 +74,12 @@ def detect(ctx) -> dict:
     elif "default" not in trees:
         coverage = "partial"
         notes.append(f"default-branch tree not available ({(git.get('tree_errors') or {}).get('default')})")
+    elif git.get("truncated"):
+        # a truncated listing would make real repository files look like phantom files: do not run the check
+        coverage = "partial"
+        notes.append(f"repository tree listing truncated by GitHub ({', '.join(git['truncated'])}): phantom-file check skipped")
     else:
         repo = set(trees["default"]) | set(trees.get("tag") or []) | set(trees.get("git_head") or [])
-        if git.get("truncated"):
-            coverage = "partial"
-            notes.append("repository tree listing truncated by GitHub")
         caps = capabilities(new)
         hook_files = {f for v in caps["install_hook"] for f in re.findall(r"[\w./-]+\.(?:js|cjs|mjs|sh|py)", v)}
         decoded_files = {k.rsplit(":", 1)[0] for k in caps["decoded"]}

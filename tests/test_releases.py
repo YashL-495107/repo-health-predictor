@@ -147,3 +147,96 @@ def test_integrity_pillar_status_without_release_data(pkg_in_sec, expect):
                    {"ran": True, "malware_proof": {"findings": [], "layers": {"layer4": {"status": "not_applicable", "reason": "no published package"}}},
                     "findings": []})
     assert g["pillars"]["Integrity"]["status"] == expect
+
+
+# ------------------------------------------------------------------ archive limits beyond the 5 MB download
+
+def test_oversized_synthetic_archive_hits_decompressed_limit():
+    """A tiny download that decompresses to 80 MB (two 40 MB members of zeros) must stop at the
+    MAX_TOTAL_DECOMPRESSED_BYTES (50 MB) limit without reading everything."""
+    big = b"\0" * (40 * 1024 * 1024)
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as tf:
+        for name in ("package/a.bin", "package/b.bin", "package/index.js"):
+            data = big if name.endswith(".bin") else b"module.exports = 1;\n"
+            info = tarfile.TarInfo(name); info.size = len(data)
+            tf.addfile(info, io.BytesIO(data))
+    blob = buf.getvalue()
+    assert len(blob) < R.MAX_ARTIFACT_BYTES             # passes the 5 MB download limit
+    c = R.read_archive(blob, "npm_tgz")
+    assert c["truncated"] and "decompressed bytes" in c["limits_hit"]
+    assert "index.js" not in c["members"]                # listing stopped at the limit
+    assert c["bytes_read"] <= R.MAX_TOTAL_DECOMPRESSED_BYTES
+
+
+def test_member_count_limit(monkeypatch):
+    monkeypatch.setattr(R, "MAX_MEMBERS", 50)
+    c = R.read_archive(tgz({f"f{i}.js": "x" for i in range(80)}), "npm_tgz")
+    assert c["truncated"] and "member count" in c["limits_hit"] and len(c["members"]) <= 50
+    from release_helpers import wheel
+    z = R.read_archive(wheel({f"pkg/f{i}.py": "x" for i in range(80)}), "wheel")
+    assert z["truncated"] and "member count" in z["limits_hit"] and len(z["members"]) <= 50
+
+
+def test_large_executable_is_listed_but_not_hashed(monkeypatch):
+    monkeypatch.setattr(R, "MAX_BINARY_HASH_BYTES", 2048)
+    c = R.read_archive(tgz({"bin/tool": b"MZ" + b"\0" * 5000}), "npm_tgz")
+    assert c["binaries"] == [{"path": "bin/tool", "size": 5002, "sha256": None}] and "binary size" in c["limits_hit"]
+
+
+# ------------------------------------------------------------------ tag lookup and truncated trees
+
+def _fake_github(tags_total, match_name=None, match_page=None, tree_refs=(), truncated=False):
+    calls = []
+    def get_json(url, headers=None, timeout=None):
+        calls.append(url)
+        if "/git/trees/" in url:
+            ref = url.split("/git/trees/")[1].split("?")[0]
+            if ref in tree_refs:
+                return {"sha": "x", "tree": [{"path": "index.js", "type": "blob"}], "truncated": truncated}, 200, None
+            return None, 404, None
+        if "/tags?" in url:
+            page = int(url.rsplit("page=", 1)[1])
+            start = (page - 1) * 100
+            names = [f"old-{i}" for i in range(start, min(start + 100, tags_total))]
+            if match_name and page == match_page and names:
+                names[-1] = match_name
+            return [{"name": n, "commit": {"sha": "0" * 40}} for n in names], 200, None
+        return {"default_branch": "main"}, 200, None
+    return get_json, calls
+
+
+def test_tag_match_on_page_two_of_150_tags(monkeypatch):
+    get_json, calls = _fake_github(150, match_name="v3.1.0", match_page=2, tree_refs=("main", "v3.1.0"))
+    monkeypatch.setattr(http_cache, "get_json", get_json)
+    g = R.fetch_git("o", "r", "demo", {"version": "3.1.0", "git_head": None})
+    assert g["matched_tag"] == "v3.1.0" and g["tag_method"] == "tag list (page 2)"
+    assert sum("/tags?" in c for c in calls) == 2 and "tag" in g["trees"]
+
+
+def test_tag_found_by_direct_lookup_when_list_is_capped(monkeypatch):
+    monkeypatch.setattr(R, "MAX_TAG_PAGES", 2)
+    get_json, calls = _fake_github(1000, tree_refs=("main", "4.0.0"))      # match is beyond the pages we list
+    monkeypatch.setattr(http_cache, "get_json", get_json)
+    g = R.fetch_git("o", "r", "demo", {"version": "4.0.0", "git_head": None})
+    assert g["matched_tag"] == "4.0.0" and g["tag_method"] == "direct lookup"
+    assert any(c.endswith("/git/trees/v4.0.0?recursive=1") for c in calls)   # tries v{ver} first, then {ver}
+
+
+def test_no_tag_when_list_is_complete_does_not_probe(monkeypatch):
+    get_json, calls = _fake_github(30, tree_refs=("main",))
+    monkeypatch.setattr(http_cache, "get_json", get_json)
+    g = R.fetch_git("o", "r", "demo", {"version": "9.9.9", "git_head": None})
+    assert g["matched_tag"] is None and g["tags_complete"] and not any("trees/v9.9.9" in c for c in calls)
+
+
+def test_truncated_tree_is_partial_not_no_phantom_files():
+    from detectors import tagless_release
+    from detectors.context import DetectorContext
+    from release_helpers import with_git
+    new = npm_release("1.2.0", "2026-03-01T00:00:00Z", files={"lib/real_but_unlisted.js": "module.exports = 1;\n"})
+    rc = with_git(history([new]), default_tree={"index.js"}, tags=["v1.2.0"], matched="v1.2.0")
+    rc["git"]["truncated"] = ["default"]
+    r = tagless_release.detect(DetectorContext.build(releases=rc))
+    assert r["status"] == "ran" and r["coverage"] == "partial"
+    assert "phantom-file check skipped" in r["coverage_detail"] and r["findings"] == []

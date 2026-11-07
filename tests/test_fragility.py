@@ -17,13 +17,14 @@ def fragile():
 
 
 def test_formula_and_weights_are_documented_constants():
-    assert WEIGHTS == {"maintenance": 45, "bus_factor": 25, "dormancy": 15, "silent_departure": 15}
+    # maintainers (10) added before Phase 3: registry maintainer count now feeds fragility
+    assert WEIGHTS == {"maintenance": 45, "bus_factor": 25, "dormancy": 15, "silent_departure": 15, "maintainers": 10}
     assert ESCALATION_THRESHOLD == 60
     f = compute_fragility(20, {"bus_factor": 2, "silent_departure": False, "burnout_status": "Stable Triage Pace"},
                           {"days_since_last_commit": 365})
     # 0.45*80 + 0.25*60 + 0.15*50 + 0.15*0 = 58.5
     assert f["score"] == 58.5 and f["unvalidated"] is True
-    assert any("publisher" in x for x in f["not_available"])
+    assert any("maintainer count" in x for x in f["not_available"])   # no registry data passed here
     assert f["factors"] and all(isinstance(x, str) for x in f["factors"])
 
 
@@ -62,3 +63,41 @@ def test_run_detectors_applies_fragility():
             return make_result("release_vs_git", "Integrity", "ran", [review_finding()])
     out = run_detectors(DetectorContext.build(fragility=fragile()), registry=[FakeIntegrity])
     assert out[0]["tier"] == "high_risk" and out[0]["fragility_amplified"]
+
+
+def test_registry_maintainer_count_feeds_fragility():
+    bf = {"bus_factor": 2, "silent_departure": False, "burnout_status": "Stable Triage Pace"}
+    one = compute_fragility(20, bf, {"days_since_last_commit": 365}, maintainers={"count": 1, "source": "npm packument maintainers (current)"})
+    many = compute_fragility(20, bf, {"days_since_last_commit": 365}, maintainers={"count": 4, "source": "npm packument maintainers (current)"})
+    # (45*80 + 25*60 + 15*50 + 15*0 + 10*100) / 110 = 62.3 ; with 4 maintainers the last term is 0 -> 53.2
+    assert one["score"] == 62.3 and many["score"] == 53.2
+    assert one["components"]["maintainers"]["value"] == 100 and not one["not_available"]
+    assert any("1 registry maintainer(s)" in x for x in one["factors"])
+
+
+def test_missing_tag_alone_is_not_escalated_and_records_why():
+    from detectors import tagless_release
+    from release_helpers import history, npm_release, with_git
+    rc = with_git(history([npm_release("2.0.0", "2026-03-01T00:00:00Z")]), default_tree={"index.js", "package.json"}, tags=["v1.0.0"])
+    out = run_detectors(DetectorContext.build(releases=rc, fragility=fragile()), registry=[tagless_release])[0]
+    f = out["findings"][0]
+    assert fragile()["score"] >= ESCALATION_THRESHOLD
+    assert out["tier"] == "review" and f["tier"] == "review" and not out["fragility_amplified"]
+    assert f["no_fragility_escalation"] is True and "never tag" in f["no_escalation_reason"]
+
+
+def test_live_fragility_uses_scan_time_not_release_as_of():
+    """The release detectors use as_of = latest release upload time; fragility (dormancy, maintainers) describes
+    the project today and must use the scan-time features, not that as_of."""
+    from security import apply_gate
+    from release_helpers import history, npm_release
+    rc = history([npm_release("1.0.1", "2019-05-01T00:00:00Z"), npm_release("1.0.0", "2019-01-01T00:00:00Z")])
+    rc["history"]["maintainers"] = {"count": 3, "source": "npm packument maintainers (current)"}
+    sec = {"level": "No unpatched issues found", "findings": [], "coverage": [], "package": rc["package"]}
+    g = apply_gate({"score": 90.0, "label": "Healthy", "factors": [], "notes": []}, sec, [], None,
+                   features={"days_since_last_commit": 3, "archived": False}, releases=rc)
+    assert g["as_of"].startswith("2019-05-01")                     # release detectors: release time
+    fr = g["fragility"]
+    assert fr["measured_at"] == "scan time (today)"
+    assert fr["components"]["dormancy"]["value"] == round(100 * 3 / 730, 1)   # 3 days (today), not ~7 years
+    assert fr["components"]["maintainers"]["value"] == 0

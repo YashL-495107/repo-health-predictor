@@ -10,7 +10,8 @@ the evidence for that capability:
   process       a code file that starts processes (subprocess, os.system, os.popen, pty, child_process, spawn)
   decoded       Layer 1 decoder findings (encoded data decoded and executed) that are strong or High
   binary        executables inside the artifact (magic bytes)
-Vendored, test and docs paths are ignored for network/process (vendored code bumps are a known benign source).
+Vendored, test and docs paths are ignored for network/process (vendored code bumps are a known benign source), and
+so is the root setup.py, which the Layer 2 check judges call by call (git describe, version reads are benign).
 
 delta(new, old) compares two releases and returns the capability kinds and items that are NEW in `new`.
 """
@@ -88,6 +89,8 @@ def capabilities(release: dict) -> dict:
             caps["install_hook"][f"startup file {p}"] = ".pth file with an import line runs at interpreter start-up"
 
     for p, t in _code_files(text).items():
+        if p == "setup.py":   # judged precisely by the Layer 2 check above; a regex hit here would undo its benign calls
+            continue
         for c in file_capabilities(p, t):
             caps[c][p] = c
     for f in scan_ast_deobfuscation(text, lambda *_: None)["findings"]:

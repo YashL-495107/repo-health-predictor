@@ -12,8 +12,8 @@ Only fields verified against live responses (2026-11-07) are used:
         gitHead, dist{tarball, unpackedSize, fileCount}}}. Unpublished versions disappear from "versions" but stay
         in "time"; they are reported as unlisted_versions.
   GitHub /repos/{o}/{r}: default_branch; /repos/{o}/{r}/git/trees/{ref}?recursive=1: tree[{path, type}],
-        truncated (verified with a branch name and a commit SHA); /repos/{o}/{r}/tags: only "name" is used
-        (the response shape could not be checked live from this environment: the test repository has no tags).
+        truncated (verified here with a branch name and a commit SHA; the user verified a tag name works);
+        /repos/{o}/{r}/tags: [{name, commit{sha}}] (verified by the user); only "name" is used.
 
 Artifacts: at most MAX_ARTIFACT_BYTES (5 MB), read in memory. Archive members are never extracted to disk and
 nothing is ever executed or imported; only regular files are read, as text (size-limited) or as binary magic bytes.
@@ -38,10 +38,13 @@ MAX_ARTIFACT_BYTES = 5 * 1024 * 1024
 MAX_MEMBERS = 3000
 MAX_MEMBER_TEXT_BYTES = 1_000_000
 MAX_TOTAL_TEXT_BYTES = 25 * 1024 * 1024
+MAX_TOTAL_DECOMPRESSED_BYTES = 50 * 1024 * 1024   # declared member sizes walked + bytes read, per artifact
+MAX_BINARY_HASH_BYTES = 10 * 1024 * 1024
 TEXT_EXT = {".py", ".pyi", ".js", ".mjs", ".cjs", ".ts", ".tsx", ".jsx", ".sh", ".bash", ".ps1", ".bat", ".cmd",
             ".json", ".cfg", ".toml", ".txt", ".pth", ".in", ".yml", ".yaml", ".md", ".rst", ".coffee"}
 MAGIC = (b"MZ", b"\x7fELF", b"\xcf\xfa\xed\xfe", b"\xce\xfa\xed\xfe", b"\xca\xfe\xba\xbe")
 FETCH_BUDGET_S = 60.0
+MAX_TAG_PAGES = 10            # 1000 tags; beyond that the likely tag names are looked up directly
 
 
 def _dt(s: str | None) -> datetime | None:
@@ -63,28 +66,66 @@ def _strip_root(paths: list[str]) -> str:
 def read_archive(blob: bytes, kind: str) -> dict:
     """Read an sdist/npm tarball (.tar.gz) or a wheel/zip in memory. Returns
     {"text": {path: str}, "binaries": [{path, size, sha256}], "members": [paths], "truncated": bool,
-     "skipped": [paths not read because of the size limits], "error": None}.
-    Paths have the single top-level directory (e.g. "pkg-1.0/" or npm's "package/") removed."""
-    out = {"text": {}, "binaries": [], "members": [], "truncated": False, "skipped": [], "error": None}
-    entries: list[tuple[str, int, callable]] = []
+     "skipped": [paths not read because of the size limits], "limits_hit": [...], "error": None}.
+    Paths have the single top-level directory (e.g. "pkg-1.0/" or npm's "package/") removed.
+
+    Limits beyond the 5 MB download (a small download can decompress to far more):
+      MAX_MEMBERS entries are looked at; members are listed lazily and listing stops once the DECLARED sizes of the
+      members seen exceed MAX_TOTAL_DECOMPRESSED_BYTES (reaching a tar member means decompressing the ones before it);
+      the bytes actually read (text, 4-byte magic checks, executables to hash) also stop at that total; one text
+      member is read only up to MAX_MEMBER_TEXT_BYTES. Any limit hit sets truncated=True and is named in limits_hit.
+    """
+    out = {"text": {}, "binaries": [], "members": [], "truncated": False, "skipped": [], "limits_hit": [], "error": None}
+
+    def hit(name):
+        out["truncated"] = True
+        if name not in out["limits_hit"]:
+            out["limits_hit"].append(name)
+
+    entries: list[tuple[str, int, callable, callable]] = []   # name, declared size, read_all, read_head
+    declared = 0
     try:
         if kind in ("sdist", "npm_tgz") and not blob[:2] == b"PK":
             tf = tarfile.open(fileobj=io.BytesIO(blob), mode="r:*")
-            for m in tf.getmembers():
-                if m.isreg():                     # never symlinks, devices or directories
-                    entries.append((m.name, m.size, (lambda m=m: tf.extractfile(m).read())))
+            seen = 0
+            while True:
+                m = tf.next()                      # lazy: never lists the whole archive up front
+                if m is None:
+                    break
+                seen += 1
+                if seen > MAX_MEMBERS:
+                    hit("member count")
+                    break
+                if not m.isreg():                  # never symlinks, devices or directories
+                    continue
+                declared += m.size
+                if declared > MAX_TOTAL_DECOMPRESSED_BYTES:
+                    hit("decompressed bytes")
+                    break
+                entries.append((m.name, m.size, (lambda m=m: tf.extractfile(m).read()),
+                                (lambda m=m: tf.extractfile(m).read(4))))
         else:
             zf = zipfile.ZipFile(io.BytesIO(blob))
-            for i in zf.infolist():
-                if not i.is_dir():
-                    entries.append((i.filename, i.file_size, (lambda i=i: zf.read(i))))
+            infos = zf.infolist()
+            if len(infos) > MAX_MEMBERS:
+                hit("member count")
+            for i in infos[:MAX_MEMBERS]:
+                if i.is_dir():
+                    continue
+                declared += i.file_size
+                if declared > MAX_TOTAL_DECOMPRESSED_BYTES:
+                    hit("decompressed bytes")
+                    break
+                entries.append((i.filename, i.file_size, (lambda i=i: zf.read(i)),
+                                (lambda i=i: zf.open(i).read(4))))
     except (tarfile.TarError, zipfile.BadZipFile, OSError, EOFError) as e:
-        out["error"] = type(e).__name__
-        return out
-    names = [n for n, _, _ in entries]
-    root = _strip_root(names) if kind in ("sdist", "npm_tgz") else ""
-    total = 0
-    for n, size, read in entries[:MAX_MEMBERS]:
+        if not entries:
+            out["error"] = type(e).__name__
+            return out
+        hit(f"archive error ({type(e).__name__})")
+    root = _strip_root([n for n, *_ in entries]) if kind in ("sdist", "npm_tgz") else ""
+    used = 0
+    for n, size, read, head4 in entries:
         rel = n[len(root):] if root and n.startswith(root) else n
         rel = rel.lstrip("/")
         if not rel or ".." in PurePosixPath(rel).parts:
@@ -93,24 +134,32 @@ def read_archive(blob: bytes, kind: str) -> dict:
         ext = PurePosixPath(rel).suffix.lower()
         try:
             if ext in TEXT_EXT or PurePosixPath(rel).name in ("PKG-INFO", "setup.py", "Makefile"):
-                if size > MAX_MEMBER_TEXT_BYTES or total + size > MAX_TOTAL_TEXT_BYTES:
-                    out["truncated"] = True
+                if size > MAX_MEMBER_TEXT_BYTES or used + size > MAX_TOTAL_TEXT_BYTES:
+                    hit("text size")
                     out["skipped"].append(rel)
                     continue
-                data = read()
-                total += len(data)
+                if used + size > MAX_TOTAL_DECOMPRESSED_BYTES:
+                    hit("decompressed bytes")
+                    out["skipped"].append(rel)
+                    continue
+                data = read()[:MAX_MEMBER_TEXT_BYTES]
+                used += len(data)
                 if b"\x00" not in data[:2000]:
                     out["text"][rel] = data.decode("utf-8", "ignore")
                     continue
             if size >= 1024:
-                head = read()[:4] if size <= 10 * 1024 * 1024 else b""
-                if head.startswith(MAGIC):
+                used += 4
+                if head4().startswith(MAGIC):
+                    if size > MAX_BINARY_HASH_BYTES or used + size > MAX_TOTAL_DECOMPRESSED_BYTES:
+                        hit("binary size")
+                        out["binaries"].append({"path": rel, "size": size, "sha256": None})
+                        continue
                     data = read()
+                    used += len(data)
                     out["binaries"].append({"path": rel, "size": size, "sha256": hashlib.sha256(data).hexdigest()})
         except (tarfile.TarError, zipfile.BadZipFile, OSError, KeyError, EOFError):
-            out["truncated"] = True
-    if len(entries) > MAX_MEMBERS:
-        out["truncated"] = True
+            hit("unreadable member")
+    out["bytes_read"] = used
     return out
 
 
@@ -222,7 +271,12 @@ def fetch_pypi(name: str, n: int = DEFAULT_N, deadline: float | None = None) -> 
             r["contents"], r["artifact_status"] = None, "not_fetched"
     for r in rels:
         r.pop("_files_raw", None)
+    roles = ((project.get("ownership") or {}).get("roles") or [])
+    users = sorted({r.get("user") for r in roles if r.get("user")})
     return {"status": "ok", "reason": None, "releases": rels, "unlisted_versions": [], "partial": partial,
+            "maintainers": {"count": len(users) if roles else None, "names": users,
+                            "source": "PyPI ownership.roles (current owners)" if roles else "not available",
+                            "organization": (project.get("ownership") or {}).get("organization")},
             "fields": {"publisher": "PyPI provenance (PEP 740 Trusted Publisher) when present; per-release uploader not exposed",
                        "dependencies": "info.requires_dist per version", "install_scripts": "setup.py in the sdist"}}
 
@@ -268,7 +322,11 @@ def fetch_npm(name: str, n: int = DEFAULT_N, deadline: float | None = None) -> d
             r["contents"], r["artifact_status"] = _load_artifact(r["artifact"])
         else:
             r["contents"], r["artifact_status"] = None, "not_fetched"
+    mnt = data.get("maintainers")
+    names = sorted({m.get("name") for m in mnt if isinstance(m, dict) and m.get("name")}) if isinstance(mnt, list) else []
     return {"status": "ok", "reason": None, "releases": rels, "unlisted_versions": unlisted, "partial": [],
+            "maintainers": {"count": len(names) if isinstance(mnt, list) else None, "names": names,
+                            "source": "npm packument maintainers (current)" if isinstance(mnt, list) else "not available"},
             "fields": {"publisher": "npm per-version _npmUser.name", "dependencies": "versions[v].dependencies",
                        "install_scripts": "versions[v].scripts preinstall/install/postinstall"}}
 
@@ -291,28 +349,58 @@ def tree_paths(owner: str, repo: str, ref: str) -> tuple[set[str] | None, bool, 
     return {e["path"] for e in data.get("tree") or [] if e.get("type") == "blob"}, bool(data.get("truncated")), None
 
 
-def fetch_git(owner: str, repo: str, name: str, latest: dict | None, max_tag_pages: int = 3) -> dict:
-    out = {"status": "ok", "reason": None, "default_branch": None, "tags": None, "tags_error": None,
-           "matched_tag": None, "trees": {}, "tree_errors": {}, "truncated": []}
-    meta, _, err = http_cache.get_json(f"https://api.github.com/repos/{owner}/{repo}")
-    if err or not isinstance(meta, dict):
-        return {**out, "status": "error", "reason": f"GitHub repository lookup failed ({err})"}
-    out["default_branch"] = meta.get("default_branch")
-    tags = []
-    for page in range(1, max_tag_pages + 1):
+def find_tag(owner: str, repo: str, name: str, version: str, max_pages: int = MAX_TAG_PAGES) -> dict:
+    """Find the git tag for `version`.
+
+    Pages through /tags (100 per page) and stops at the first page with a matching name. If no tag matched and the
+    list was not complete (page cap reached or a page failed), the likely names v{version} and {version} are
+    looked up directly with /git/trees/<tag name> (a 200 means the ref exists). Returns
+    {"matched_tag", "tags" (names seen, None if none could be listed), "tags_error", "complete", "method",
+     "tag_tree" (paths if found by direct lookup), "tag_tree_truncated"}."""
+    cands = [c.lower() for c in tag_candidates(name, version)]
+    out = {"matched_tag": None, "tags": [], "tags_error": None, "complete": False, "method": None,
+           "tag_tree": None, "tag_tree_truncated": False, "pages": 0}
+    for page in range(1, max_pages + 1):
         data, _, terr = http_cache.get_json(f"https://api.github.com/repos/{owner}/{repo}/tags?per_page=100&page={page}")
         if terr or not isinstance(data, list):
             out["tags_error"] = terr or "bad response"
             break
-        tags += [t.get("name") for t in data if isinstance(t, dict) and t.get("name")]
+        out["pages"] = page
+        names = [t.get("name") for t in data if isinstance(t, dict) and t.get("name")]
+        out["tags"] += names
+        hit = next((t for t in names if t.lower() in cands), None)
+        if hit:
+            out.update(matched_tag=hit, method=f"tag list (page {page})")
+            return out
         if len(data) < 100:
-            break
-    out["tags"] = None if out["tags_error"] and not tags else tags
-    if latest:
-        cands = {c.lower() for c in tag_candidates(name, latest["version"])}
-        out["matched_tag"] = next((t for t in tags if t.lower() in cands), None)
+            out["complete"] = True
+            return out
+    for direct in (f"v{version}", version):          # list incomplete: ask for the likely names directly
+        paths, trunc, terr = tree_paths(owner, repo, direct)
+        if paths is not None:
+            out.update(matched_tag=direct, method="direct lookup", tag_tree=sorted(paths), tag_tree_truncated=trunc)
+            return out
+    if out["tags_error"] and not out["tags"]:
+        out["tags"] = None
+    return out
+
+
+def fetch_git(owner: str, repo: str, name: str, latest: dict | None) -> dict:
+    out = {"status": "ok", "reason": None, "default_branch": None, "tags": None, "tags_error": None,
+           "tags_complete": False, "tag_method": None, "matched_tag": None, "trees": {}, "tree_errors": {}, "truncated": []}
+    meta, _, err = http_cache.get_json(f"https://api.github.com/repos/{owner}/{repo}")
+    if err or not isinstance(meta, dict):
+        return {**out, "status": "error", "reason": f"GitHub repository lookup failed ({err})"}
+    out["default_branch"] = meta.get("default_branch")
+    tag = find_tag(owner, repo, name, latest["version"]) if latest else {"tags": None, "tags_error": "no release"}
+    out.update(tags=tag.get("tags"), tags_error=tag.get("tags_error"), tags_complete=tag.get("complete", False),
+               tag_method=tag.get("method"), matched_tag=tag.get("matched_tag"))
+    if tag.get("tag_tree") is not None:
+        out["trees"]["tag"] = tag["tag_tree"]
+        if tag.get("tag_tree_truncated"):
+            out["truncated"].append("tag")
     refs = [("default", out["default_branch"])]
-    if out["matched_tag"]:
+    if out["matched_tag"] and "tag" not in out["trees"]:
         refs.append(("tag", out["matched_tag"]))
     if latest and latest.get("git_head"):
         refs.append(("git_head", latest["git_head"]))
