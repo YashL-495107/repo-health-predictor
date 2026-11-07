@@ -201,7 +201,8 @@ def test_genai_error_hides_key():
     from google.genai import errors
     def boom(): raise errors.ClientError(403, {"error": {"code": 403, "message": "API key not valid: TEST-KEY-123", "status": "PERMISSION_DENIED"}})
     (_, err, _), _ = _with_fake_genai(boom)
-    _record("Gemini SDK: error shows type + HTTP status only, never the key", err == "ClientError (HTTP 403)", f"err={err}")
+    _record("Gemini SDK: error shows type, status and message, never the key",
+            err == "ClientError (HTTP 403, PERMISSION_DENIED: API key not valid: [redacted])", f"err={err}")
 
 def test_genai_timeout_and_bad_json():
     try:
@@ -259,7 +260,7 @@ def test_retry_401_not_retried():
     finally:
         restore()
     gens = [c for c in calls if c[0] == "generate"]
-    _record("Retry: 401 is not retried", len(gens) == 1 and not waits and err == "ClientError (HTTP 401)", f"attempts={len(gens)} err={err}")
+    _record("Retry: 401 is not retried", len(gens) == 1 and not waits and err == "ClientError (HTTP 401, [redacted] boom)", f"attempts={len(gens)} err={err}")
 
 def test_retry_three_503s():
     waits, restore = _no_sleep()
@@ -269,7 +270,7 @@ def test_retry_three_503s():
         restore()
     gens = [c for c in calls if c[0] == "generate"]
     _record("Retry: three 503s -> '... after 3 attempts' (1s, 3s backoff)",
-            len(gens) == 3 and waits == [1, 3] and err == "ServerError (HTTP 503) after 3 attempts", f"err={err} waits={waits}")
+            len(gens) == 3 and waits == [1, 3] and err == "ServerError (HTTP 503, [redacted] boom) after 3 attempts", f"err={err} waits={waits}")
 
 def test_ai_cache_skips_failures():
     from intelligence import SuccessCache
@@ -328,6 +329,60 @@ def test_gemini_key_caption():
           and not any(key[:-4] in c or key[-5:] in c for c in shown))
     _record("Sidebar key caption: source, length, last 4 only, notes", ok, "\n".join(shown))
 
+def test_sdk_error_status_message_scrubbed():
+    from google.genai import errors
+    from intelligence import _sdk_error
+    leaked = "AIzaSyD3adB33fFAKEFAKEFAKEFAKE0123456789"
+    token = "ya29" + "x" * 40
+    e = errors.ClientError(400, {"error": {"code": 400, "status": "INVALID_ARGUMENT",
+        "message": f"API key {leaked} and token {token} rejected. Field 'contents' is invalid because the request body was malformed in several ways that go on and on."}})
+    err = _sdk_error(e, key="MY-REAL-KEY")
+    inner = err[len("ClientError (HTTP 400, INVALID_ARGUMENT: "):-1]
+    ok = (err.startswith("ClientError (HTTP 400, INVALID_ARGUMENT: API key [redacted] and token [redacted] rejected")
+          and leaked not in err and "AIza" not in err and token not in err and len(inner) <= 100)
+    e2 = errors.ClientError(400, {"error": {"code": 400, "status": "FAILED_PRECONDITION", "message": "MY-REAL-KEY is not allowed"}})
+    ok = ok and _sdk_error(e2, key="MY-REAL-KEY") == "ClientError (HTTP 400, FAILED_PRECONDITION: [redacted] is not allowed)"
+    _record("SDK error: status + first 100 chars of message, key-like strings scrubbed", ok, f"err={err}")
+
+def test_retry_history_timeout_then_400():
+    try:
+        import httpx2 as _hx
+    except ImportError:
+        import httpx as _hx
+    waits, restore = _no_sleep()
+    try:
+        (_, err, _), calls = _with_fake_genai(_sequence(_hx.ReadTimeout("t"), _api_err("ClientError", 400), '{"ok": 1}'))
+    finally:
+        restore()
+    gens = [c for c in calls if c[0] == "generate"]
+    _record("Retry: timeout then 400 is reported as 'timeout, then ...' and 400 is not retried",
+            len(gens) == 2 and err == "timeout, then ClientError (HTTP 400, [redacted] boom)", f"attempts={len(gens)} err={err}")
+
+def test_failed_explanation_card():
+    from google.genai import errors
+    import intelligence as I
+    def boom():
+        raise errors.ClientError(400, {"error": {"code": 400, "status": "INVALID_ARGUMENT", "message": "Request contains an invalid argument."}})
+    from google import genai
+    orig = genai.Client
+    class C:
+        def __init__(self, **kw): self.models = self
+        def generate_content(self, **kw): boom()
+    genai.Client = C
+    try:
+        trails, status = I.explain_findings("TEST-KEY-123", [
+            {"source": "Secrets", "rule": "Possible exposed AWS key", "file": "cfg.py", "line": 7, "sev": "High", "strong": True, "detail": "AKIA****"}])
+    finally:
+        genai.Client = orig
+    cards = I.build_ai_cards(trails)
+    from intelligence import SuccessCache
+    stored = SuccessCache().put("k", {"ai_report": {"source": "Gemini Flash AI Triage"}, "ai_audit_trails": trails})
+    ok = (len(cards) == 1 and cards[0]["failed"] and cards[0]["location"] == "cfg.py:7"
+          and cards[0]["title"] == "AI explanation failed"
+          and cards[0]["reason"] == "ClientError (HTTP 400, INVALID_ARGUMENT: Request contains an invalid argument)"
+          and not stored)
+    _record("Failed explanation -> 'cfg.py:7: AI explanation failed' card with reason; not cached", ok, f"cards={cards} status={status}")
+
 def main():
     print("=" * 72 + "\n  Phase 4 Reality Verification\n" + "=" * 72)
     for t in (test_attack1_double_encoded_dropper, test_attack2_hex_exec, test_attack3_setup_exec_net,
@@ -339,7 +394,8 @@ def main():
               test_genai_timeout_and_bad_json, test_genai_rejects_non_ascii_key,
               test_retry_504_then_success, test_retry_401_not_retried, test_retry_three_503s,
               test_ai_cache_skips_failures, test_fallback_snippet_flag,
-              test_ai_candidates_deduped, test_gemini_key_caption):
+              test_ai_candidates_deduped, test_gemini_key_caption,
+              test_sdk_error_status_message_scrubbed, test_retry_history_timeout_then_400, test_failed_explanation_card):
         try:
             t()
         except Exception as e:

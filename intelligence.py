@@ -96,13 +96,41 @@ def describe_gemini_key(key: str, source: str, notes: list[str] | None = None) -
     return text
 
 
-def _sdk_error(e: Exception) -> str:
-    """Exception type plus HTTP status only: never the key or the full exception text."""
+_KEYLIKE = re.compile(r"AIza[0-9A-Za-z_\-]{8,}|[A-Za-z0-9_\-+/=]{32,}")
+API_MESSAGE_LIMIT = 100
+
+
+def scrub_secrets(text: str, key: str = "") -> str:
+    """Remove the key itself and anything key-shaped (AIza..., long token-like runs) from text."""
+    text = str(text or "")
+    if key:
+        text = text.replace(key, "[redacted]")
+    return _KEYLIKE.sub("[redacted]", text)
+
+
+def _attempt_label(e: Exception) -> str:
+    """Short label for one failed attempt, used in the retry history."""
+    if "timeout" in type(e).__name__.lower():
+        return "timeout"
     code = _error_code(e)
+    return f"HTTP {code}" if code else type(e).__name__
+
+
+def _sdk_error(e: Exception, key: str = "") -> str:
+    """Exception type, HTTP status, the API's status string and the first 100 chars of its message.
+    The key and anything key-shaped are scrubbed before truncating; the raw exception text is never used."""
     name = type(e).__name__
     if "timeout" in name.lower():
         return f"timeout ({name})"
-    return f"{name} (HTTP {code})" if isinstance(code, int) else name
+    code = _error_code(e)
+    status = getattr(e, "status", None)
+    status = status if isinstance(status, str) and re.fullmatch(r"[A-Z_]{2,40}", status) else ""
+    message = getattr(e, "message", None)
+    message = " ".join(scrub_secrets(message, key).split())[:API_MESSAGE_LIMIT].rstrip(". ") if isinstance(message, str) else ""
+    parts = [f"HTTP {code}"] if code else []
+    if status or message:
+        parts.append(": ".join(x for x in (status, message) if x))
+    return f"{name} ({', '.join(parts)})" if parts else name
 
 
 TIMEOUT = 20
@@ -286,7 +314,7 @@ def _gemini_call(api_key: str, prompt: str, timeout: int = AI_TIMEOUT, budget: f
     except ImportError:
         return None, "google-genai is not installed", model
     deadline = time.monotonic() + budget if budget else None
-    attempt, err = 0, None
+    attempt, err, history = 0, None, []
     while True:
         attempt += 1
         per_try = timeout
@@ -300,7 +328,8 @@ def _gemini_call(api_key: str, prompt: str, timeout: int = AI_TIMEOUT, budget: f
                 config={"response_mime_type": "application/json", "temperature": 0.1, "max_output_tokens": 2048},
             )
         except Exception as e:
-            err = _sdk_error(e)
+            err = _sdk_error(e, key)
+            history.append(_attempt_label(e))
             if not _is_retryable(e) or attempt > len(RETRY_BACKOFF):
                 break
             wait = RETRY_BACKOFF[attempt - 1]
@@ -312,7 +341,17 @@ def _gemini_call(api_key: str, prompt: str, timeout: int = AI_TIMEOUT, budget: f
             return json.loads(resp.text), None, model
         except (ValueError, TypeError, AttributeError):
             return None, "bad JSON", model
-    return None, (f"{err} after {attempt} attempts" if attempt > 1 else err), model
+    return None, _retry_summary(err, history), model
+
+
+def _retry_summary(last_error: str, history: list[str]) -> str:
+    """'X' for one attempt, 'X after N attempts' if every attempt failed the same way,
+    otherwise the sequence, e.g. 'timeout, then ClientError (HTTP 400, ...)'."""
+    if len(history) <= 1:
+        return last_error
+    if len(set(history)) == 1:
+        return f"{last_error} after {len(history)} attempts"
+    return ", ".join(history[:-1]) + f", then {last_error}"
 
 
 def _gemini_request(api_key: str, prompt: str, timeout: int = AI_TIMEOUT, budget: float | None = None) -> tuple[dict | None, str | None]:
@@ -410,13 +449,13 @@ def validate_threat_with_ai(api_key: str, finding: dict, finding_id: str) -> dic
     skill_text = load_skill(skill)
     if not skill_text:
         return {"error": f"skill file skills/{skill}.md could not be read"}
+    location = f"{finding.get('file', '')}:{finding.get('line', '')}"
     raw, err = _gemini_request(api_key, build_threat_prompt(skill, skill_text, finding), timeout=AI_TIMEOUT, budget=AI_BUDGET)
     if err:
-        return {"error": err}
+        return {"error": err, "finding_id": finding_id, "location": location}
     out = validate_ai_output(raw, skill)
-    if "error" not in out:
-        out["finding_id"] = finding_id
-        out["location"] = f"{finding.get('file', '')}:{finding.get('line', '')}"
+    out["finding_id"] = finding_id
+    out["location"] = location
     return out
 
 
@@ -449,6 +488,7 @@ def explain_findings(api_key: str, findings: list[dict] | None) -> tuple[dict, s
     if not candidates:
         return {}, "ran on 0 findings (no strong or High finding matched a skill)"
     keyed = [(f"{f.get('file', '')}:{f.get('line', '')}:{f.get('rule', '')}", f) for f in candidates]
+    locations = {key: f"{f.get('file', '')}:{f.get('line', '')}" for key, f in keyed}
     with ThreadPoolExecutor(max_workers=AI_WORKERS) as pool:
         futures = [(key, pool.submit(validate_threat_with_ai, api_key, f, key)) for key, f in keyed]
         results = {}
@@ -456,7 +496,7 @@ def explain_findings(api_key: str, findings: list[dict] | None) -> tuple[dict, s
             try:
                 results[key] = fut.result(timeout=AI_BUDGET + 5)
             except Exception as e:
-                results[key] = {"error": f"AI explanation failed ({type(e).__name__})"}
+                results[key] = {"error": f"AI explanation failed ({type(e).__name__})", "finding_id": key, "location": locations[key]}
     errors = [r["error"] for r in results.values() if "error" in r]
     ok = len(results) - len(errors)
     if ok == 0:
@@ -465,6 +505,18 @@ def explain_findings(api_key: str, findings: list[dict] | None) -> tuple[dict, s
     if errors:
         status += f"; {len(errors)} failed ({errors[0]})"
     return results, status
+
+
+def build_ai_cards(trails: dict) -> list[dict]:
+    """One card per explained finding, in order. Failed explanations get a card too, holding only the reason."""
+    cards = []
+    for key, t in (trails or {}).items():
+        location = t.get("location") or key.rsplit(":", 1)[0]
+        if "error" in t:
+            cards.append({"location": location, "failed": True, "title": "AI explanation failed", "reason": str(t["error"])})
+        else:
+            cards.append({"location": location, "failed": False, "title": f"{t['verdict']} ({t['confidence']} confidence)", "trail": t})
+    return cards
 
 
 def _registry_ecosystem(ecosystem: str) -> str | None:

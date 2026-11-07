@@ -12,7 +12,7 @@ from security import action_verdict, apply_gate, assess_security, content_flags,
 from repo_scan import scan_repo
 from bus_factor import run_bus_factor_analysis
 import hashlib
-from intelligence import SuccessCache, gather_repo_intel, run_ai_layer, _configured_model, resolve_gemini_key, describe_gemini_key, _MISSING
+from intelligence import build_ai_cards, SuccessCache, gather_repo_intel, run_ai_layer, _configured_model, resolve_gemini_key, describe_gemini_key, _MISSING
 from blast_radius import analyze_blast_radius
 
 load_dotenv()
@@ -202,19 +202,23 @@ if go_clicked or (target and st.session_state.get("analyzed") == target):
 
     st.markdown("#### 🧠 AI explanation of findings (advisory, never changes the score)")
     st.caption("Skills come from the local skills/ folder; the AI can be wrong and cannot change the verdict.")
-    ok_trails = {k: t for k, t in audit_trails.items() if "error" not in t}
-    if not ok_trails:
+    cards = build_ai_cards(audit_trails)
+    if not cards:
         st.info("AI explanation not shown: " + str(ai_status))
     else:
-        if ai_status and "failed" in ai_status: st.info("AI explanation status: " + str(ai_status))
-        for key, trail in ok_trails.items():
-            # verdict/confidence are validated against fixed sets; the location comes from the repo, so escape it.
-            with st.expander(f"🔍 {_md_escape(trail.get('location', key))}: {trail['verdict']} ({trail['confidence']} confidence)"):
+        if any(c["failed"] for c in cards): st.info("AI explanation status: " + str(ai_status))
+        for card in cards:
+            # Titles are built from validated enums or fixed text; the location comes from the repo, so escape it.
+            with st.expander(f"{'⚠️' if card['failed'] else '🔍'} {_md_escape(card['location'])}: {card['title']}"):
+                if card["failed"]:
+                    st.text(card["reason"])
+                    continue
+                trail = card["trail"]
                 st.text("Skill used: " + trail["skill_used"])
                 st.text("Issue addressed: " + trail.get("issue_addressed", ""))
                 st.text("How:\n" + "\n".join("  • " + h for h in trail.get("how", [])))
                 st.text(f"Verdict: {trail['verdict']} ({trail['confidence']} confidence)")
-                st.text("Location: " + trail.get("location", key))
+                st.text("Location: " + card["location"])
 
     bf_data = data.get("bus_factor")
     if bf_data and not str(bf_data.get("burnout_status", "")).startswith("Unavailable"):
