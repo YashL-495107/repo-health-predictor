@@ -1,0 +1,3 @@
+# INERT BENCHMARK FIXTURE - never import or run. Read as text by benchmark_fixtures.py only.
+import re
+PATTERN = re.compile(r"(?:urllib|requests\.get|os\.environ)")

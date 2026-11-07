@@ -1,0 +1,10 @@
+file,expected
+mal_base64_dropper.py.sample,malicious
+mal_hex_zlib_dropper.py.sample,malicious
+mal_cmdclass_setup.py.sample,malicious
+mal_credential_stealer.py.sample,malicious
+mal_reverse_shell.sh.sample,malicious
+benign_regex_environ.py.sample,benign
+benign_git_describe_setup.py.sample,benign
+benign_wait_for_port.sh.sample,benign
+benign_readme_base64.md.sample,benign

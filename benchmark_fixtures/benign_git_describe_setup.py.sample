@@ -1,0 +1,6 @@
+# INERT BENCHMARK FIXTURE - never import or run. Read as text by benchmark_fixtures.py only.
+import os, subprocess
+from setuptools import setup
+version = subprocess.check_output(["git", "describe", "--tags"]).decode().strip()
+token = os.environ.get("CI_TOKEN")
+setup(name="demo", version=version)

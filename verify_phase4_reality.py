@@ -439,6 +439,44 @@ def test_budget_constants():
           and I.AI_WORKERS == 2 and I.MIN_SDK_TIMEOUT == 10)
     _record("Budgets: per-finding 20s/45s, report 30s/60s, 2 workers", ok)
 
+def test_fixture_benchmark():
+    from benchmark_fixtures import evaluate
+    r = evaluate()
+    names = {x["file"] for x in r["rows"]}
+    ok = (r["passed"] and r["recall"] == 1.0 and r["benign_strong"] == 0 and r["malicious"] >= 5 and r["benign"] >= 4
+          and all(n.endswith(".sample") for n in names))
+    _record("Benchmark fixtures: 100% recall on labelled malicious, no strong benign", ok,
+            f"recall={r['recall']:.0%} malicious={r['malicious']} benign={r['benign']} benign_flagged={r['benign_detected']} benign_strong={r['benign_strong']}")
+
+def test_scan_batch_rows():
+    import scan_batch as SB
+    from benchmark_fixtures import scan_fixture
+    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "benchmark_fixtures", "mal_credential_stealer.py.sample")) as fh:
+        fs = scan_fixture("mal_credential_stealer.py.sample", fh.read())
+    secret = {"sev": "High", "source": "Secrets", "rule": "Possible exposed AWS key", "file": "cfg.py", "line": 2, "strong": True}
+    bandit = {"sev": "High", "source": "Code (Bandit)", "rule": "B602 shell", "file": "x.py", "line": 1, "strong": False}
+    fake = {"ran": True, "findings": [secret, bandit], "coverage": [], "strong": 3, "review": 0, "code_high": 0, "secrets_strong": 1,
+            "ci_high": 0, "known_malicious_count": 0, "high_risk_pattern_count": 1, "malware_proof": {"findings": fs}}
+    orig = (SB.scan_repo, SB.assess_security)
+    SB.scan_repo = lambda c, o, n: fake
+    SB.assess_security = lambda c, o, n: {"findings": [{"source": "OSV (Confirmed Malware)", "item": "evilpkg 1.0"}]}
+    try:
+        row = SB.build_row(None, "acme/demo", "B")
+        SB.scan_repo = lambda c, o, n: (_ for _ in ()).throw(TimeoutError("boom"))
+        err_row = SB.build_row(None, "acme/broken", "A")
+        SB.scan_repo = lambda c, o, n: {"ran": False, "coverage": ["Content scan: NOT run, repository is larger than 40 MB"], "findings": []}
+        skip_row = SB.build_row(None, "acme/huge")
+    finally:
+        SB.scan_repo, SB.assess_security = orig
+    items = row["flagged"].split("; ")
+    ok = (row["group"] == "B" and row["behavior_findings"] == 3 and row["layer1_findings"] == 0 and row["osv_mal"] is True
+          and "Credential-stealer pattern @ mal_credential_stealer.py:3" in row["flagged"] and "Possible exposed AWS key @ cfg.py:2" in row["flagged"]
+          and "B602" not in row["flagged"] and len(items) <= 5 and all(len(i) <= 120 for i in items)
+          and err_row["ran"] is False and err_row["error"] == "TimeoutError" and err_row["group"] == "A"
+          and skip_row["ran"] is False and skip_row["skipped_reason"] == "larger than 40 MB" and "group" not in skip_row)
+    _record("scan_batch: per-layer columns, flagged reasons, OSV, errors and skipped_reason", ok,
+            f"flagged={row['flagged']}\nerror_row={err_row.get('error')} skip_reason={skip_row.get('skipped_reason')}")
+
 def main():
     print("=" * 72 + "\n  Phase 4 Reality Verification\n" + "=" * 72)
     for t in (test_attack1_double_encoded_dropper, test_attack2_hex_exec, test_attack3_setup_exec_net,
@@ -453,7 +491,8 @@ def main():
               test_ai_candidates_deduped, test_gemini_key_caption,
               test_sdk_error_status_message_scrubbed, test_retry_history_timeout_then_400, test_failed_explanation_card,
               test_deadline_504_then_success_in_budget, test_deadline_no_retry_when_budget_short,
-              test_deadline_never_below_10s, test_budget_constants):
+              test_deadline_never_below_10s, test_budget_constants,
+              test_fixture_benchmark, test_scan_batch_rows):
         try:
             t()
         except Exception as e:

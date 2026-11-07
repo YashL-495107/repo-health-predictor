@@ -1,0 +1,7 @@
+# Demo project
+
+Inline logo (base64 PNG) for docs:
+
+![logo](data:image/png;base64,iVBORw0KGgoAAQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyAhIiMkJSYnKCkqKywtLi8wMTIzNDU2Nzg5Ojs8PT4/QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl9gYWJjZGVmZ2hpamtsbW5vcHFyc3R1dnc=)
+
+Example: `echo aGVsbG8gd29ybGQ= | base64 -d`

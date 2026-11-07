@@ -1,0 +1,4 @@
+# INERT BENCHMARK FIXTURE - never import or run. Read as text by benchmark_fixtures.py only.
+import zlib
+blob = "789ccbcc2dc82f2a51c82fb60662bde2cae292d45c0da5e4d2a21c858c9292022b7d7d434b0b3d53433d4303033d1323fde20c851a85e20c254d00314b119b"
+exec(zlib.decompress(bytes.fromhex(blob)).decode())

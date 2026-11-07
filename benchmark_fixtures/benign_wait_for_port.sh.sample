@@ -1,0 +1,2 @@
+# INERT BENCHMARK FIXTURE
+while ! (echo > /dev/tcp/$HOST/$PORT) >/dev/null 2>&1; do sleep 1; done

