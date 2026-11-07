@@ -560,6 +560,106 @@ def test_scan_batch_resume_rescans_timeouts():
           and final["acme/huge"]["skipped_reason"] == "too large" and final["acme/timeout"]["ran"] == "True")
     _record("scan_batch resume: re-scans timeout/5xx rows, keeps 'too large'/'not found' as done", ok, f"rescanned={sorted(scanned)}")
 
+def _own_pkg_check(latest, osv_by_version, registry_fails=False):
+    """Run security.check_own_package_malware with mocked registry + OSV. osv_by_version maps version (or None) -> ids."""
+    import requests
+    import security as S
+    calls = []
+    class R:
+        def __init__(self, code, body): self.status_code, self._b = code, body
+        def json(self): return self._b
+        def raise_for_status(self):
+            if self.status_code >= 400: raise requests.HTTPError(str(self.status_code))
+    def get(url, timeout=None, **kw):
+        calls.append(("GET", url))
+        if "api.osv.dev/v1/vulns/" in url: return R(200, {"id": url.rsplit("/", 1)[-1], "summary": "Malicious code in pkg"})
+        if registry_fails: raise requests.ConnectionError("registry down")
+        if "registry.npmjs.org" in url: return R(200, {"version": latest})
+        return R(200, {"info": {"version": latest}})
+    def post(url, json=None, timeout=None, **kw):
+        calls.append(("POST", json.get("version")))
+        return R(200, {"vulns": [{"id": i} for i in osv_by_version.get(json.get("version"), [])]})
+    orig = (S.requests.get, S.requests.post)
+    S.requests.get, S.requests.post = get, post
+    try:
+        return S.check_own_package_malware({"name": "demo-pkg", "ecosystem": "PyPI"}), calls
+    finally:
+        S.requests.get, S.requests.post = orig
+
+def _gate_score(findings, level):
+    from security import apply_gate
+    res = {"score": 90.0, "label": "Healthy", "factors": [], "notes": []}
+    return apply_gate(res, {"level": level, "findings": findings, "coverage": []}, [], None)["score"]
+
+def test_own_package_latest_affected():
+    (findings, cov, mal), calls = _own_pkg_check("2.0.0", {"2.0.0": ["MAL-2026-1", "GHSA-x"], None: ["MAL-2026-1", "MAL-2020-9"]})
+    ok = (mal and len(findings) == 1 and findings[0]["source"] == "OSV (Confirmed Malware)" and findings[0]["severity"] == "High"
+          and "demo-pkg 2.0.0" in findings[0]["item"] and ("POST", "2.0.0") in calls and _gate_score(findings, "High") <= 15)
+    _record("Own package: MAL- on the latest version -> High 'Confirmed Malware' (score capped)", ok, f"finding={findings} calls={calls}")
+
+def test_own_package_only_old_version():
+    (findings, cov, mal), calls = _own_pkg_check("3.1.0", {"3.1.0": ["GHSA-old"], None: ["MAL-2022-77"]})
+    ok = (not mal and len(findings) == 1 and findings[0]["severity"] == "Info" and findings[0]["source"] == "OSV (past malicious release)"
+          and "MAL-2022-77" in findings[0]["detail"] and "current release is not listed" in findings[0]["detail"]
+          and calls[1] == ("POST", "3.1.0") and ("POST", None) in calls
+          and _gate_score(findings, "No unpatched issues found") == 90.0)
+    _record("Own package: MAL- only on an older version -> Info only, no cap", ok, f"detail={findings[0]['detail'] if findings else None}")
+
+def test_own_package_lookup_failure():
+    (findings, cov, mal), calls = _own_pkg_check(None, {None: ["MAL-2022-77"]}, registry_fails=True)
+    ok = not mal and not findings and "NOT run" in cov and not any(c[0] == "POST" for c in calls)
+    _record("Own package: version lookup fails -> no flag, coverage says NOT run, OSV not queried", ok, f"coverage={cov}")
+
+def test_analyzer_strong_category():
+    import tempfile, contextlib, io
+    import analyze_scan_results as A
+    d = tempfile.mkdtemp(); p = os.path.join(d, "r.csv")
+    with open(p, "w") as fh:
+        fh.write("repo,ran,known_malicious_count,high_risk_pattern_count,osv_mal,strong,flagged,seconds,skipped_reason,error\n"
+                 "gitleaks/gitleaks,True,0,0,False,4,Possible exposed GitHub token @ testdata/x.go:3,2.0,,\n"
+                 "acme/clean,True,0,0,False,0,,1.0,,\n")
+    df = A.load(p); s = A.summary(df)
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        A.main(["--input", p])
+    out = buf.getvalue()
+    ok = (s["strong_finding"] == 1 and s["flagged"] == 1 and s["scanned_clean"] == 1
+          and "gitleaks/gitleaks" in out.split("== Flagged repos")[1] and "Possible exposed GitHub token" in out
+          and "strong finding (secrets/CI/other): 1" in out)
+    _record("Analyzer: strong>0 is its own category, counted as flagged and listed with its reasons", ok)
+
+def test_inspect_repo_report_and_rescan_flag():
+    import csv, sys as _sys, tempfile, contextlib, io
+    import inspect_repo as IR
+    import scan_batch as SB
+    res = {"ran": True, "strong": 1, "known_malicious_count": 0, "high_risk_pattern_count": 0,
+           "coverage": ["Secret scan: 3 text files", "CI workflows: 1 checked"],
+           "findings": [{"sev": "High", "source": "Secrets", "rule": "Possible exposed AWS key", "file": "cfg.py", "line": 2, "detail": "AKIA****", "strong": True},
+                        {"sev": "Low", "source": "CI workflow", "rule": "unpinned", "file": "ci.yml", "line": 1, "detail": "x", "strong": False}],
+           "malware_proof": {"findings": []}}
+    rep = IR.report(res)
+    ok_report = ("Possible exposed AWS key" in rep and "cfg.py:2" in rep and "unpinned" not in rep
+                 and "- Secret scan: 3 text files" in rep and "- CI workflows: 1 checked" in rep)
+    d = tempfile.mkdtemp(); inp, outp = os.path.join(d, "in.csv"), os.path.join(d, "out.csv")
+    with open(inp, "w") as fh: fh.write("repo\nacme/a\nacme/b\nacme/c\n")
+    with open(outp, "w", newline="") as fh:
+        w = csv.writer(fh); w.writerow(["repo", "ran", "strong", "skipped_reason", "error"])
+        w.writerows([["acme/a", "True", "0", "", ""], ["acme/b", "True", "0", "", ""], ["acme/c", "True", "0", "", ""]])
+    scanned = []
+    orig_build, orig_argv = SB.build_row, _sys.argv
+    SB.build_row = lambda c, full, g=None: scanned.append(full) or {"repo": full, "ran": True, "strong": 9, "error": "", "skipped_reason": "", "seconds": 0.0}
+    _sys.argv = ["scan_batch.py", "--input", inp, "--output", outp, "--sleep", "0", "--rescan", "acme/b, acme/c"]
+    try:
+        with contextlib.redirect_stdout(io.StringIO()):
+            SB.main()
+    finally:
+        SB.build_row, _sys.argv = orig_build, orig_argv
+    with open(outp) as fh:
+        final = {r["repo"]: r for r in csv.DictReader(fh)}
+    ok_rescan = sorted(scanned) == ["acme/b", "acme/c"] and len(final) == 3 and final["acme/b"]["strong"] == "9" and final["acme/a"]["strong"] == "0"
+    _record("inspect_repo prints strong/High findings + coverage; scan_batch --rescan replaces only named rows",
+            ok_report and ok_rescan, f"rescanned={sorted(scanned)}")
+
 def main():
     print("=" * 72 + "\n  Phase 4 Reality Verification\n" + "=" * 72)
     for t in (test_attack1_double_encoded_dropper, test_attack2_hex_exec, test_attack3_setup_exec_net,
@@ -577,7 +677,9 @@ def main():
               test_deadline_never_below_10s, test_budget_constants,
               test_fixture_benchmark, test_scan_batch_rows,
               test_download_timeout_twice_then_success, test_download_three_timeouts,
-              test_download_no_retry_404_403_429_large, test_scan_batch_resume_rescans_timeouts):
+              test_download_no_retry_404_403_429_large, test_scan_batch_resume_rescans_timeouts,
+              test_own_package_latest_affected, test_own_package_only_old_version, test_own_package_lookup_failure,
+              test_analyzer_strong_category, test_inspect_repo_report_and_rescan_flag):
         try:
             t()
         except Exception as e:

@@ -24,7 +24,11 @@ def load(path: str) -> pd.DataFrame:
         df[col] = df[col].fillna("").astype(str) if col in df.columns else ""
     df["ran"] = df["ran"].map(_bool) if "ran" in df.columns else False
     df["osv_mal"] = df["osv_mal"].map(_bool) if "osv_mal" in df.columns else False
-    df["is_flagged"] = (df["known_malicious_count"] > 0) | (df["high_risk_pattern_count"] > 0) | df["osv_mal"]
+    df["strong_finding"] = df["strong"] > 0
+    df["is_flagged"] = (df["known_malicious_count"] > 0) | (df["high_risk_pattern_count"] > 0) | df["osv_mal"] | df["strong_finding"]
+    df["categories"] = [", ".join(n for n, hit in (("known malicious", km > 0), ("high risk", hr > 0), ("OSV MAL-", om),
+                                                   ("strong finding", st)) if hit)
+                        for km, hr, om, st in zip(df["known_malicious_count"], df["high_risk_pattern_count"], df["osv_mal"], df["strong_finding"])]
     return df
 
 
@@ -56,6 +60,7 @@ def summary(df: pd.DataFrame) -> dict:
         "known_malicious": int((df["known_malicious_count"] > 0).sum()),
         "high_risk": int((df["high_risk_pattern_count"] > 0).sum()),
         "osv_mal": int(df["osv_mal"].sum()),
+        "strong_finding": int(df["strong_finding"].sum()),
         "flagged": int(df["is_flagged"].sum()),
         "scanned_clean": int((df["ran"] & ~df["is_flagged"]).sum()),
         "median_s": float(secs.median()) if len(secs) else 0.0,
@@ -72,6 +77,7 @@ def _print_summary(title: str, s: dict):
     print(f"known_malicious > 0:      {s['known_malicious']} ({pct(s['known_malicious'])} of scanned)")
     print(f"high_risk > 0:            {s['high_risk']} ({pct(s['high_risk'])} of scanned)")
     print(f"OSV MAL- match:           {s['osv_mal']}")
+    print(f"strong finding (secrets/CI/other): {s['strong_finding']} ({pct(s['strong_finding'])} of scanned)")
     print(f"Flagged (any of above):   {s['flagged']}")
     print(f"Scanned and clean:        {s['scanned_clean']}")
     print(f"Scan time (scanned repos): median {s['median_s']:.1f}s, p95 {s['p95_s']:.1f}s")
@@ -96,7 +102,8 @@ def main(argv=None) -> int:
     flagged = df[df["is_flagged"]]
     print(f"\n== Flagged repos ({len(flagged)}): review each by hand ==")
     if len(flagged):
-        cols = [c for c in ("repo", "group", "known_malicious_count", "high_risk_pattern_count", "osv_mal", "flagged") if c != "group" or groups]
+        cols = [c for c in ("repo", "group", "categories", "known_malicious_count", "high_risk_pattern_count", "osv_mal", "strong", "flagged")
+                if c != "group" or groups]
         print(flagged[cols].to_string(index=False))
         if "flagged" in df.columns and (flagged["flagged"] == "").any():
             print("(empty 'flagged' text: this CSV was written by an older scan_batch.py; rescan to get reasons)")

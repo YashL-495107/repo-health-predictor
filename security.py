@@ -11,6 +11,7 @@ import base64
 import json
 import re
 import requests
+from urllib.parse import quote
 from github_client import GitHubClient, GitHubError
 from malware_proof import _detect_package_identity
 
@@ -129,6 +130,60 @@ def scorecard(owner: str, repo: str) -> dict | None:
               for c in d.get("checks", []) if isinstance(c.get("score"), (int, float)) and c["score"] >= 0]
     return {"score": d.get("score"), "checks": sorted(checks, key=lambda c: c["score"])}
 
+OSV_QUERY = "https://api.osv.dev/v1/query"
+
+
+def latest_version(pkg: dict) -> str | None:
+    """Latest published version on the registry, or None if it cannot be looked up."""
+    name, eco = pkg["name"], pkg["ecosystem"]
+    try:
+        if eco == "npm":
+            r = requests.get(f"https://registry.npmjs.org/{quote(name, safe='@/')}/latest", timeout=TIMEOUT)
+            v = r.json().get("version") if r.status_code == 200 else None
+        elif eco == "PyPI":
+            r = requests.get(f"https://pypi.org/pypi/{quote(name, safe='')}/json", timeout=TIMEOUT)
+            v = (r.json().get("info") or {}).get("version") if r.status_code == 200 else None
+        else:
+            return None
+    except (requests.RequestException, ValueError, AttributeError):
+        return None
+    return str(v).strip() if v else None
+
+
+def _osv_mal_ids(pkg: dict, version: str | None = None) -> list[str]:
+    body = {"package": {"name": pkg["name"], "ecosystem": pkg["ecosystem"]}}
+    if version:
+        body["version"] = version
+    r = requests.post(OSV_QUERY, json=body, timeout=TIMEOUT)
+    r.raise_for_status()
+    return [v["id"] for v in r.json().get("vulns", []) if str(v.get("id", "")).startswith("MAL-")]
+
+
+def check_own_package_malware(pkg: dict) -> tuple[list[dict], str, bool]:
+    """OSV malicious-package check for the repo's OWN published package, against its LATEST version only.
+    Returns (findings, coverage_line, is_malicious). Only a MAL- advisory that affects the latest version creates
+    the High 'OSV (Confirmed Malware)' finding; MAL- advisories for older versions only give an Info finding."""
+    label = f"{pkg['ecosystem']} {pkg['name']}"
+    version = latest_version(pkg)
+    if not version:
+        return [], f"Own package malware check ({label}): NOT run, could not look up the latest published version", False
+    current = _osv_mal_ids(pkg, version)
+    item = f"{pkg['name']} {version} ({pkg['ecosystem']})"
+    if current:
+        info = osv_details(current[0])
+        return ([{"severity": "High", "source": "OSV (Confirmed Malware)", "item": item,
+                  "detail": f"{len(current)} malicious-package advisory(ies) affect the latest release, e.g. {current[0]}: {info.get('summary', '')}."}],
+                f"Own package ({label} {version}): latest release is listed in OSV malicious-package advisories", True)
+    past = _osv_mal_ids(pkg)
+    cov = f"Own package ({label} {version}): latest release checked against OSV malicious-package advisories, none listed"
+    if past:
+        ids = ", ".join(past[:3]) + ("..." if len(past) > 3 else "")
+        return ([{"severity": "Info", "source": "OSV (past malicious release)", "item": f"{pkg['name']} ({pkg['ecosystem']})",
+                  "detail": f"Past malicious release(s) of this package were reported ({ids}). The current release is not listed. "
+                            "Make sure you install a fixed version."}], cov, False)
+    return [], cov, False
+
+
 def assess_security(client: GitHubClient, owner: str, repo: str) -> dict:
     findings, coverage, level, checked = [], [], 1, 0
     try:
@@ -176,14 +231,10 @@ def assess_security(client: GitHubClient, owner: str, repo: str) -> dict:
             if t is not None: files[fn] = t
         pkg = _detect_package_identity(files)
         if pkg:
-            r = requests.post("https://api.osv.dev/v1/query", json={"package": {"name": pkg["name"], "ecosystem": pkg["ecosystem"]}}, timeout=TIMEOUT)
-            r.raise_for_status()
-            mal_ids = [v["id"] for v in r.json().get("vulns", []) if v.get("id", "").startswith("MAL-")]
-            coverage.append(f"Own package ({pkg['ecosystem']} {pkg['name']}): checked against OSV malicious-package advisories")
-            if mal_ids:
-                level = max(level, 3)
-                info = osv_details(mal_ids[0])
-                findings.append({"severity": "High", "source": "OSV (Confirmed Malware)", "item": f"{pkg['name']} ({pkg['ecosystem']})", "detail": f"{len(mal_ids)} malicious-package advisory(ies), e.g. {mal_ids[0]}: {info.get('summary', '')}."})
+            own_findings, own_cov, own_mal = check_own_package_malware(pkg)
+            findings += own_findings
+            coverage.append(own_cov)
+            if own_mal: level = max(level, 3)
     except (requests.RequestException, ValueError, GitHubError) as e: coverage.append(f"Own package OSV check: NOT checked ({type(e).__name__})")
 
     sc = None

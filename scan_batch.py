@@ -124,6 +124,7 @@ def main():
     ap.add_argument("--limit", type=int, default=None, help="scan at most N new repos in this run")
     ap.add_argument("--group-column", default="group", help="input column copied to the output 'group' column, if present")
     ap.add_argument("--retry-errors", action="store_true", help="rescan rows that previously failed with an exception")
+    ap.add_argument("--rescan", default="", help="comma-separated repos to re-scan even if already in --output (their rows are replaced)")
     args = ap.parse_args()
     load_dotenv()
     client = GitHubClient(os.getenv("GITHUB_TOKEN"))
@@ -131,14 +132,19 @@ def main():
     inp = pd.read_csv(args.input)
     groups = dict(zip(inp["repo"], inp[args.group_column].astype(str))) if args.group_column in inp.columns else {}
     rows = pd.read_csv(args.output).to_dict("records") if os.path.exists(args.output) else []
-    rescan = [r["repo"] for r in rows if needs_rescan(r)]
-    rows = [r for r in rows if not needs_rescan(r)]
+    forced = {x.strip() for x in args.rescan.split(",") if x.strip()}
+    rescan = [r["repo"] for r in rows if needs_rescan(r) or r["repo"] in forced]
+    rows = [r for r in rows if not (needs_rescan(r) or r["repo"] in forced)]
     if args.retry_errors:
         rows = [r for r in rows if not (isinstance(r.get("error"), str) and r["error"])]
     if rescan:
-        print(f"re-scanning {len(rescan)} repo(s) that previously hit a timeout/connection error/5xx")
+        print(f"re-scanning {len(rescan)} repo(s) (--rescan, or a previous timeout/connection error/5xx)")
     done = {r["repo"] for r in rows}
     todo = [r for r in inp["repo"].tolist() if r not in done]
+    todo += [r for r in sorted(forced) if r not in done and r not in todo]   # --rescan may name repos not in --input
+    for r in sorted(forced):
+        if r in todo:   # forced repos go first so --limit does not skip them
+            todo.remove(r); todo.insert(0, r)
     if args.limit is not None:
         todo = todo[:args.limit]
     print(f"{len(done)} already scanned, {len(todo)} to scan in this run")
