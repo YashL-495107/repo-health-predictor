@@ -191,20 +191,27 @@ def _gemini_request(api_key: str, prompt: str, timeout: int = TIMEOUT) -> tuple[
     try:
         r = requests.post(GEMINI_URL, headers={"x-goog-api-key": api_key}, json=payload, timeout=timeout)
     except requests.Timeout:
-        return None, f"Gemini timed out after {timeout}s"
+        return None, "timeout"
     except requests.RequestException as e:
-        return None, f"Gemini request failed ({type(e).__name__})"
-    if r.status_code in (400, 401, 403):
-        return None, f"Gemini rejected the API key or request (HTTP {r.status_code})"
-    if r.status_code == 429:
-        return None, "Gemini quota or rate limit exceeded (HTTP 429)"
+        return None, f"request failed ({type(e).__name__})"
     if r.status_code != 200:
-        return None, f"Gemini returned HTTP {r.status_code}"
+        return None, f"HTTP {r.status_code}: {_api_error_message(r, api_key)}"
     try:
         text = r.json()["candidates"][0]["content"]["parts"][0]["text"]
         return json.loads(text), None
     except (ValueError, KeyError, IndexError, TypeError):
-        return None, "Gemini returned a response that is not valid JSON"
+        return None, "bad JSON"
+
+
+def _api_error_message(r, api_key: str) -> str:
+    """First 120 chars of the API's error message, with the key scrubbed if the API echoed it."""
+    try:
+        msg = str((r.json().get("error") or {}).get("message") or "")
+    except (ValueError, AttributeError):
+        msg = r.text or ""
+    if api_key:
+        msg = msg.replace(api_key, "[key]")
+    return " ".join(msg.split())[:120] or "no error message"
 
 
 def _call_gemini(api_key: str, prompt: str) -> dict | None:
@@ -464,12 +471,12 @@ Return ONLY valid JSON with this exact structure:
   ]
 }}"""
 
-    llm_out = _call_gemini(api_key, prompt)
-    if llm_out and isinstance(llm_out, dict) and "alternatives" in llm_out:
+    llm_out, llm_err = _gemini_request(api_key, prompt)
+    if isinstance(llm_out, dict) and "alternatives" in llm_out:
         llm_out["source"] = "Gemini 2.5 Flash AI Triage"
         llm_out["alternatives"] = verify_alternatives(llm_out.get("alternatives"))
     else:
-        llm_out = _fallback_intelligence(features, health_res, triage, forks)
+        llm_out = {**_fallback_intelligence(features, health_res, triage, forks), "error": llm_err or "bad JSON"}
 
     # AI explanation of findings: advisory only, never feeds back into score, cap or verdict.
     findings = scan_findings if scan_findings is not None else malware_findings

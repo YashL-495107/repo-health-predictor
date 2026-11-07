@@ -215,7 +215,7 @@ def action_verdict(maintenance_label: str, risk_level: str, flagged: bool = Fals
     if risky: return ("Upgrade or review", "Known security problems, but maintainers are active, so a fix may be available.")
     if risk_level == "Not assessed": return ("Maintenance looks fine, security not assessed", "The security sources could not be checked. This is not a safety guarantee.")
     if slow: return ("Watch it", "No unpatched issues found, but activity is slowing down.")
-    return ("Actively maintained, no unpatched issues found", "This is NOT a safety guarantee: we do not detect malware or malicious intent.")
+    return ("Actively maintained, no unpatched issues found", "No known vulnerabilities or malware indicators were found by our checks. This is NOT a safety guarantee: static analysis can miss things.")
 
 OFFENSIVE_TERMS = {"malware", "ransomware", "trojan", "keylogger", "botnet", "backdoor", "rootkit", "spyware", "stealer", "infostealer", "virus", "exploit", "exploits", "payload", "payloads", "c2", "reverse-shell", "shellcode", "pentest", "pentesting", "penetration-testing", "red-team", "redteam", "hacking", "hacktool", "phishing", "ddos", "bruteforce", "brute-force", "credential-stuffing", "offensive-security"}
 

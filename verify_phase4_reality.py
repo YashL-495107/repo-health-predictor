@@ -139,13 +139,30 @@ def test_app_cache_decorator():
     ok = "st.cache_data" in analyze and not any("cache_data" in d for d in esc)
     _record("app.py: analyze() is cached, _md_escape is not", ok, f"analyze={analyze} _md_escape={esc}")
 
+def test_no_stale_malware_wording():
+    root = os.path.dirname(os.path.abspath(__file__))
+    banned = ("do not detect malware", "does not detect malware")
+    hits = []
+    for dirpath, dirs, files in os.walk(root):
+        dirs[:] = [d for d in dirs if not d.startswith(".") and d not in ("__pycache__", "node_modules", "venv", ".venv")]
+        for fn in files:
+            if not (fn.endswith(".py") or fn == "README.md"):
+                continue
+            path = os.path.join(dirpath, fn)
+            if path == os.path.abspath(__file__):
+                continue
+            with open(path, encoding="utf-8", errors="replace") as fh:
+                text = fh.read().lower()
+            hits += [f"{os.path.relpath(path, root)}: '{b}'" for b in banned if b in text]
+    _record("Wording: no 'does/do not detect malware' in .py or README.md", not hits, "\n".join(hits))
+
 def main():
     print("=" * 72 + "\n  Phase 4 Reality Verification\n" + "=" * 72)
     for t in (test_attack1_double_encoded_dropper, test_attack2_hex_exec, test_attack3_setup_exec_net,
               test_attack4_behavior_fixture, test_benign_setup_versions_and_env, test_benign_wait_for_it,
               test_benign_regex_literal, test_typosquat,
               test_skill_map_routing, test_ai_output_validation, test_ai_prompt_injection_wrapped,
-              test_app_cache_decorator):
+              test_app_cache_decorator, test_no_stale_malware_wording):
         try:
             t()
         except Exception as e:

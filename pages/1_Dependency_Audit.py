@@ -93,5 +93,5 @@ if go:
             "The full five-factor score is on the main page.\n"
             "- **Upgrade to at least** is approximate: it is the highest fixing version among the first five advisories, compared by "
             "its numeric parts. Always read the advisory.\n"
-            f"- Up to {MAX_PACKAGES} packages are checked per run. We do not detect malware or malicious intent."
+            f"- Up to {MAX_PACKAGES} packages are checked per run. Packages OSV lists as malicious are flagged, but new or unlisted malware can be missed."
         )

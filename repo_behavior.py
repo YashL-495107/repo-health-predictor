@@ -1,5 +1,5 @@
 """Behavior scan: malware-like INDICATORS grouped into capability categories and intent-shaped patterns.
-Not a malware detector. It never executes anything and 'no findings' never means safe.
+Indicators, not proof of malware: it never executes anything, can miss threats, and 'no findings' never means safe.
 Design rules to limit false positives:
   - generic HTTP use is NOT an indicator; only exfil-style endpoints (webhooks, paste sites, raw IPs, .onion)
   - an intent pattern needs 2+ categories in the SAME file (or a hook that runs a suspicious file)

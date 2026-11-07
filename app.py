@@ -218,6 +218,14 @@ if go_clicked or (target and st.session_state.get("analyzed") == target):
     if intel:
         st.markdown("#### 🧠 AI Migration Engine, Semantic Issue Triage & Active Forks")
         ai_rep = intel.get("ai_report", {})
+        if str(ai_rep.get("source", "")).startswith("Gemini"):
+            st.caption("Source: Gemini 2.5 Flash")
+        else:
+            if gemini_key:
+                st.warning(f"Gemini was not used: {ai_rep.get('error') or 'unknown error'}. Showing heuristic results.")
+            else:
+                st.info("No Gemini key set: showing heuristic results.")
+            st.caption("Source: Heuristic engine")
         if ai_rep.get("executive_memo"): st.text("Executive Memo: " + str(ai_rep["executive_memo"]))
         triage = intel.get("issue_triage", {})
         counts = triage.get("counts", {})
@@ -247,7 +255,7 @@ if go_clicked or (target and st.session_state.get("analyzed") == target):
 
     with st.expander("What was and was not checked"):
         for c in sec["coverage"] + scan["coverage"]: st.write("- " + c)
-        st.caption("Health here = maintenance activity + known security problems + dual-use content flags. No findings does not mean safe: this tool does not detect malware or malicious intent.")
+        st.caption("Health here = maintenance activity + known security problems + dual-use content flags. No findings does not mean safe: we look for malware indicators and known-bad packages, but static analysis can miss threats and cannot prove intent.")
 
     st.markdown("#### What drives the health score")
     table = pd.DataFrame([{"Factor": x["name"], "Score (0-100)": x["score"], "Weight %": x["effective_weight"], "Evidence": x["detail"]} for x in res["factors"]])
