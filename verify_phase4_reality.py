@@ -289,6 +289,24 @@ def test_fallback_snippet_flag():
     _record("Fallback snippet depends on whether a key was provided",
             with_key == "# Gemini was not used (see the warning above)." and "Add GEMINI_API_KEY" in no_key)
 
+def test_ai_candidates_deduped():
+    from intelligence import select_ai_candidates
+    same_spot = [
+        {"source": "Behavior pattern", "rule": "Dropper / loader pattern", "file": "evil.py", "line": 3, "sev": "High", "strong": False},
+        {"source": "Layer 1: AST De-obfuscator", "rule": "Decoded hidden code", "file": "evil.py", "line": 3, "sev": "High", "strong": True},
+        {"source": "Layer 1: AST De-obfuscator", "rule": "Decoded hidden code (review)", "file": "evil.py", "line": 3, "sev": "Medium", "strong": True},
+    ]
+    other = [
+        {"source": "Secrets", "rule": "Possible exposed AWS key", "file": "evil.py", "line": 3, "sev": "High", "strong": True},
+        {"source": "Layer 1: AST De-obfuscator", "rule": "Decoded hidden code", "file": "evil.py", "line": 9, "sev": "High", "strong": True},
+    ]
+    picked = select_ai_candidates(same_spot + other)
+    obf_at_3 = [f for f in picked if f["file"] == "evil.py" and f["line"] == 3 and f["source"] != "Secrets"]
+    ok = (len(picked) == 3 and len(obf_at_3) == 1 and obf_at_3[0]["rule"] == "Decoded hidden code" and obf_at_3[0]["strong"]
+          and len(select_ai_candidates(same_spot[:2])) == 1)
+    _record("AI: one candidate per file:line:skill (highest severity, then strong)", ok,
+            "picked: " + "; ".join(f"{f['file']}:{f['line']} {f['rule']}" for f in picked))
+
 def main():
     print("=" * 72 + "\n  Phase 4 Reality Verification\n" + "=" * 72)
     for t in (test_attack1_double_encoded_dropper, test_attack2_hex_exec, test_attack3_setup_exec_net,
@@ -299,7 +317,8 @@ def main():
               test_genai_success_and_key_cleaning, test_genai_default_model, test_genai_error_hides_key,
               test_genai_timeout_and_bad_json, test_genai_rejects_non_ascii_key,
               test_retry_504_then_success, test_retry_401_not_retried, test_retry_three_503s,
-              test_ai_cache_skips_failures, test_fallback_snippet_flag):
+              test_ai_cache_skips_failures, test_fallback_snippet_flag,
+              test_ai_candidates_deduped):
         try:
             t()
         except Exception as e:

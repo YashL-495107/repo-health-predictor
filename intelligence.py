@@ -377,12 +377,32 @@ def validate_threat_with_ai(api_key: str, finding: dict, finding_id: str) -> dic
     return out
 
 
+_SEV_RANK = {"High": 3, "Elevated": 2, "Medium": 2, "Low": 1, "Info": 0}
+
+
+def select_ai_candidates(findings: list[dict] | None) -> list[dict]:
+    """Strong/High findings that have a skill, one per (file, line, skill): highest severity wins, then strong.
+    Keeps the order in which each location first appeared."""
+    best: dict[tuple, dict] = {}
+    for f in findings or []:
+        if not (f.get("strong") or f.get("sev") == "High"):
+            continue
+        skill = pick_skill(f)
+        if not skill:
+            continue
+        key = (str(f.get("file", "")), str(f.get("line", "")), skill)
+        rank = (_SEV_RANK.get(f.get("sev"), 0), bool(f.get("strong")))
+        cur = best.get(key)
+        if cur is None or rank > cur[0]:
+            best[key] = (rank, f)
+    return [f for _, f in best.values()]
+
+
 def explain_findings(api_key: str, findings: list[dict] | None) -> tuple[dict, str]:
     """Run the AI explanation on up to AI_MAX_FINDINGS strong/High findings that have a skill. Returns (results, status)."""
     if not api_key:
         return {}, "no API key"
-    candidates = [f for f in (findings or []) if (f.get("strong") or f.get("sev") == "High") and pick_skill(f)]
-    candidates = candidates[:AI_MAX_FINDINGS]
+    candidates = select_ai_candidates(findings)[:AI_MAX_FINDINGS]
     if not candidates:
         return {}, "ran on 0 findings (no strong or High finding matched a skill)"
     keyed = [(f"{f.get('file', '')}:{f.get('line', '')}:{f.get('rule', '')}", f) for f in candidates]
