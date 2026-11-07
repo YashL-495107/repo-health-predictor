@@ -28,6 +28,23 @@ def load(path: str) -> pd.DataFrame:
     return df
 
 
+CANONICAL = ("timeout", "too large", "not found", "refused")
+
+
+def normalise_reason(reason: str, error: str = "") -> str:
+    """Map old free-text reasons onto: timeout, too large, not found, refused, other: <type>."""
+    r = str(reason or "").strip()
+    if r in CANONICAL or r.startswith("other: "):
+        return r
+    low = r.lower()
+    if "timed out" in low or "timeout" in low: return "timeout"
+    if "larger than" in low or "uncompressed" in low: return "too large"
+    if "not found" in low: return "not found"
+    if "refused" in low or "rate-limited" in low: return "refused"
+    if error: return f"other: {error}"
+    return f"other: {r[:60]}" if r else "other: unknown"
+
+
 def summary(df: pd.DataFrame) -> dict:
     ran = df[df["ran"]]
     secs = ran["seconds"] if len(ran) else df["seconds"]
@@ -90,8 +107,15 @@ def main(argv=None) -> int:
     print(f"\n== Not scanned ({len(skipped)}): NOT the same as clean ==")
     if len(skipped):
         reason = skipped["skipped_reason"].where(skipped["skipped_reason"] != "", skipped.get("note", pd.Series("", index=skipped.index)).fillna("").astype(str))
-        out = pd.DataFrame({"repo": skipped["repo"], "error": skipped["error"], "skipped_reason": reason})
-        print(out.to_string(index=False))
+        out = pd.DataFrame({"repo": skipped["repo"], "error": skipped["error"], "skipped_reason": [normalise_reason(r, e) for r, e in zip(reason, skipped["error"])]})
+        counts = out["skipped_reason"].value_counts()
+        print("Count per reason:")
+        for r, n in counts.items():
+            print(f"  {n:4d}  {r}")
+        for r in counts.index:
+            grp = out[out["skipped_reason"] == r]
+            print(f"\n-- {r} ({len(grp)}) --")
+            print(grp[["repo", "error"]].to_string(index=False))
     else:
         print("none")
     return 0

@@ -1,6 +1,8 @@
 """Batch scan for the detection benchmark: run the content scanner over a list of repos and write one CSV row per repo.
 
-Resumable: repos already in --output are skipped (use --retry-errors to rescan rows that failed with an exception).
+Resumable: repos already in --output are skipped, EXCEPT rows that were not scanned because of a transient download
+problem (timeout, connection error, HTTP 5xx), which are re-scanned automatically on the next run. Rows skipped for
+"too large", "not found" or "refused" stay done. Use --retry-errors to also rescan rows where the scan raised.
 The CSV is rewritten (atomically) after every repo, so an interrupted run loses at most the repo in progress.
 """
 import argparse, os, re, time
@@ -35,10 +37,29 @@ def flagged_text(findings: list[dict], osv_items: list[str] | None = None) -> st
 
 
 def skipped_reason(res: dict) -> str:
-    for c in res.get("coverage", []):
-        if c.startswith("Content scan: NOT run"):
-            return c[len("Content scan: NOT run"):].strip(" ,()").removeprefix("repository is ").strip() or "not run"
-    return "not run"
+    """One of: timeout, too large, not found, refused, other: <type>."""
+    if res.get("skip_reason"):
+        return res["skip_reason"]
+    text = " ".join(c for c in res.get("coverage", []) if c.startswith("Content scan: NOT run")).lower()
+    if "timed out" in text or "timeout" in text: return "timeout"
+    if "larger than" in text or "uncompressed" in text: return "too large"
+    if "not found" in text: return "not found"
+    if "refused" in text or "rate-limited" in text: return "refused"
+    return "other: unknown"
+
+
+_TRANSIENT = re.compile(r"^(?:timeout|other: (?:ConnectionError|HTTP 5\d\d))$")
+
+
+def needs_rescan(row: dict) -> bool:
+    """True for rows that were not scanned because of a transient download problem (re-scanned on resume)."""
+    if str(row.get("ran")).strip().lower() in ("true", "1"):
+        return False
+    reason = str(row.get("skipped_reason") or "").strip()
+    if _TRANSIENT.match(reason):
+        return True
+    legacy = (reason + " " + str(row.get("note") or "")).lower()   # CSVs from older versions
+    return "timed out" in legacy or "connection error" in legacy
 
 
 def scan_one(client, full: str) -> dict:
@@ -84,7 +105,7 @@ def build_row(client, full: str, group: str | None = None) -> dict:
     try:
         row.update(scan_one(client, full))
     except Exception as e:  # one bad repo must not stop the batch
-        row.update({"ran": False, "error": type(e).__name__, "skipped_reason": "scan raised an exception"})
+        row.update({"ran": False, "error": type(e).__name__, "skipped_reason": f"other: {type(e).__name__}"})
     row["seconds"] = round(time.time() - t0, 1)
     return row
 
@@ -110,8 +131,12 @@ def main():
     inp = pd.read_csv(args.input)
     groups = dict(zip(inp["repo"], inp[args.group_column].astype(str))) if args.group_column in inp.columns else {}
     rows = pd.read_csv(args.output).to_dict("records") if os.path.exists(args.output) else []
+    rescan = [r["repo"] for r in rows if needs_rescan(r)]
+    rows = [r for r in rows if not needs_rescan(r)]
     if args.retry_errors:
         rows = [r for r in rows if not (isinstance(r.get("error"), str) and r["error"])]
+    if rescan:
+        print(f"re-scanning {len(rescan)} repo(s) that previously hit a timeout/connection error/5xx")
     done = {r["repo"] for r in rows}
     todo = [r for r in inp["repo"].tolist() if r not in done]
     if args.limit is not None:

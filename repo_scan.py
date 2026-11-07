@@ -9,7 +9,9 @@ import re
 import subprocess
 import sys
 import tempfile
+import time
 import zipfile
+import requests
 from pathlib import PurePosixPath
 from github_client import API, GitHubClient, GitHubError
 from malware_proof import run_malware_proof_engine
@@ -55,16 +57,28 @@ def _is_fixture(path: str) -> bool:
 
 class ScanTooLarge(Exception): pass
 
+class DownloadError(GitHubError):
+    """Download failure with a machine-readable kind: timeout, connection, server, not found, refused, http."""
+    def __init__(self, message: str, kind: str):
+        super().__init__(message)
+        self.kind = kind
+
+DOWNLOAD_TIMEOUT = (15, 120)          # (connect, read) seconds
+DOWNLOAD_BACKOFF = (3, 8)             # seconds before attempt 2 and attempt 3
+DOWNLOAD_RETRY_STATUS = {502, 503, 504}
+_sleep = time.sleep                   # patched in tests
+
 FIX = {"B102": "Avoid exec(); use a parser or a dispatch table instead.", "B307": "Avoid eval(); use ast.literal_eval for literals or a real parser.", "B602": "Pass an argument list with shell=False and never build commands from user input.", "B605": "Avoid shell commands built from strings; use subprocess with an argument list.", "B506": "Use yaml.safe_load().", "B301": "Do not unpickle untrusted data; use JSON or another safe format.", "B501": "Do not disable TLS certificate verification (verify=False).", "B324": "Use SHA-256 or stronger for anything security related.", "B608": "Use parameterised queries instead of building SQL from strings.", "B201": "Never run Flask with debug=True outside local development.", "B104": "Bind to a specific interface unless public exposure is intended."}
 SECRET_PATTERNS = {"AWS access key id": re.compile(r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b"), "GitHub token": re.compile(r"\b(?:gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{50,})\b"), "Slack token": re.compile(r"\bxox[baprs]-[A-Za-z0-9-]{10,}\b"), "Private key block": re.compile(r"-----BEGIN (?:RSA |EC |DSA |OPENSSH |PGP )?PRIVATE KEY-----"), "Google API key": re.compile(r"\bAIza[0-9A-Za-z\-_]{35}\b"), "Stripe live secret key": re.compile(r"\bsk_live_[0-9a-zA-Z]{24,}\b")}
 INJECT = re.compile(r"\$\{\{\s*(?:github\.event\.(?:issue|pull_request|comment|review|review_comment|discussion|head_commit)\.(?:title|body|message|label|ref)|github\.event\.pull_request\.head\.(?:ref|label)|github\.head_ref)\b")
 RISKY_TRIGGERS = ("pull_request_target", "issue_comment", "issues", "workflow_run")
 
-def download_zip(client: GitHubClient, owner: str, repo: str) -> io.BytesIO:
-    r = client.session.get(f"{API}/repos/{owner}/{repo}/zipball", stream=True, timeout=60)
-    if r.status_code == 404: raise GitHubError("Repository not found (it may not exist, or it is private).")
-    if r.status_code in (403, 429): raise GitHubError("GitHub refused or rate-limited the download; try again later or add a token.")
-    if r.status_code != 200: raise GitHubError(f"Could not download the repository (HTTP {r.status_code}).")
+def _download_once(client: GitHubClient, owner: str, repo: str) -> io.BytesIO:
+    r = client.session.get(f"{API}/repos/{owner}/{repo}/zipball", stream=True, timeout=DOWNLOAD_TIMEOUT)
+    if r.status_code == 404: raise DownloadError("Repository not found (it may not exist, or it is private).", "not found")
+    if r.status_code in (403, 429): raise DownloadError("GitHub refused or rate-limited the download; try again later or add a token.", "refused")
+    if r.status_code in DOWNLOAD_RETRY_STATUS: raise DownloadError(f"Could not download the repository (HTTP {r.status_code}).", "server")
+    if r.status_code != 200: raise DownloadError(f"Could not download the repository (HTTP {r.status_code}).", "http")
     if int(r.headers.get("Content-Length") or 0) > MAX_ZIP_BYTES: raise ScanTooLarge(f"larger than {MAX_ZIP_BYTES // 2**20} MB")
     buf, total = io.BytesIO(), 0
     for chunk in r.iter_content(1 << 20):
@@ -73,6 +87,36 @@ def download_zip(client: GitHubClient, owner: str, repo: str) -> io.BytesIO:
         buf.write(chunk)
     buf.seek(0)
     return buf
+
+def download_zip(client: GitHubClient, owner: str, repo: str) -> io.BytesIO:
+    """Download the repo zipball. Retries read/connect timeouts, dropped connections and HTTP 502/503/504
+    up to 2 more times (3s, then 8s). 404/403/429 and the 40 MB limit are never retried."""
+    attempts = len(DOWNLOAD_BACKOFF) + 1
+    for attempt in range(1, attempts + 1):
+        try:
+            return _download_once(client, owner, repo)
+        except requests.Timeout:
+            kind, last = "timeout", "download timed out"
+        except (requests.ConnectionError, requests.exceptions.ChunkedEncodingError):
+            kind, last = "connection", "download failed: connection error"
+        except DownloadError as e:
+            if e.kind != "server":
+                raise
+            kind, last = "server", f"download failed ({str(e).split('(')[-1].rstrip(').')})"
+        if attempt < attempts:
+            _sleep(DOWNLOAD_BACKOFF[attempt - 1])
+    raise DownloadError(f"{last} after {attempts} attempts", kind)
+
+def skip_reason(e: Exception) -> str:
+    """Normalised reason a download/scan did not run: timeout, too large, not found, refused, or other: <type>."""
+    if isinstance(e, ScanTooLarge): return "too large"
+    kind = getattr(e, "kind", None)
+    if kind in ("timeout", "not found", "refused"): return kind
+    if kind == "connection": return "other: ConnectionError"
+    if kind in ("server", "http"):
+        m = re.search(r"HTTP (\d{3})", str(e))
+        return f"other: HTTP {m.group(1)}" if m else "other: HTTP error"
+    return f"other: {type(e).__name__}"
 
 def _is_test(parts: tuple[str, ...]) -> bool:
     name = parts[-1]
@@ -180,9 +224,11 @@ def scan_repo(client: GitHubClient, owner: str, repo: str) -> dict:
     try: data = read_repo(download_zip(client, owner, repo))
     except ScanTooLarge as e:
         res["coverage"].append(f"Content scan: NOT run, repository is {e}")
+        res["skip_reason"] = skip_reason(e)
         return res
     except (GitHubError, zipfile.BadZipFile, OSError) as e:
         res["coverage"].append(f"Content scan: NOT run ({e})")
+        res["skip_reason"] = skip_reason(e)
         return res
     res["ran"] = True
     sha, findings = data["sha"], []

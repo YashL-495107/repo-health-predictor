@@ -473,9 +473,92 @@ def test_scan_batch_rows():
           and "Credential-stealer pattern @ mal_credential_stealer.py:3" in row["flagged"] and "Possible exposed AWS key @ cfg.py:2" in row["flagged"]
           and "B602" not in row["flagged"] and len(items) <= 5 and all(len(i) <= 120 for i in items)
           and err_row["ran"] is False and err_row["error"] == "TimeoutError" and err_row["group"] == "A"
-          and skip_row["ran"] is False and skip_row["skipped_reason"] == "larger than 40 MB" and "group" not in skip_row)
+          and skip_row["ran"] is False and skip_row["skipped_reason"] == "too large" and "group" not in skip_row)
     _record("scan_batch: per-layer columns, flagged reasons, OSV, errors and skipped_reason", ok,
             f"flagged={row['flagged']}\nerror_row={err_row.get('error')} skip_reason={skip_row.get('skipped_reason')}")
+
+class _FakeDl:
+    def __init__(self, status=200, chunks=(b"PK-zip-bytes",), headers=None, fail_mid=None):
+        self.status_code, self.headers, self._chunks, self._fail_mid = status, headers or {}, chunks, fail_mid
+    def iter_content(self, n):
+        for c in self._chunks:
+            yield c
+        if self._fail_mid: raise self._fail_mid
+
+def _run_download(steps):
+    """steps: list of exceptions (raised by session.get) or _FakeDl responses. Returns (result_or_exc, calls, sleeps)."""
+    import repo_scan as RS
+    calls, sleeps, it = [], [], iter(steps)
+    class S:
+        def get(self, url, stream=None, timeout=None):
+            calls.append(timeout)
+            step = next(it)
+            if isinstance(step, Exception): raise step
+            return step
+    client = type("C", (), {"session": S()})()
+    orig = RS._sleep
+    RS._sleep = sleeps.append
+    try:
+        return RS.download_zip(client, "o", "r"), calls, sleeps
+    except Exception as e:
+        return e, calls, sleeps
+    finally:
+        RS._sleep = orig
+
+def test_download_timeout_twice_then_success():
+    import requests
+    out, calls, sleeps = _run_download([requests.ReadTimeout("t"), requests.ConnectTimeout("t"), _FakeDl()])
+    ok = hasattr(out, "read") and out.read() == b"PK-zip-bytes" and len(calls) == 3 and sleeps == [3, 8] and calls[0] == (15, 120)
+    _record("Download: two timeouts then success returns the zip (3s, 8s backoff, (15,120) timeout)", ok, f"calls={calls} sleeps={sleeps}")
+
+def test_download_three_timeouts():
+    import requests
+    from repo_scan import skip_reason
+    out, calls, sleeps = _run_download([requests.ReadTimeout("t")] * 2 + [_FakeDl(fail_mid=requests.ConnectionError("read timed out"))])
+    out2, calls2, _ = _run_download([requests.ReadTimeout("t")] * 3)
+    out3, _, _ = _run_download([_FakeDl(status=503)] * 3)
+    ok = (str(out2) == "download timed out after 3 attempts" and len(calls2) == 3 and skip_reason(out2) == "timeout"
+          and str(out) == "download failed: connection error after 3 attempts" and skip_reason(out) == "other: ConnectionError"
+          and str(out3) == "download failed (HTTP 503) after 3 attempts" and skip_reason(out3) == "other: HTTP 503")
+    _record("Download: 3 timeouts -> 'download timed out after 3 attempts'; mid-stream drop and 503 also retried", ok,
+            f"timeouts={out2!s} | drop={out!s} | 503={out3!s}")
+
+def test_download_no_retry_404_403_429_large():
+    from repo_scan import ScanTooLarge, skip_reason
+    res = []
+    for status, extra in ((404, {}), (403, {}), (429, {}), (200, {"Content-Length": str(50 * 2**20)})):
+        out, calls, sleeps = _run_download([_FakeDl(status=status, headers=extra)] * 3)
+        res.append((status, len(calls), sleeps, skip_reason(out)))
+    ok = res == [(404, 1, [], "not found"), (403, 1, [], "refused"), (429, 1, [], "refused"), (200, 1, [], "too large")]
+    _record("Download: 404/403/429 and >40 MB are not retried", ok, f"{res}")
+
+def test_scan_batch_resume_rescans_timeouts():
+    import csv, sys as _sys, tempfile
+    import scan_batch as SB
+    d = tempfile.mkdtemp()
+    inp, outp = os.path.join(d, "in.csv"), os.path.join(d, "out.csv")
+    with open(inp, "w") as fh:
+        fh.write("repo\nacme/timeout\nacme/huge\nacme/gone\nacme/flaky5xx\nacme/ok\nacme/new\n")
+    with open(outp, "w", newline="") as fh:
+        w = csv.writer(fh); w.writerow(["repo", "ran", "error", "skipped_reason"])
+        w.writerows([["acme/timeout", "False", "", "timeout"], ["acme/huge", "False", "", "too large"],
+                     ["acme/gone", "False", "", "not found"], ["acme/flaky5xx", "False", "", "other: HTTP 502"],
+                     ["acme/ok", "True", "", ""]])
+    scanned = []
+    orig_build, orig_argv = SB.build_row, _sys.argv
+    SB.build_row = lambda client, full, group=None: scanned.append(full) or {"repo": full, "ran": True, "error": "", "skipped_reason": "", "seconds": 0.0}
+    _sys.argv = ["scan_batch.py", "--input", inp, "--output", outp, "--sleep", "0"]
+    try:
+        import contextlib, io
+        with contextlib.redirect_stdout(io.StringIO()):
+            SB.main()
+    finally:
+        SB.build_row, _sys.argv = orig_build, orig_argv
+    with open(outp) as fh:
+        final = {r["repo"]: r for r in csv.DictReader(fh)}
+    ok = (sorted(scanned) == ["acme/flaky5xx", "acme/new", "acme/timeout"] and len(final) == 6
+          and final["acme/huge"]["skipped_reason"] == "too large" and final["acme/timeout"]["ran"] == "True")
+    _record("scan_batch resume: re-scans timeout/5xx rows, keeps 'too large'/'not found' as done", ok, f"rescanned={sorted(scanned)}")
 
 def main():
     print("=" * 72 + "\n  Phase 4 Reality Verification\n" + "=" * 72)
@@ -492,7 +575,9 @@ def main():
               test_sdk_error_status_message_scrubbed, test_retry_history_timeout_then_400, test_failed_explanation_card,
               test_deadline_504_then_success_in_budget, test_deadline_no_retry_when_budget_short,
               test_deadline_never_below_10s, test_budget_constants,
-              test_fixture_benchmark, test_scan_batch_rows):
+              test_fixture_benchmark, test_scan_batch_rows,
+              test_download_timeout_twice_then_success, test_download_three_timeouts,
+              test_download_no_retry_404_403_429_large, test_scan_batch_resume_rescans_timeouts):
         try:
             t()
         except Exception as e:
