@@ -12,6 +12,7 @@ import json
 import re
 import requests
 from github_client import GitHubClient, GitHubError
+from malware_proof import _detect_package_identity
 
 OSV_BATCH = "https://api.osv.dev/v1/querybatch"
 OSV_VULN = "https://api.osv.dev/v1/vulns/{id}"
@@ -167,6 +168,23 @@ def assess_security(client: GitHubClient, owner: str, repo: str) -> dict:
                 source = "OSV (Confirmed Malware)" if is_mal else "OSV (dependency)"
                 findings.append({"severity": severity, "source": source, "item": f"{h['name']} {h['version']}", "detail": f"{len(h['ids'])} advisory(ies), e.g. {main_id}: {info.get('summary', '')}.{fix}"})
     except (requests.RequestException, ValueError, GitHubError) as e: coverage.append(f"Dependencies: NOT checked ({type(e).__name__})")
+
+    try:
+        files = {}
+        for fn in ("package.json", "pyproject.toml", "setup.py"):
+            t = _read_file(client, owner, repo, fn)
+            if t is not None: files[fn] = t
+        pkg = _detect_package_identity(files)
+        if pkg:
+            r = requests.post("https://api.osv.dev/v1/query", json={"package": {"name": pkg["name"], "ecosystem": pkg["ecosystem"]}}, timeout=TIMEOUT)
+            r.raise_for_status()
+            mal_ids = [v["id"] for v in r.json().get("vulns", []) if v.get("id", "").startswith("MAL-")]
+            coverage.append(f"Own package ({pkg['ecosystem']} {pkg['name']}): checked against OSV malicious-package advisories")
+            if mal_ids:
+                level = max(level, 3)
+                info = osv_details(mal_ids[0])
+                findings.append({"severity": "High", "source": "OSV (Confirmed Malware)", "item": f"{pkg['name']} ({pkg['ecosystem']})", "detail": f"{len(mal_ids)} malicious-package advisory(ies), e.g. {mal_ids[0]}: {info.get('summary', '')}."})
+    except (requests.RequestException, ValueError, GitHubError) as e: coverage.append(f"Own package OSV check: NOT checked ({type(e).__name__})")
 
     sc = None
     try:

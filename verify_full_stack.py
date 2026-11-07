@@ -4,7 +4,7 @@ Runs live validation checks across:
   - Phase 1: Bus Factor, Gini entropy & Burnout velocity metrics.
   - Phase 2: Active fork discovery & open issue triage categorization.
   - Phase 3: Supply-Chain blast radius, reverse-dependents & typosquatting guard.
-  - Phase 4: 4-Layer Malware Proof Engine (AST deobfuscation, sandbox, VT, release diff).
+  - Phase 4: 4-Layer Malware Proof Engine (AST deobfuscation, VT, release diff).
 """
 from __future__ import annotations
 
@@ -49,7 +49,7 @@ def main():
             result = apply_gate(health, security, flags, scan)
 
             print(f"  -> Health Score: {result['score']}/100 ({result['label']})")
-            print(f"  -> Content Scan Ran: {scan['ran']} | Strong Findings: {scan['strong']} | Verified Malware: {scan.get('verified_malware', 0)}")
+            print(f"  -> Content Scan Ran: {scan['ran']} | Strong Findings: {scan['strong']} | Known Malicious: {scan.get('known_malicious_count', 0)} | High-Risk: {scan.get('high_risk_pattern_count', 0)}")
 
             # 2. Phase 1: Bus Factor & Burnout
             bus = run_bus_factor_analysis(client, owner, repo)

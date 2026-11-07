@@ -126,6 +126,9 @@ if go_clicked or (target and st.session_state.get("analyzed") == target):
     mal_osv = any(x.get("source") == "OSV (Confirmed Malware)" for x in sec["findings"])
     if scan.get("known_malicious_count", 0) > 0 or mal_osv:
         headline, why = ("DO NOT USE: known malicious indicator", "Do not install or run it.")
+        if scan.get("known_malicious_count", 0) == 0:
+            mal_item = next(x.get("item") for x in sec["findings"] if x.get("source") == "OSV (Confirmed Malware)")
+            why = f"Depends on a package that OSV lists as malicious: {mal_item}. Remove it before installing or running this repo."
     elif scan.get("high_risk_pattern_count", 0) > 0:
         headline, why = ("High-risk patterns found: review manually before use", "Indicators, not proof of malware.")
     elif scan["strong"] and sec["level"] not in ("Elevated", "High") and not dead:
@@ -134,10 +137,11 @@ if go_clicked or (target and st.session_state.get("analyzed") == target):
         headline, why = ("Review the code findings", f"The scan found {scan['code_high']} high-severity, high-confidence code finding(s). Static analysis is noisy, so this does not change the score on its own, but check each one before relying on this code.")
     
     st.markdown("#### Verdict")
-    box = st.error if (headline in ("Replace it", "Review urgently") or "DO NOT USE" in headline) else (st.warning if headline in ("Upgrade or review", "Use with caution", "Review the findings before using", "Plan to migrate", "Review the code findings") else st.info)
+    box = st.error if (headline in ("Replace it", "Review urgently") or "DO NOT USE" in headline) else (st.warning if headline in ("Upgrade or review", "Use with caution", "Review the findings before using", "Plan to migrate", "Review the code findings", "High-risk patterns found: review manually before use") else st.info)
     box(f"**{headline}.** {why}")
     if sec["findings"]: st.dataframe(pd.DataFrame(sec["findings"]).rename(columns={"severity": "Level", "source": "Source", "item": "Item", "detail": "Detail"}), hide_index=True, width="stretch")
 
+    audit_trails = (data.get("intelligence") or {}).get("ai_audit_trails", {})
     proof = scan.get("malware_proof")
     if proof:
         st.markdown("#### 🛡️ Malware & Supply-Chain Indicators")
