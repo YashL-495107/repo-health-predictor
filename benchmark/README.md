@@ -79,6 +79,13 @@ been viewed, except by appending to `benchmark/CHANGELOG.md`, which marks the te
   that number and do not pad. Samples are stored only under `benchmark/samples/` (git-ignored), as inert text renamed
   with a `.sample` extension; executable types (.exe, .dll, .so, .dylib, .bin) are skipped. Only manifests (id,
   ecosystem, source URL, hash) are committed.
+- **Known-bad code from the DataDog dataset** (added in Stage 1, before any result was viewed). The registry check
+  found that only 3 of the 300 sampled MAL- versions are still published, so code comes mainly from the DataDog
+  dataset, whose sample paths can only be listed on a machine with GitHub access. Method, fixed now: list
+  `samples/{pypi,npm}/**.zip` from a local clone of the dataset; take every sample whose (ecosystem, package) appears in
+  `known_bad_candidates.csv`, plus a random sample of 150 sample files per ecosystem with `random.Random(20261107)` over
+  the path-sorted listing; extract in memory with the dataset's password, keep text members only (renamed `.sample`,
+  executables skipped), never write executables and never run anything. Record the dataset commit hash in the manifest.
 - **Replay / regression cases** (`replay_incidents.csv`): event-stream/flatmap-stream, ua-parser-js, colors/faker,
   node-ipc, xz-utils. Each verified from a primary source (advisory) with its URL and the malicious change; marked
   "replayable" or "not replayable" with the reason. Never reconstructed or simulated.
