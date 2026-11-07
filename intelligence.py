@@ -1,6 +1,6 @@
 """Phase 2: LLM-Assisted Semantic Triage, Migration Engine & Grounded Threat Validation.
 
-Integrates Gemini 2.5 Flash to:
+Integrates Gemini Flash to:
   1. Triage open issues and surface maintained community forks.
   2. Synthesize architectural migration recommendations.
   3. Ground static detection results in structured cybersecurity playbooks
@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import threading
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from urllib.parse import quote
@@ -18,7 +19,48 @@ import requests
 
 from github_client import GitHubClient, GitHubError, _dt
 
-GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+GEMINI_API = "https://generativelanguage.googleapis.com/v1beta"
+DEFAULT_GEMINI_MODEL = "gemini-3.8"
+NO_MODEL_ERROR = "no usable Gemini model for this key"
+_model_lock = threading.Lock()
+_discovered_model: str | None = None  # set after a 404, kept for the process lifetime
+
+
+def _configured_model() -> str:
+    try:
+        import streamlit as st
+        m = st.secrets.get("GEMINI_MODEL", "")
+        if m: return str(m).strip()
+    except Exception:
+        pass
+    return (os.getenv("GEMINI_MODEL") or DEFAULT_GEMINI_MODEL).strip()
+
+
+def current_gemini_model() -> str:
+    return _discovered_model or _configured_model()
+
+
+def gemini_url(model: str) -> str:
+    return f"{GEMINI_API}/models/{quote(model, safe='-._')}:generateContent"
+
+
+def discover_gemini_model(api_key: str) -> str | None:
+    """ListModels (key in header only) and pick the first flash model that supports generateContent."""
+    global _discovered_model
+    try:
+        r = requests.get(f"{GEMINI_API}/models", headers={"x-goog-api-key": api_key}, params={"pageSize": 1000}, timeout=TIMEOUT)
+        if r.status_code != 200:
+            return None
+        models = r.json().get("models", [])
+    except (requests.RequestException, ValueError, AttributeError):
+        return None
+    for m in models:
+        name = str(m.get("name", "")).removeprefix("models/")
+        if "flash" in name.lower() and "generateContent" in (m.get("supportedGenerationMethods") or []):
+            with _model_lock:
+                _discovered_model = name
+            return name
+    return None
 TIMEOUT = 20
 AI_TIMEOUT = 15
 AI_MAX_FINDINGS = 5
@@ -180,27 +222,46 @@ def triage_open_issues(client: GitHubClient, owner: str, repo: str) -> dict:
     return {"counts": counts, "critical_samples": critical_samples}
 
 
+def _gemini_call(api_key: str, prompt: str, timeout: int = TIMEOUT) -> tuple[dict | None, str | None, str]:
+    """Call Gemini; return (parsed_json, error_reason, model_used). Exactly one of the first two is None.
+    Retries once with a discovered model on 404, and once without thinkingConfig on a 400 about thinking."""
+    model = current_gemini_model()
+    if not api_key:
+        return None, "no API key", model
+    config = {"temperature": 0.1, "responseMimeType": "application/json", "maxOutputTokens": 2048, "thinkingConfig": {"thinkingBudget": 0}}
+    tried_discovery = tried_no_thinking = False
+    while True:
+        payload = {"contents": [{"parts": [{"text": prompt}]}], "generationConfig": config}
+        try:
+            r = requests.post(gemini_url(model), headers={"x-goog-api-key": api_key}, json=payload, timeout=timeout)
+        except requests.Timeout:
+            return None, "timeout", model
+        except requests.RequestException as e:
+            return None, f"request failed ({type(e).__name__})", model
+        if r.status_code == 404 and not tried_discovery:
+            tried_discovery = True
+            found = discover_gemini_model(api_key)
+            if not found:
+                return None, NO_MODEL_ERROR, model
+            model = found
+            continue
+        if r.status_code == 400 and not tried_no_thinking and "thinking" in _api_error_message(r, api_key).lower():
+            tried_no_thinking = True
+            config = {k: v for k, v in config.items() if k != "thinkingConfig"}
+            continue
+        if r.status_code != 200:
+            return None, f"HTTP {r.status_code}: {_api_error_message(r, api_key)}", model
+        try:
+            text = r.json()["candidates"][0]["content"]["parts"][0]["text"]
+            return json.loads(text), None, model
+        except (ValueError, KeyError, IndexError, TypeError):
+            return None, "bad JSON", model
+
+
 def _gemini_request(api_key: str, prompt: str, timeout: int = TIMEOUT) -> tuple[dict | None, str | None]:
     """Call Gemini and return (parsed_json, error_reason). Exactly one of the two is None."""
-    if not api_key:
-        return None, "no API key"
-    payload = {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.1, "responseMimeType": "application/json", "maxOutputTokens": 2048, "thinkingConfig": {"thinkingBudget": 0}},
-    }
-    try:
-        r = requests.post(GEMINI_URL, headers={"x-goog-api-key": api_key}, json=payload, timeout=timeout)
-    except requests.Timeout:
-        return None, "timeout"
-    except requests.RequestException as e:
-        return None, f"request failed ({type(e).__name__})"
-    if r.status_code != 200:
-        return None, f"HTTP {r.status_code}: {_api_error_message(r, api_key)}"
-    try:
-        text = r.json()["candidates"][0]["content"]["parts"][0]["text"]
-        return json.loads(text), None
-    except (ValueError, KeyError, IndexError, TypeError):
-        return None, "bad JSON"
+    data, err, _ = _gemini_call(api_key, prompt, timeout)
+    return data, err
 
 
 def _api_error_message(r, api_key: str) -> str:
@@ -211,7 +272,7 @@ def _api_error_message(r, api_key: str) -> str:
         msg = r.text or ""
     if api_key:
         msg = msg.replace(api_key, "[key]")
-    return " ".join(msg.split())[:120] or "no error message"
+    return " ".join(msg.split())[:120].rstrip(". ") or "no error message"
 
 
 def _call_gemini(api_key: str, prompt: str) -> dict | None:
@@ -471,9 +532,10 @@ Return ONLY valid JSON with this exact structure:
   ]
 }}"""
 
-    llm_out, llm_err = _gemini_request(api_key, prompt)
+    llm_out, llm_err, model_used = _gemini_call(api_key, prompt)
     if isinstance(llm_out, dict) and "alternatives" in llm_out:
-        llm_out["source"] = "Gemini 2.5 Flash AI Triage"
+        llm_out["source"] = "Gemini Flash AI Triage"
+        llm_out["model"] = model_used
         llm_out["alternatives"] = verify_alternatives(llm_out.get("alternatives"))
     else:
         llm_out = {**_fallback_intelligence(features, health_res, triage, forks), "error": llm_err or "bad JSON"}

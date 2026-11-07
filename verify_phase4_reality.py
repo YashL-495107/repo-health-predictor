@@ -156,13 +156,79 @@ def test_no_stale_malware_wording():
             hits += [f"{os.path.relpath(path, root)}: '{b}'" for b in banned if b in text]
     _record("Wording: no 'does/do not detect malware' in .py or README.md", not hits, "\n".join(hits))
 
+class _FakeResp:
+    def __init__(self, code, body):
+        self.status_code, self._body, self.text = code, body, str(body)
+    def json(self):
+        return self._body
+
+def _ok_gemini():
+    return _FakeResp(200, {"candidates": [{"content": {"parts": [{"text": '{"alternatives": []}'}]}}]})
+
+def _with_fake_requests(post, get):
+    import intelligence as I
+    orig = (I.requests.post, I.requests.get, I._discovered_model, os.environ.get("GEMINI_MODEL"))
+    I.requests.post, I.requests.get, I._discovered_model = post, get, None
+    os.environ["GEMINI_MODEL"] = "gemini-missing"
+    try:
+        return I._gemini_call("TEST-KEY-123", "prompt")
+    finally:
+        I.requests.post, I.requests.get, I._discovered_model = orig[0], orig[1], orig[2]
+        if orig[3] is None: os.environ.pop("GEMINI_MODEL", None)
+        else: os.environ["GEMINI_MODEL"] = orig[3]
+
+def test_gemini_404_discovers_model():
+    calls = []
+    def post(url, headers=None, json=None, timeout=None, **kw):
+        calls.append(("POST", url, headers))
+        return _FakeResp(404, {"error": {"message": "model not found"}}) if "gemini-missing" in url else _ok_gemini()
+    def get(url, headers=None, params=None, timeout=None, **kw):
+        calls.append(("GET", url, headers))
+        return _FakeResp(200, {"models": [
+            {"name": "models/gemini-pro-x", "supportedGenerationMethods": ["generateContent"]},
+            {"name": "models/gemini-flash-embed", "supportedGenerationMethods": ["embedContent"]},
+            {"name": "models/gemini-9-flash", "supportedGenerationMethods": ["generateContent", "countTokens"]}]})
+    data, err, model = _with_fake_requests(post, get)
+    ok = (err is None and model == "gemini-9-flash" and [c[0] for c in calls] == ["POST", "GET", "POST"]
+          and calls[1][1].endswith("/v1beta/models") and "gemini-9-flash:generateContent" in calls[2][1]
+          and all(c[2].get("x-goog-api-key") == "TEST-KEY-123" for c in calls)
+          and not any("TEST-KEY-123" in c[1] for c in calls))
+    _record("Gemini: 404 -> ListModels -> retry with discovered flash model; key never in URL", ok,
+            "\n".join(f"{m} {u}" for m, u, _ in calls) + f"\nmodel={model} err={err}")
+
+def test_gemini_404_no_model():
+    post = lambda url, **kw: _FakeResp(404, {"error": {"message": "not found"}})
+    get = lambda url, **kw: _FakeResp(200, {"models": [{"name": "models/gemini-pro-x", "supportedGenerationMethods": ["generateContent"]}]})
+    _, err, _ = _with_fake_requests(post, get)
+    _record("Gemini: 404 with no flash model -> 'no usable Gemini model for this key'", err == "no usable Gemini model for this key", f"err={err}")
+
+def test_gemini_thinking_400_retry():
+    bodies = []
+    def post(url, headers=None, json=None, timeout=None, **kw):
+        bodies.append(json["generationConfig"])
+        if "thinkingConfig" in json["generationConfig"]:
+            return _FakeResp(400, {"error": {"message": "Thinking budget is not supported for this model."}})
+        return _ok_gemini()
+    get = lambda url, **kw: _FakeResp(500, {})
+    data, err, _ = _with_fake_requests(post, get)
+    ok = (err is None and len(bodies) == 2 and "thinkingConfig" in bodies[0] and "thinkingConfig" not in bodies[1]
+          and bodies[1].get("maxOutputTokens") == 2048)
+    _record("Gemini: 400 about thinking -> one retry without thinkingConfig, maxOutputTokens kept", ok, f"configs={bodies} err={err}")
+
+def test_gemini_error_trailing_dot():
+    post = lambda url, **kw: _FakeResp(403, {"error": {"message": "API key not valid. Please pass a valid API key."}})
+    _, err, _ = _with_fake_requests(post, lambda url, **kw: _FakeResp(500, {}))
+    _record("Gemini: error text has no trailing '.'", err == "HTTP 403: API key not valid. Please pass a valid API key", f"err={err}")
+
 def main():
     print("=" * 72 + "\n  Phase 4 Reality Verification\n" + "=" * 72)
     for t in (test_attack1_double_encoded_dropper, test_attack2_hex_exec, test_attack3_setup_exec_net,
               test_attack4_behavior_fixture, test_benign_setup_versions_and_env, test_benign_wait_for_it,
               test_benign_regex_literal, test_typosquat,
               test_skill_map_routing, test_ai_output_validation, test_ai_prompt_injection_wrapped,
-              test_app_cache_decorator, test_no_stale_malware_wording):
+              test_app_cache_decorator, test_no_stale_malware_wording,
+              test_gemini_404_discovers_model, test_gemini_404_no_model, test_gemini_thinking_400_retry,
+              test_gemini_error_trailing_dot):
         try:
             t()
         except Exception as e:

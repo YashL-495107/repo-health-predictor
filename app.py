@@ -219,10 +219,10 @@ if go_clicked or (target and st.session_state.get("analyzed") == target):
         st.markdown("#### 🧠 AI Migration Engine, Semantic Issue Triage & Active Forks")
         ai_rep = intel.get("ai_report", {})
         if str(ai_rep.get("source", "")).startswith("Gemini"):
-            st.caption("Source: Gemini 2.5 Flash")
+            st.caption(f"Source: Gemini ({ai_rep.get('model') or 'unknown model'})")
         else:
             if gemini_key:
-                st.warning(f"Gemini was not used: {ai_rep.get('error') or 'unknown error'}. Showing heuristic results.")
+                st.warning(f"Gemini was not used: {str(ai_rep.get('error') or 'unknown error').rstrip('. ')}. Showing heuristic results.")
             else:
                 st.info("No Gemini key set: showing heuristic results.")
             st.caption("Source: Heuristic engine")
