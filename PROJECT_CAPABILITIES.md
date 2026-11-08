@@ -190,6 +190,14 @@ Built and tested (`tests/test_benchmark.py`, synthetic inert inputs only); the p
   members written as `*.sample`, executables skipped; traversal, member-count, size and ratio guards.
 - `benchmark/compare_chat_ai.py`: about 30 seeded items, exact prompts, hand-scoring and repeatability sheets, summary.
 
+Hardening (before any real run): each item runs in its own process with a hard timeout and a memory cap (killed
+items are recorded as not_assessed, never "no findings"); a 100,000-character line cap; `--selfcheck` (hosts, disk,
+samples folder, one dev item per mode); `prepare_known_bad.py` (extraction + manifests, no scan); live progress and
+ETA; artifact-mode headline with fragility escalation OFF (single-input fragility shown beside it); real recorded
+registry data for 3 npm + 2 PyPI non-benchmark packages replayed offline in tests; CI on Ubuntu and Windows
+(Python 3.11 and 3.13). Repository mode is still unverified on real repositories (GitHub downloads are blocked in
+the sandbox that built it).
+
 Smoke-tested on the 8-item dev debug slice only (artifact mode, PyPI recorded once, then replayed offline from the
 cache with identical results, including after an interrupted run was resumed). **No test-set item has been scanned.**
 

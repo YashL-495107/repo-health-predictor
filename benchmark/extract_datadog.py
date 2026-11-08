@@ -16,7 +16,8 @@ Handling rules (static analysis only):
     rejected or shortened; member count, per-member size, total decompressed size and compression ratio are capped,
     and the bytes actually read are bounded (declared sizes can lie);
   - nested archives (sdist .tar.gz, .tgz, .whl, .zip) are read in memory with releases.read_archive (same limits).
-Output goes to benchmark/samples/ (git-ignored). Committed: manifests/datadog_extracted.csv (one row per sample:
+Output goes to the samples folder (--samples-dir; default benchmark/samples/, git-ignored); the manifest stores
+sample paths relative to that folder, so run_benchmark.py must get the same --samples-dir. Committed: manifests/datadog_extracted.csv (one row per sample:
 id, hashes, sizes, members skipped and why) and manifests/datadog_members.csv (per member: action and reason, hash).
 
 Selection (pre-declared in benchmark/README.md section 6, before any result): every sample whose (ecosystem, package)
@@ -50,7 +51,7 @@ SEED = 20261107
 N_RANDOM_PER_ECO = 150
 PASSWORD = b"infected"
 ECOS = {"pypi": "PyPI", "npm": "npm"}
-OUT_ROOT = BENCH / "samples" / "datadog"
+DEFAULT_SAMPLES = BENCH / "samples"   # git-ignored; --samples-dir points elsewhere (a dedicated folder)
 MANIFEST = bench_items.MAN / "datadog_extracted.csv"
 MEMBERS = bench_items.MAN / "datadog_members.csv"
 
@@ -65,11 +66,14 @@ EXEC_MAGIC = (b"MZ", b"\x7fELF", b"\xcf\xfa\xed\xfe", b"\xce\xfa\xed\xfe", b"\xf
               b"\xca\xfe\xba\xbe")
 WIN_RESERVED = {"con", "prn", "aux", "nul", *(f"com{i}" for i in range(1, 10)), *(f"lpt{i}" for i in range(1, 10))}
 DEFENDER_WARNING = """\
-WARNING (Windows Defender / antivirus): this script reads REAL MALWARE samples. They stay inside encrypted ZIPs and
-are only read in memory; what is written to benchmark/samples/ is text renamed *.sample, never executable. Your
-antivirus may still quarantine the dataset clone or the .sample files (some contain known malicious strings). If you
-add an exclusion, limit it to the dataset folder and benchmark/samples/, and remove it when the benchmark is done.
-Never open, run or install anything from these folders."""
+WARNING (Windows Defender / antivirus): this script reads REAL MALWARE samples. They stay inside the encrypted ZIPs
+and are only read in memory; what is written to the samples folder is text renamed *.sample, never executable.
+  - Do NOT disable your antivirus globally.
+  - Your antivirus may quarantine the dataset clone or some .sample files (they can contain known malicious strings).
+    A per-folder exclusion for the dataset folder and the samples folder is at your discretion; remove it when the
+    benchmark is done. Quarantined files simply become "not obtainable" items.
+  - Use a dedicated folder (--samples-dir, e.g. C:\\bench\\samples), not Downloads and not a cloud-synced folder.
+  - Never open, run, install or double-click anything in these folders."""
 
 
 # ------------------------------------------------------------------ listing and selection
@@ -285,9 +289,9 @@ def sample_id(r: dict, zip_sha: str) -> str:
     return f"DD-{r['ecosystem']}-{r['package']}-{r['version']}-{zip_sha[:8]}"
 
 
-def sample_dir_for(r: dict, zip_sha: str) -> Path:
+def sample_dir_for(r: dict, zip_sha: str, samples_root: Path = DEFAULT_SAMPLES) -> Path:
     name = f"{safe_component(r['package'].replace('/', '__'), 50)}_{safe_component(r['version'], 30)}_{zip_sha[:8]}"
-    return OUT_ROOT / r["eco_dir"] / name
+    return Path(samples_root) / "datadog" / r["eco_dir"] / name
 
 
 def main(argv=None) -> int:
@@ -295,8 +299,11 @@ def main(argv=None) -> int:
     ap.add_argument("--dataset", required=True, help="local clone of DataDog/malicious-software-packages-dataset")
     ap.add_argument("--dry-run", action="store_true", help="list and select only; read and write nothing")
     ap.add_argument("--limit", type=int, default=None, help="extract at most N samples (debugging)")
+    ap.add_argument("--samples-dir", default=None, help="where the .sample text goes (default benchmark/samples, "
+                    "git-ignored); use a dedicated folder outside Downloads; pass the same folder to run_benchmark.py")
     a = ap.parse_args(argv)
     print(DEFENDER_WARNING, "\n", file=sys.stderr)
+    samples_root = Path(a.samples_dir or os.environ.get("REPOHEALTH_SAMPLES_DIR") or DEFAULT_SAMPLES).resolve()
     dataset = Path(a.dataset)
     if not (dataset / "samples").is_dir():
         print(f"not a dataset clone (no samples/ folder): {dataset}", file=sys.stderr)
@@ -334,7 +341,7 @@ def main(argv=None) -> int:
         zsha = hashlib.sha256(blob).hexdigest()
         sid = sample_id(r, zsha)
         res = read_sample(blob)
-        dest = sample_dir_for(r, zsha)
+        dest = sample_dir_for(r, zsha, samples_root)
         n = nb = 0
         if not res.get("error") and res["text"]:
             n, nb = write_sample(res["text"], dest)
@@ -347,7 +354,7 @@ def main(argv=None) -> int:
         status = "extracted" if n else "skipped"
         rows.append({**base, "id": sid, "zip_sha256": zsha, "status": status,
                      "reason": res.get("error") or ("" if n else "no text members"),
-                     "sample_dir": dest.relative_to(BENCH).as_posix() if n else "", "members_total": len(res["members"]),
+                     "sample_dir": dest.relative_to(samples_root).as_posix() if n else "", "members_total": len(res["members"]),
                      "text_written": n, "bytes_written": nb,
                      "skipped": "; ".join(f"{k2}: {v}" for k2, v in sorted(skipped.items())),
                      "limits_hit": "; ".join(res["limits"])})
@@ -367,7 +374,7 @@ def main(argv=None) -> int:
         w = csv.DictWriter(fh, fieldnames=["id", "member", "size", "action", "reason", "sha256"])
         w.writeheader()
         w.writerows(member_rows)
-    print(f"wrote {MANIFEST.relative_to(ROOT)} ({len(rows)} rows) and {MEMBERS.relative_to(ROOT)} ({len(member_rows)} rows)")
+    print(f"wrote {MANIFEST} ({len(rows)} rows) and {MEMBERS} ({len(member_rows)} rows)")
     return 0
 
 

@@ -17,6 +17,10 @@ Modes
 Ablations (separate output files): --no-osv (OSV MAL- lookups off: own-package check and the MAL- part of
 dependency_injection; dependency MAL- findings from osv_scan are removed) and --no-fragility-escalation.
 
+Isolation (default): every item runs in its own spawned process with a hard timeout (killed on overrun) and a memory
+cap (RLIMIT_AS on Linux, a Job Object on Windows); --no-isolate runs in-process for debugging. Lines longer than
+LINE_CAP_CHARS are truncated before the content checks (reported in limits_hit). --selfcheck checks the machine.
+
 Guards: refuses to run when an AI/Gemini key is in the environment (the AI layer must be OFF), refuses --split test
 or all unless benchmark/README.md records the frozen ruleset and it equals RULESET_VERSION with RULESET_FROZEN set,
 and refuses to start without manifests/dev_credibility.csv.
@@ -53,11 +57,13 @@ SEED = 20261107
 AI_KEY_VARS = ("GEMINI_API_KEY", "GOOGLE_API_KEY", "GOOGLE_GENAI_API_KEY")
 AI_MODULES = ("intelligence", "google.genai", "google.generativeai")
 DEFAULT_ITEM_BUDGET_S = 300.0
+DEFAULT_MEM_MB = 3072          # per item process (address space on Linux, committed memory on Windows)
+LINE_CAP_CHARS = 100_000       # lines longer than this are truncated before the regex-based checks (limit hit)
 RUNS = BENCH / "runs"
-SAMPLES = BENCH / "samples"
+SAMPLES = BENCH / "samples"    # default; --samples-dir / REPOHEALTH_SAMPLES_DIR point elsewhere
 REPO_CATEGORIES = {"known_good", "dormant", "scary", "dev"}
-_TRANSIENT = re.compile(r"timeout|timed out|HTTP 5\d\d|ConnectionError|ConnectTimeout|ReadTimeout|offline: not cached|"
-                        r"item time budget", re.I)
+_TRANSIENT = re.compile(r"timeout|timed out|HTTP 5\d\d|HTTP 429|ConnectionError|ConnectTimeout|ReadTimeout|"
+                        r"offline: not cached|item time budget|rate limit|rate-limited", re.I)
 
 
 class GuardError(SystemExit):
@@ -129,6 +135,8 @@ def setup_env(args) -> dict:
         datetime.now(timezone.utc).strftime("%Y-%m-%d")
     if args.offline:
         os.environ["REPOHEALTH_OFFLINE"] = "1"
+    if getattr(args, "samples_dir", None):
+        os.environ["REPOHEALTH_SAMPLES_DIR"] = str(Path(args.samples_dir).resolve())
     token = os.environ.get("GITHUB_TOKEN")
     notes = []
     env_file = ROOT / ".env"
@@ -158,43 +166,73 @@ class OsvDisabled(Exception):
 class OsvIndex:
     """MAL- advisories from the OSV bulk export (benchmark/cache/osv_mal_<eco>.json, built by select_items.py), so
     the lookup is pinned to a dated snapshot and works offline. A record with no listed versions is range-based in
-    OSV (usually 'introduced: 0'), so it is treated as affecting every version."""
+    OSV (usually 'introduced: 0'), so it is treated as affecting every version.
+    The JSON export is converted once into a small SQLite index (osv_mal.sqlite in the same folder) so each
+    isolated item process can query it without loading the whole export into memory."""
 
     def __init__(self, offline: bool, cache_dir: Path | None = None):
-        self.offline, self._idx, self.status = offline, {}, {}
-        self.cache_dir = cache_dir or BENCH / "cache"
-
-    def _load(self, eco: str):
-        if eco in self._idx:
-            return self._idx[eco]
-        path = self.cache_dir / f"osv_mal_{eco}.json"
-        recs = None
-        if path.exists():
-            recs = json.loads(path.read_text(encoding="utf-8"))
-            self.status[eco] = f"OSV bulk export index {path.name} ({len(recs)} MAL- records)"
-        elif not self.offline:
-            import select_items
-            recs = select_items.osv_mal_index(eco)
-            self.status[eco] = f"OSV bulk export index built now ({len(recs)} MAL- records)"
-        else:
-            self.status[eco] = "OSV index not cached (offline)"
-        by_name = {}
-        for r in recs or []:
-            if r.get("package") and not r.get("withdrawn"):
-                by_name.setdefault(self.key(eco, r["package"]), []).append(r)
-        self._idx[eco] = by_name if recs is not None else None
-        return self._idx[eco]
+        self.offline, self.status = offline, {}
+        self.cache_dir = Path(cache_dir or BENCH / "cache")
+        self.db_path = self.cache_dir / "osv_mal.sqlite"
 
     @staticmethod
     def key(eco: str, name: str) -> str:
         return bench_items.norm(name) if eco == "PyPI" else name
 
+    def _have(self, con, eco: str) -> bool:
+        return con.execute("SELECT n FROM meta WHERE eco = ?", (eco,)).fetchone() is not None
+
+    def prepare(self, ecos=("PyPI", "npm")) -> dict:
+        """Build the SQLite index for each ecosystem whose JSON export is available (or downloadable when online)."""
+        import sqlite3
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        con = sqlite3.connect(self.db_path)
+        try:
+            con.execute("CREATE TABLE IF NOT EXISTS mal (eco TEXT, key TEXT, id TEXT, versions TEXT)")
+            con.execute("CREATE INDEX IF NOT EXISTS mal_key ON mal (eco, key)")
+            con.execute("CREATE TABLE IF NOT EXISTS meta (eco TEXT PRIMARY KEY, n INTEGER, source TEXT)")
+            for eco in ecos:
+                if self._have(con, eco):
+                    n, src = con.execute("SELECT n, source FROM meta WHERE eco = ?", (eco,)).fetchone()
+                    self.status[eco] = f"{src} ({n} MAL- records)"
+                    continue
+                path = self.cache_dir / f"osv_mal_{eco}.json"
+                if path.exists():
+                    recs, src = json.loads(path.read_text(encoding="utf-8")), f"OSV bulk export index {path.name}"
+                elif not self.offline:
+                    import select_items
+                    recs, src = select_items.osv_mal_index(eco), "OSV bulk export index built now"
+                else:
+                    self.status[eco] = "OSV index not cached (offline)"
+                    continue
+                rows = [(eco, self.key(eco, r["package"]), r["id"], json.dumps(r.get("versions") or []))
+                        for r in recs if r.get("package") and not r.get("withdrawn")]
+                con.executemany("INSERT INTO mal VALUES (?, ?, ?, ?)", rows)
+                con.execute("INSERT INTO meta VALUES (?, ?, ?)", (eco, len(recs), src))
+                con.commit()
+                self.status[eco] = f"{src} ({len(recs)} MAL- records)"
+        finally:
+            con.close()
+        return self.status
+
     def mal_ids(self, eco: str, name: str, version: str | None) -> list[str]:
-        idx = self._load(eco)
-        if idx is None:
+        import sqlite3
+        if not self.db_path.exists():
+            self.prepare((eco,))
+        con = sqlite3.connect(f"file:{self.db_path.as_posix()}?mode=ro", uri=True) if self.db_path.exists() else None
+        if con is None:
             raise ConnectionError("offline: not cached (OSV MAL- index)")
-        return sorted({r["id"] for r in idx.get(self.key(eco, name), [])
-                       if version is None or not r["versions"] or version in r["versions"]})
+        try:
+            if not self._have(con, eco):
+                con.close()
+                self.prepare((eco,))
+                con = sqlite3.connect(f"file:{self.db_path.as_posix()}?mode=ro", uri=True)
+                if not self._have(con, eco):
+                    raise ConnectionError("offline: not cached (OSV MAL- index)")
+            rows = con.execute("SELECT id, versions FROM mal WHERE eco = ? AND key = ?", (eco, self.key(eco, name))).fetchall()
+        finally:
+            con.close()
+        return sorted({i for i, v in rows if version is None or not json.loads(v) or version in json.loads(v)})
 
 
 class Patches:
@@ -315,16 +353,22 @@ def data_from_contents(contents: dict) -> dict:
     return out
 
 
-def load_sample_dir(sample_dir: str) -> dict:
-    """Text members written by extract_datadog.py (name + '.sample'). Read as text only, never executed."""
-    base = (BENCH / sample_dir) if not os.path.isabs(sample_dir) else Path(sample_dir)
-    base = base.resolve()
-    if SAMPLES.resolve() not in base.parents and base != SAMPLES.resolve():
-        raise ValueError(f"sample directory outside benchmark/samples: {sample_dir}")
+def samples_root() -> Path:
+    return Path(os.environ.get("REPOHEALTH_SAMPLES_DIR") or SAMPLES).resolve()
+
+
+def load_sample_dir(sample_dir: str, root: Path | None = None) -> dict:
+    """Text members written by extract_datadog.py (name + '.sample'), read as text only, never executed.
+    sample_dir is relative to the samples root (--samples-dir; default benchmark/samples)."""
+    root = Path(root).resolve() if root else samples_root()
+    rel = sample_dir[len("samples/"):] if sample_dir.startswith("samples/") else sample_dir
+    base = (root / rel).resolve()
+    if root not in base.parents and base != root:
+        raise ValueError(f"sample directory outside the samples root {root}: {sample_dir}")
     text = {}
     for p in sorted(base.rglob("*.sample")):
-        rel = p.relative_to(base).as_posix()[: -len(".sample")]
-        text[rel] = p.read_text(encoding="utf-8", errors="ignore")
+        name = p.relative_to(base).as_posix()[: -len(".sample")]
+        text[name] = p.read_text(encoding="utf-8", errors="ignore")
     return {"text": text, "binaries": [], "skipped": [], "limits_hit": [], "members": sorted(text)}
 
 
@@ -414,6 +458,9 @@ def scan_artifact(item: dict, osv: bool) -> dict:
     rc, as_of = None, None
     if item.get("source") == "datadog":
         contents = load_sample_dir(item["sample_dir"])
+        if not contents["text"]:   # deleted or quarantined by antivirus: never scan an empty folder as "no findings"
+            return {**rec, "status": "not_assessed",
+                    "not_assessed_reason": f"sample files missing in {item['sample_dir']} (deleted or quarantined?)"}
         rec["artifact"] = {"kind": "datadog_sample", "path": item["sample_dir"], "sha256": item.get("sha256"),
                            "hash_match": None, "members": len(contents["text"])}
     else:
@@ -442,9 +489,9 @@ def scan_artifact(item: dict, osv: bool) -> dict:
               "target_version": version, "timings": {}}
         version = version or target["version"]
         as_of = releases._dt(target.get("upload_time"))
-    rec["limits_hit"] = list(contents.get("limits_hit") or [])
     data = data_from_contents(contents)
     scan = repo_scan.scan_data(_empty_scan(), data, eco, name, lambda f, ln: None, bandit_enabled=False)
+    rec["limits_hit"] = list(contents.get("limits_hit") or []) + list(scan.get("limits_hit") or [])
     sec = artifact_security(eco, name, version, osv)
     health = {"score": None, "label": "Not assessed (artifact mode)"}
     gate = apply_gate(health, sec, [], scan, features=None, releases=rc, as_of=as_of)
@@ -485,7 +532,8 @@ def scan_repository(item: dict, osv: bool) -> dict:
     health = compute_health_score(feats)
     gate = apply_gate(health, sec, content_flags(feats), scan, features=feats, releases=rc)
     rec = summarise(gate, scan)
-    rec["limits_hit"] = [scan["scan_coverage"]["detail"]] if (scan.get("scan_coverage") or {}).get("detail") else []
+    rec["limits_hit"] = ([scan["scan_coverage"]["detail"]] if (scan.get("scan_coverage") or {}).get("detail") else []) \
+        + list(scan.get("limits_hit") or [])
     if scan.get("ran"):
         rec["status"] = "scored"
     else:
@@ -496,12 +544,18 @@ def scan_repository(item: dict, osv: bool) -> dict:
 
 # ------------------------------------------------------------------ run loop
 
-def run_item(item: dict, mode: str, osv: bool, budget_s: float) -> dict:
+def run_item(item: dict, mode: str, osv: bool, budget_s: float, scan_fn=None) -> dict:
+    """In-process run (--no-isolate, for debugging): a worker thread with a time budget. Python threads cannot be
+    killed, so a scan that overruns is abandoned (still running) and recorded as a timeout."""
     box: dict = {}
+    fn = scan_fn or (scan_artifact if mode == "artifact" else scan_repository)
 
     def work():
         try:
-            box["rec"] = scan_artifact(item, osv) if mode == "artifact" else scan_repository(item, osv)
+            box["rec"] = fn(item, osv)
+        except MemoryError:
+            box["rec"] = {"status": "not_assessed", "not_assessed_reason": "killed: out of memory (MemoryError)",
+                          "error": "killed"}
         except Exception as e:   # one bad item must not stop the run; it is recorded, never as "no findings"
             box["rec"] = {"status": "not_assessed", "not_assessed_reason": f"scan raised {type(e).__name__}: {str(e)[:200]}",
                           "error": type(e).__name__}
@@ -510,13 +564,158 @@ def run_item(item: dict, mode: str, osv: bool, budget_s: float) -> dict:
     th = threading.Thread(target=work, daemon=True)
     th.start()
     th.join(budget_s)
-    if th.is_alive():   # Python threads cannot be killed: the scan is abandoned and its result discarded
-        rec = {"status": "not_assessed", "not_assessed_reason": f"item time budget ({budget_s:.0f} s) exceeded",
+    if th.is_alive():
+        rec = {"status": "not_assessed", "not_assessed_reason": f"timeout: item time budget ({budget_s:.0f} s) exceeded",
                "error": "timeout"}
     else:
         rec = box.get("rec") or {"status": "not_assessed", "not_assessed_reason": "no result", "error": "unknown"}
     rec["elapsed_s"] = round(time.monotonic() - t0, 2)
+    rec["isolation"] = "thread (--no-isolate)"
     return rec
+
+
+# ------------------------------------------------------------------ process isolation
+
+def _windows_job_memory_cap(mb: int) -> str:
+    """Put the current process in a Windows Job Object with a per-process committed-memory limit. An allocation
+    beyond it fails, which Python raises as MemoryError."""
+    import ctypes
+    from ctypes import wintypes
+
+    class BASIC(ctypes.Structure):
+        _fields_ = [("PerProcessUserTimeLimit", ctypes.c_int64), ("PerJobUserTimeLimit", ctypes.c_int64),
+                    ("LimitFlags", wintypes.DWORD), ("MinimumWorkingSetSize", ctypes.c_size_t),
+                    ("MaximumWorkingSetSize", ctypes.c_size_t), ("ActiveProcessLimit", wintypes.DWORD),
+                    ("Affinity", ctypes.c_size_t), ("PriorityClass", wintypes.DWORD), ("SchedulingClass", wintypes.DWORD)]
+
+    class IO(ctypes.Structure):
+        _fields_ = [(n, ctypes.c_uint64) for n in ("ReadOps", "WriteOps", "OtherOps", "ReadBytes", "WriteBytes", "OtherBytes")]
+
+    class EXTENDED(ctypes.Structure):
+        _fields_ = [("Basic", BASIC), ("Io", IO), ("ProcessMemoryLimit", ctypes.c_size_t),
+                    ("JobMemoryLimit", ctypes.c_size_t), ("PeakProcessMemoryUsed", ctypes.c_size_t),
+                    ("PeakJobMemoryUsed", ctypes.c_size_t)]
+
+    k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    k32.CreateJobObjectW.restype = wintypes.HANDLE
+    k32.CreateJobObjectW.argtypes = [ctypes.c_void_p, wintypes.LPCWSTR]
+    k32.SetInformationJobObject.argtypes = [wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p, wintypes.DWORD]
+    k32.GetCurrentProcess.restype = wintypes.HANDLE
+    k32.AssignProcessToJobObject.argtypes = [wintypes.HANDLE, wintypes.HANDLE]
+    job = k32.CreateJobObjectW(None, None)
+    if not job:
+        return f"unavailable (CreateJobObject error {ctypes.get_last_error()})"
+    info = EXTENDED()
+    info.Basic.LimitFlags = 0x00000100            # JOB_OBJECT_LIMIT_PROCESS_MEMORY
+    info.ProcessMemoryLimit = mb * 1024 * 1024
+    if not k32.SetInformationJobObject(job, 9, ctypes.byref(info), ctypes.sizeof(info)):   # ExtendedLimitInformation
+        return f"unavailable (SetInformationJobObject error {ctypes.get_last_error()})"
+    if not k32.AssignProcessToJobObject(job, k32.GetCurrentProcess()):
+        return f"unavailable (AssignProcessToJobObject error {ctypes.get_last_error()})"
+    return f"Windows job object, {mb} MB per process"
+
+
+def apply_memory_cap(mb: int | None) -> str:
+    """Memory cap for the current (item) process, where the platform allows it. Returns a description."""
+    if not mb:
+        return "off"
+    try:
+        if os.name == "nt":
+            return _windows_job_memory_cap(mb)
+        import resource
+        lim = mb * 1024 * 1024
+        _soft, hard = resource.getrlimit(resource.RLIMIT_AS)
+        if hard != resource.RLIM_INFINITY and hard < lim:
+            lim = hard
+        resource.setrlimit(resource.RLIMIT_AS, (lim, hard))
+        return f"RLIMIT_AS {lim // (1024 * 1024)} MB"
+    except Exception as e:   # never fail the item because the cap could not be set; say so in the record
+        return f"unavailable ({type(e).__name__})"
+
+
+def _resolve(spec: str):
+    import importlib
+    mod, fn = spec.split(":", 1)
+    return getattr(importlib.import_module(mod), fn)
+
+
+def _child_entry(conn, item: dict, cfg: dict) -> None:
+    """Runs in a fresh (spawned) process: memory cap, environment, patches, one scan, result through the pipe."""
+    cap = apply_memory_cap(cfg.get("mem_mb"))
+    os.environ.update(cfg.get("env") or {})
+    rec = None
+    try:
+        import repo_scan
+        repo_scan.MAX_LINE_CHARS = cfg.get("line_cap")
+        fn = _resolve(cfg["scan_fn"]) if cfg.get("scan_fn") else (scan_artifact if cfg["mode"] == "artifact" else scan_repository)
+        with Patches(offline=cfg["offline"], osv=cfg["osv"], fragility_escalation=cfg["fragility_escalation"],
+                     osv_index=OsvIndex(cfg["offline"], Path(cfg["osv_cache"]) if cfg.get("osv_cache") else None),
+                     artifact_mode=cfg["mode"] == "artifact"):
+            rec = fn(item, cfg["osv"])
+    except MemoryError:
+        rec = {"status": "not_assessed", "error": "killed",
+               "not_assessed_reason": f"killed: memory limit exceeded ({cap})"}
+    except Exception as e:
+        rec = {"status": "not_assessed", "not_assessed_reason": f"scan raised {type(e).__name__}: {str(e)[:200]}",
+               "error": type(e).__name__}
+    rec["isolation"] = f"process (memory cap: {cap})"
+    rec["ai_modules_loaded"] = [m for m in AI_MODULES if m in sys.modules]
+    try:
+        conn.send(rec)
+    finally:
+        conn.close()
+
+
+def run_item_isolated(item: dict, cfg: dict, budget_s: float) -> dict:
+    """One item in its own spawned process (spawn start method, also on Windows) with a hard timeout: on overrun the process is killed.
+    Killed or crashed items are recorded as not_assessed ("timeout ..." / "killed ..."), never as "no findings"."""
+    import multiprocessing as mp
+    ctx = mp.get_context("spawn")
+    rconn, wconn = ctx.Pipe(duplex=False)
+    p = ctx.Process(target=_child_entry, args=(wconn, item, cfg), daemon=True)
+    t0 = time.monotonic()
+    p.start()
+    wconn.close()
+    rec = None
+    try:
+        if rconn.poll(budget_s):
+            rec = rconn.recv()
+    except (EOFError, OSError):
+        rec = None
+    if rec is None:
+        if p.is_alive():
+            p.kill()
+            p.join(10)
+            rec = {"status": "not_assessed", "error": "timeout",
+                   "not_assessed_reason": f"timeout: no result within {budget_s:.0f} s (process killed)"}
+        else:
+            p.join(5)
+            rec = {"status": "not_assessed", "error": "killed",
+                   "not_assessed_reason": f"killed: the item process ended without a result (exit code {p.exitcode})"}
+        rec["isolation"] = "process"
+    else:
+        p.join(30)
+        if p.is_alive():
+            p.kill()
+            p.join(5)
+    rconn.close()
+    rec["elapsed_s"] = round(time.monotonic() - t0, 2)
+    return rec
+
+
+def fmt_hms(seconds: float | None) -> str:
+    if seconds is None:
+        return "?"
+    seconds = int(round(seconds))
+    return f"{seconds // 3600:d}:{seconds % 3600 // 60:02d}:{seconds % 60:02d}"
+
+
+def eta_seconds(durations: list[float], remaining: int) -> float | None:
+    """Remaining items x the running median of the item durations so far (None before the first item)."""
+    if not durations:
+        return None
+    import statistics
+    return statistics.median(durations) * remaining
 
 
 def applicable(item: dict, mode: str) -> bool:
@@ -594,11 +793,22 @@ def parse_args(argv=None):
     ap.add_argument("--sleep", type=float, default=0.5, help="pause between items (seconds)")
     ap.add_argument("--retry-errors", action="store_true", help="also retry items whose scan raised")
     ap.add_argument("--out", default=None, help="output JSONL (default benchmark/runs/<mode>-<split>[...].jsonl)")
+    ap.add_argument("--no-isolate", dest="isolate", action="store_false",
+                    help="debugging: run items in this process (no hard kill, no memory cap)")
+    ap.add_argument("--mem-mb", type=int, default=DEFAULT_MEM_MB, help="memory cap per item process (0 = off)")
+    ap.add_argument("--samples-dir", default=None, help="extracted samples root (default benchmark/samples)")
+    ap.add_argument("--selfcheck", action="store_true", help="check hosts, disk, samples dir and three dev items; "
+                    "never touches the test split")
+    ap.add_argument("--scan-fn", default=None, help=argparse.SUPPRESS)   # harness tests only: module:function
     return ap.parse_args(argv)
 
 
 def main(argv=None) -> int:
     args = parse_args(argv)
+    if args.selfcheck:
+        setup_env(args)
+        import selfcheck
+        return selfcheck.run(Path(args.samples_dir) if args.samples_dir else None)
     try:
         assert_ai_off()
         envinfo = setup_env(args)
@@ -633,16 +843,43 @@ def main(argv=None) -> int:
     print(f"dev-set overlap moves: {len(moves)} | output {out}")
     print(f"{len(done)} item(s) already done, {len(todo)} to scan now (of {len(todo_all)} selected)")
     osv_index = OsvIndex(args.offline)
-    with Patches(offline=args.offline, osv=args.osv, fragility_escalation=args.fragility_escalation, osv_index=osv_index,
-                 artifact_mode=args.mode == "artifact"):
+    if args.mode == "artifact" or args.osv:
+        osv_index.prepare()                          # once, before the items (each item process only reads it)
+    cfg = {"mode": args.mode, "osv": args.osv, "fragility_escalation": args.fragility_escalation,
+           "offline": args.offline, "mem_mb": args.mem_mb, "line_cap": LINE_CAP_CHARS, "scan_fn": args.scan_fn,
+           "osv_cache": str(osv_index.cache_dir),
+           "env": {k: v for k, v in os.environ.items() if k.startswith("REPOHEALTH_")}}
+    print(f"isolation: {'one process per item, hard timeout ' + str(int(args.item_budget)) + ' s, memory cap ' + (str(args.mem_mb) + ' MB' if args.mem_mb else 'off') if args.isolate else 'OFF (--no-isolate, debugging)'}"
+          f" | line cap {LINE_CAP_CHARS} characters")
+    scannable = [i for i in todo if not (args.mode == "artifact" and i.get("obtainable") != "yes")]
+    durations: list[float] = []
+    t_start = time.monotonic()
+    patches = None
+    if not args.isolate:
+        import repo_scan
+        repo_scan.MAX_LINE_CHARS = LINE_CAP_CHARS
+        patches = Patches(offline=args.offline, osv=args.osv, fragility_escalation=args.fragility_escalation,
+                          osv_index=osv_index, artifact_mode=args.mode == "artifact").__enter__()
+    try:
+        scanned = 0
         for k, item in enumerate(todo, 1):
             started = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
             if args.mode == "artifact" and item.get("obtainable") != "yes":
                 rec = {"status": "unobtainable", "not_assessed_reason": item.get("obtainable_detail") or "code not obtainable",
                        "elapsed_s": 0.0}
+            elif args.isolate:
+                rec = run_item_isolated(item, cfg, args.item_budget)
+                scanned += 1
             else:
-                rec = run_item(item, args.mode, args.osv, args.item_budget)
+                rec = run_item(item, args.mode, args.osv, args.item_budget,
+                               scan_fn=_resolve(args.scan_fn) if args.scan_fn else None)
+                scanned += 1
+            if rec.get("ai_modules_loaded"):
+                raise GuardError(f"REFUSING TO CONTINUE: AI module(s) loaded while scanning {item['id']}: "
+                                 f"{', '.join(rec['ai_modules_loaded'])}")
             assert_ai_off()
+            if rec["status"] != "unobtainable":
+                durations.append(float(rec.get("elapsed_s") or 0))
             reason = rec.get("not_assessed_reason")
             rec.update({k2: item.get(k2) for k2 in ("id", "category", "split", "ecosystem", "package", "version", "repo",
                                                      "source", "move_reason")})
@@ -653,10 +890,15 @@ def main(argv=None) -> int:
             fb = rec.get("findings_by_tier") or {}
             what = (f"{rec.get('label')} | KM={fb.get('known_malicious', 0)} HR={fb.get('high_risk', 0)} "
                     f"R={fb.get('review', 0)}") if rec["status"] == "scored" else f"{rec['status']}: {reason}"
-            print(f"[{k}/{len(todo)}] {item['id']}: {what} ({rec.get('elapsed_s')}s)", flush=True)
+            eta = eta_seconds(durations, len(scannable) - scanned)
+            print(f"[{k}/{len(todo)}] {item['id']}: {what} ({rec.get('elapsed_s')}s) | elapsed "
+                  f"{fmt_hms(time.monotonic() - t_start)} | ETA {fmt_hms(eta)}", flush=True)
             if args.sleep and rec["status"] != "unobtainable":
                 time.sleep(args.sleep)
-    print(f"done. OSV index: {osv_index.status or 'not used'}")
+    finally:
+        if patches is not None:
+            patches.__exit__(None, None, None)
+    print(f"done in {fmt_hms(time.monotonic() - t_start)}. OSV index: {osv_index.status or 'not used'}")
     return 0
 
 

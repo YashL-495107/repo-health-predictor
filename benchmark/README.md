@@ -146,57 +146,99 @@ The scripts implement sections 1-7. Where the protocol left a choice open, it is
 12. **Chat-AI comparison**: 15 known-bad with obtainable code, 10 random known-good, 5 scary, test split only, a
     fresh seeded generator per pool. Code is truncated to 60,000 characters (15,000 per file), stated in the prompt.
 
+Amendment (Stage 2 hardening, committed before any test-set item was scanned):
+
+13. **Artifact-mode headline: fragility escalation OFF.** In artifact mode the only fragility input is the registry
+    maintainer count (item 4), so a single-maintainer package reaches the threshold on that one input. The headline
+    numbers in artifact mode therefore come from the run with `--no-osv --no-fragility-escalation`. Shown beside
+    them: the same run with escalation ON, labelled "artifact mode, single-input fragility (maintainer count only)",
+    and the with-OSV run, labelled circular. (Seen on recorded non-benchmark data: bufferutil 4.2.0, a legitimate
+    npm package, gets a review-tier `release_delta` finding for a new prebuilt binary that single-input fragility
+    escalates to high_risk.) Repository mode keeps escalation ON in its headline (all fragility inputs exist there).
+14. **Process isolation** (default; `--no-isolate` only for debugging): each item runs in its own spawned process
+    with a hard timeout (300 s; the process is killed) and a memory cap (3072 MB: `RLIMIT_AS` on Linux, a Job
+    Object on Windows; not enforced on macOS). A killed item is recorded as not_assessed ("timeout ..." is retried
+    on resume, "killed ..." is final), counted in "Not scored", never as "no findings".
+15. **Line cap**: lines longer than 100,000 characters are truncated before the content checks and the file is
+    named in `limits_hit`. Measured before setting it: 30 adversarial single-line files of 190,000 characters (the
+    largest the 200 KB per-file read limit allows) took at most 0.36 s each, so the cap is a safeguard; the hard
+    per-item timeout is the backstop.
+16. **Missing samples**: a DataDog sample folder that is empty (deleted or quarantined by antivirus) is recorded as
+    not_assessed ("sample files missing"), never scanned as an empty package.
+17. **GitHub rate limits** in repository mode are recorded as not_assessed and retried on resume (like timeouts);
+    a 403 for a restricted repository is final.
+18. **Samples folder**: `--samples-dir` (default `benchmark/samples`, git-ignored); sample paths in the manifests
+    are relative to it, so the same folder must be passed to every script.
+
+
 ## 9. Running it (Windows, PowerShell)
 
 Everything runs from the repository folder, on branch `trust-engine`, with Python 3.11 or newer. Nothing scanned is
 ever executed; still, use a normal user account (not an administrator shell).
+
+**Antivirus (Windows Defender).** Do not disable it globally. The DataDog clone and the samples folder contain real
+malware as encrypted ZIPs and inert `.sample` text; Defender may quarantine some files (they then become "not
+obtainable" items, which is reported, not hidden). A per-folder exclusion for exactly those two folders is at your
+discretion; remove it afterwards. Use a dedicated folder such as `C:\bench\samples`, not Downloads and not a
+cloud-synced folder. Never open, run or double-click anything in those folders.
+
+The exact sequence (one snapshot date for every run, so later runs reuse the cached downloads):
 
 ```powershell
 cd C:\path\to\repo-health-predictor
 git checkout trust-engine; git pull
 py -m venv .venv; .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-Remove-Item Env:GEMINI_API_KEY, Env:GOOGLE_API_KEY -ErrorAction SilentlyContinue   # the runner refuses if set
-$env:GITHUB_TOKEN = "<your token>"     # repo mode only (5000 GitHub API requests per hour)
-$snap = "2026-11-10"                   # one snapshot date for ALL runs: later runs reuse the cached downloads
+Remove-Item Env:GEMINI_API_KEY, Env:GOOGLE_API_KEY, Env:GOOGLE_GENAI_API_KEY -ErrorAction SilentlyContinue
+$env:GITHUB_TOKEN = "<your token>"          # repo mode (5,000 GitHub API requests per hour)
+$snap = "2026-11-10"                        # pick today's date once and keep it for every run below
+$samples = "C:\bench\samples"               # dedicated samples folder (outside Downloads)
+
+# 1. Self-check (under 2 minutes; never touches the test split). Fix every FAIL before going on.
+python benchmark\run_benchmark.py --selfcheck --samples-dir $samples
+
+# 2. Dev split in both modes (harness check on already-viewed items)
+python benchmark\run_benchmark.py --mode artifact --split dev --snapshot $snap --samples-dir $samples
+python benchmark\run_benchmark.py --mode repo --split dev --snapshot $snap
+
+# 3. Known-bad preparation: extraction (pre-declared), known-bad item manifest, chat-AI item list. No scan.
+git clone --depth 1 https://github.com/DataDog/malicious-software-packages-dataset C:\bench\dd
+python benchmark\prepare_known_bad.py --datadog-dir C:\bench\dd --samples-dir $samples
+
+# 4. Test split, artifact mode: the headline run, then the runs shown beside it, then the replay cases
+python benchmark\run_benchmark.py --mode artifact --split test --snapshot $snap --samples-dir $samples --no-osv --no-fragility-escalation
+python benchmark\run_benchmark.py --mode artifact --split test --snapshot $snap --samples-dir $samples --no-osv
+python benchmark\run_benchmark.py --mode artifact --split test --snapshot $snap --samples-dir $samples --no-fragility-escalation
+python benchmark\run_benchmark.py --mode artifact --split replay --snapshot $snap
+
+# 5. Test split, repository mode (known-good, dormant, scary): headline without OSV, then with OSV
+python benchmark\run_benchmark.py --mode repo --split test --category known_good --category dormant --category scary --snapshot $snap --no-osv
+python benchmark\run_benchmark.py --mode repo --split test --category known_good --category dormant --category scary --snapshot $snap
+
+# 6. Results: benchmark\RESULTS.md and benchmark\results\*.csv
+python benchmark\metrics.py --headline benchmark\runs\artifact-test-noosv-nofrag.jsonl `
+  --frag-on benchmark\runs\artifact-test-noosv.jsonl --with-osv benchmark\runs\artifact-test-nofrag.jsonl `
+  --repo-run benchmark\runs\repo-test-noosv.jsonl --replay benchmark\runs\artifact-replay.jsonl
+
+# 7. Chat-AI comparison: prompts, then fill the sheets by hand, then the summary
+python benchmark\compare_chat_ai.py prompts --samples-dir $samples
+python benchmark\compare_chat_ai.py summarise
 ```
 
-1. Known-bad samples (DataDog). Antivirus may quarantine the clone; see the warning the script prints.
-   ```powershell
-   git clone --depth 1 https://github.com/DataDog/malicious-software-packages-dataset C:\bench\dd
-   python benchmark\extract_datadog.py --dataset C:\bench\dd --dry-run
-   python benchmark\extract_datadog.py --dataset C:\bench\dd
-   ```
-   Commit `benchmark/manifests/datadog_extracted.csv` and `datadog_members.csv` (hashes only). Never commit
-   `benchmark/samples/`.
-2. Harness check on the dev slice first: `python benchmark\run_benchmark.py --mode artifact --split dev --debug-slice --snapshot $snap`
-3. Artifact mode, the main run and the two ablations, then the replay cases:
-   ```powershell
-   python benchmark\run_benchmark.py --mode artifact --split test --snapshot $snap
-   python benchmark\run_benchmark.py --mode artifact --split test --snapshot $snap --no-osv
-   python benchmark\run_benchmark.py --mode artifact --split test --snapshot $snap --no-fragility-escalation
-   python benchmark\run_benchmark.py --mode artifact --split replay --snapshot $snap
-   ```
-4. Repository mode (needs `GITHUB_TOKEN`):
-   `python benchmark\run_benchmark.py --mode repo --split test --category known_good --category dormant --category scary --snapshot $snap`
-5. Results (writes `benchmark\RESULTS.md` and `benchmark\results\*.csv`):
-   ```powershell
-   python benchmark\metrics.py --run benchmark\runs\artifact-test.jsonl --noosv benchmark\runs\artifact-test-noosv.jsonl `
-     --nofrag benchmark\runs\artifact-test-nofrag.jsonl --repo-run benchmark\runs\repo-test.jsonl `
-     --replay benchmark\runs\artifact-replay.jsonl
-   ```
-6. Chat-AI comparison (after step 1): `python benchmark\compare_chat_ai.py select`, then `prompts`; paste each
-   prompt from `benchmark\samples\chat_ai_prompts\` into a new chat, fill `benchmark\chat_ai\scoring.csv` and
-   `repeatability.csv`, then `python benchmark\compare_chat_ai.py summarise`.
+Commit `benchmark/manifests/datadog_extracted.csv`, `datadog_members.csv`, `known_bad_items.csv`,
+`benchmark/chat_ai/items.csv`, `RESULTS.md` and `benchmark/results/` (hashes, ids and numbers only). Never commit
+the samples folder or the prompts.
 
 **Stopping and resuming.** Press Ctrl+C or close the window at any time: every finished item is already saved (one
 line per item in `benchmark\runs\*.jsonl`). Run the same command again to continue; finished items are skipped and
-items that failed for a transient reason (timeout, HTTP 5xx, network) are retried. A run file refuses to be resumed
-with different settings (mode, ablation flags, ruleset).
+items that failed for a transient reason (timeout, HTTP 5xx, network, GitHub rate limit) are retried. A run file
+refuses to be resumed with different settings (mode, ablation flags, ruleset). Each line shows
+`n/total`, the elapsed time and an ETA from the running median of the item durations.
 
-**Expected duration.** Measured here only on the 8-item dev slice in artifact mode: median 1.3 s, p95 8.7 s, max
-9.2 s per item (`metrics.py` on the smoke run). The test-set artifact run has 450 items, of which 297 known-bad
-items have no obtainable registry code and are recorded instantly, plus the DataDog samples (read from disk). A
-rough estimate, not a measurement: under an hour for the first artifact run, much less for the ablation runs (same
-snapshot, cached downloads). Repository mode was not timed (GitHub is not reachable from the session that built the
-harness); expect it to be the slowest step (repository ZIP downloads and API calls for about 150 repositories).
+**Duration (measured, 2026-11-08, Linux sandbox, artifact mode, process isolation, fresh cache, online).** 10 dev
+items (8 PyPI dev_fp packages, lodash on npm, impacket on PyPI): median 2.4 s, p95 10.4 s, max 11.1 s per item
+(`metrics.py` scan-time table); the 8-item debug slice took 35 s in total; `--selfcheck` took 3 s. Not measured:
+repository mode (GitHub repository downloads are blocked in the sandbox that built the harness) and the DataDog
+samples (no real sample was extracted there). Projection from the measured median, not a measurement: the
+test-split artifact run has 153 items with a registry artifact listed (3 known-bad, 119 known-good, 19 scary, 12 dormant) plus the
+DataDog samples, so a few minutes of scanning plus the 0.5 s pause per item; the live ETA replaces this projection.

@@ -32,6 +32,10 @@ def ai_off(monkeypatch):
         monkeypatch.delenv(k, raising=False)
     for m in RB.AI_MODULES:
         monkeypatch.delitem(sys.modules, m, raising=False)
+    # Streamlit's AppTest (tests/test_app.py) leaves sys.modules["__main__"] pointing at app.py; a spawned item
+    # process re-imports __main__, which would load the app (and its AI module). In real runs __main__ is the runner.
+    import types
+    monkeypatch.setitem(sys.modules, "__main__", types.ModuleType("__main__"))
     for k in ("REPOHEALTH_OFFLINE", "REPOHEALTH_SNAPSHOT", "REPOHEALTH_CACHE", "VT_API_KEY", "GITHUB_TOKEN"):
         monkeypatch.setenv(k, "placeholder")   # setenv records the original state (even "absent") for restoring;
         monkeypatch.delenv(k)                  # the runner sets some of these directly in os.environ
@@ -90,7 +94,7 @@ def test_not_assessed_item_is_never_counted_as_no_findings():
     listed = {r["id"] for r in tables["not_scored"]}
     assert {"b3", "b4", "g2"} <= listed
     assert [m["id"] for m in tables["misses"]] == ["b2"]
-    assert "WITH OSV MAL- lookup (no-OSV run missing" in md
+    assert "WARNING: not the protocol's headline settings" in md      # these synthetic records carry no run config
 
 
 def test_hard_fp_by_label_and_headline_uses_noosv():
@@ -98,9 +102,18 @@ def test_hard_fp_by_label_and_headline_uses_noosv():
             "g1": _rec("g1", "known_good", label="High-risk patterns: review before use")}
     noosv = {"b1": _rec("b1", "known_bad"), "g1": _rec("g1", "known_good")}
     assert M.hard_fp(main["g1"])
-    md, tables = M.build_report(main, noosv, {}, {}, {})
+    md, tables = M.build_report(noosv, {}, main, {}, {})
     head = {(r["run"], r["operating_point"]): r["hits"] for r in tables["recall"]}
     assert head[("headline", "strict")] == 0 and head[("with_osv", "strict")] == 1
+    assert ("frag_on", "strict") not in head and "| strict | 0.0% (0/1" in md and "not run" in md
+
+
+def test_headline_name_flags_wrong_settings():
+    assert M.headline_name({"mode": "artifact", "osv": False, "fragility_escalation": False}) == \
+        "WITHOUT OSV MAL- lookup, fragility escalation OFF"
+    assert "WARNING" in M.headline_name({"mode": "artifact", "osv": False, "fragility_escalation": True})
+    assert "WARNING" not in M.headline_name({"mode": "repo", "osv": False, "fragility_escalation": True})
+    assert "WARNING" in M.headline_name({"mode": "artifact", "osv": True, "fragility_escalation": False})
 
 
 def test_per_detector_and_contribution():
@@ -163,7 +176,10 @@ def test_transient_reasons():
     assert RB.transient("artifact not read (download_failed (HTTP 503))")
     assert RB.transient("item time budget (300 s) exceeded")
     assert RB.transient("registry: npm lookup failed (offline: not cached)")
+    assert RB.transient("repository features: RateLimitError: GitHub API rate limit reached (resets in about 7 min)")
+    assert not RB.transient("repository features: GitHubError: GitHub refused this request (403).")
     assert not RB.transient("artifact not read (too_large)")
+    assert not RB.transient("killed: memory limit exceeded (RLIMIT_AS 3072 MB)")
     assert not RB.transient("registry: 'x' is not on PyPI")
 
 
@@ -262,7 +278,7 @@ def test_kill_and_resume(monkeypatch, tmp_path, ai_off):
 
     monkeypatch.setattr(RB, "scan_artifact", fake_scan)
     out = tmp_path / "run.jsonl"
-    args = ["--split", "dev", "--out", str(out), "--sleep", "0", "--offline", "--item-budget", "5"]
+    args = ["--split", "dev", "--out", str(out), "--sleep", "0", "--offline", "--item-budget", "5", "--no-isolate"]
     # simulate the process being killed (Ctrl+C / window closed) while the 3rd record is being written
     real_append = RB.append
     n = {"k": 0}
@@ -300,8 +316,8 @@ def test_resume_refuses_mixed_settings(monkeypatch, tmp_path, ai_off):
     monkeypatch.setattr(bench_items, "all_items", lambda: (items, []))
     monkeypatch.setattr(RB, "scan_artifact", lambda item, osv: {"status": "not_assessed", "not_assessed_reason": "timeout"})
     out = tmp_path / "run.jsonl"
-    assert RB.main(["--split", "dev", "--out", str(out), "--sleep", "0", "--offline"]) == 0
-    assert RB.main(["--split", "dev", "--out", str(out), "--sleep", "0", "--offline", "--no-osv"]) == 2
+    assert RB.main(["--split", "dev", "--out", str(out), "--sleep", "0", "--offline", "--no-isolate"]) == 0
+    assert RB.main(["--split", "dev", "--out", str(out), "--sleep", "0", "--offline", "--no-isolate", "--no-osv"]) == 2
 
 
 # ------------------------------------------------------------------ end to end, offline, synthetic cache
@@ -478,7 +494,10 @@ def test_extract_selection_is_seeded_and_parses_scoped_npm():
 
 def test_load_sample_dir_refuses_paths_outside_samples(tmp_path):
     with pytest.raises(ValueError):
-        RB.load_sample_dir(str(tmp_path))
+        RB.load_sample_dir("../../etc", root=tmp_path / "samples")
+    (tmp_path / "samples" / "datadog" / "x").mkdir(parents=True)
+    (tmp_path / "samples" / "datadog" / "x" / "setup.py.sample").write_text("x = 1\n", encoding="utf-8")
+    assert RB.load_sample_dir("datadog/x", root=tmp_path / "samples")["text"] == {"setup.py": "x = 1\n"}
 
 
 # ------------------------------------------------------------------ chat-AI comparison
@@ -536,3 +555,105 @@ def test_repo_mode_wiring_and_osv_ablation(monkeypatch):
     RB.scan_repository({"repo": "o/r"}, osv=True)
     assert seen["sources"] == ["OSV (Confirmed Malware)", "OSV (dependency)"]
     assert RB.scan_repository({"repo": ""}, osv=True)["status"] == "not_applicable"
+
+
+# ------------------------------------------------------------------ process isolation (spawned child processes)
+
+def _iso_cfg(scan_fn, mem_mb=0):
+    return {"mode": "artifact", "osv": False, "fragility_escalation": True, "offline": True, "mem_mb": mem_mb,
+            "line_cap": RB.LINE_CAP_CHARS, "scan_fn": scan_fn, "osv_cache": None, "env": {"REPOHEALTH_OFFLINE": "1"}}
+
+
+def test_isolated_item_that_sleeps_forever_is_killed(ai_off):
+    rec = RB.run_item_isolated({"id": "x"}, _iso_cfg("bench_hooks:sleep_forever"), budget_s=8)
+    assert rec["status"] == "not_assessed" and rec["not_assessed_reason"].startswith("timeout")
+    assert rec["error"] == "timeout" and RB.transient(rec["not_assessed_reason"])
+    assert rec["elapsed_s"] < 30
+
+
+@pytest.mark.skipif(sys.platform == "darwin", reason="macOS does not enforce RLIMIT_AS")
+def test_isolated_item_that_allocates_too_much_is_killed(ai_off):
+    rec = RB.run_item_isolated({"id": "x"}, _iso_cfg("bench_hooks:allocate_forever", mem_mb=1024), budget_s=60)
+    assert rec["status"] == "not_assessed", rec
+    assert rec["not_assessed_reason"].startswith("killed: memory limit exceeded"), rec   # Linux RLIMIT_AS / Windows job
+    assert rec["error"] == "killed" and not RB.transient(rec["not_assessed_reason"])
+
+
+def test_isolated_item_ok_and_crash(ai_off):
+    ok = RB.run_item_isolated({"id": "x"}, _iso_cfg("bench_hooks:ok"), budget_s=60)
+    assert ok["status"] == "scored" and ok["isolation"].startswith("process")
+    dead = RB.run_item_isolated({"id": "x"}, _iso_cfg("bench_hooks:hard_exit"), budget_s=60)
+    assert dead["status"] == "not_assessed" and dead["not_assessed_reason"].startswith("killed") and "exit code 3" in dead["not_assessed_reason"]
+
+
+def test_run_continues_after_killed_items(monkeypatch, tmp_path, ai_off):
+    items = [{**bench_items._item("dev", "PyPI", f"pkg{i}", "1.0", repo=f"o/pkg{i}"), "split": "dev", "obtainable": "yes"}
+             for i in range(3)]
+    monkeypatch.setattr(bench_items, "all_items", lambda: (items, []))
+    out = tmp_path / "iso.jsonl"
+    assert RB.main(["--split", "dev", "--out", str(out), "--sleep", "0", "--offline", "--item-budget", "6",
+                    "--scan-fn", "bench_hooks:sleep_if_pkg1"]) == 0
+    recs = {r["package"]: r for r in map(json.loads, out.read_text(encoding="utf-8").splitlines())}
+    assert recs["pkg0"]["status"] == "scored" and recs["pkg2"]["status"] == "scored"
+    assert recs["pkg1"]["status"] == "not_assessed" and recs["pkg1"]["retryable"] is True
+    md, tables = M.build_report({k: {**v, "category": "known_good", "split": "test"} for k, v in recs.items()}, {}, {}, {}, {})
+    assert "pkg1" in {r["id"].split(":")[2].split("@")[0] for r in tables["not_scored"]}
+
+
+def test_line_cap_truncates_and_reports():
+    import repo_scan
+    data = {"text": {"a.js": "x" * 50 + "\nshort"}, "py": {"m.py": b"y = 1\n" + b"z" * 60}}
+    changed = repo_scan.cap_long_lines(data, 20)
+    assert sorted(changed) == ["a.js", "m.py"]
+    assert data["text"]["a.js"] == "x" * 20 + "\nshort" and data["py"]["m.py"] == b"y = 1\n" + b"z" * 20
+
+
+def test_eta_and_format():
+    assert RB.eta_seconds([], 5) is None
+    assert RB.eta_seconds([1, 3, 100], 10) == 30
+    assert RB.fmt_hms(3725) == "1:02:05" and RB.fmt_hms(None) == "?"
+
+
+def test_prepare_known_bad_end_to_end_synthetic(monkeypatch, tmp_path, ai_off):
+    """Synthetic dataset (encrypted like the real one) -> extraction into a custom samples folder -> known-bad item
+    manifest -> chat-AI item list. Every output goes to tmp_path; no scan is run."""
+    import prepare_known_bad as PREP
+    ds = tmp_path / "dd"
+    zrel = "samples/pypi/malicious_intent/demo-evil/1.0.0/2024-01-01-demo-evil-v1.0.0.zip"
+    (ds / zrel).parent.mkdir(parents=True)
+    (ds / zrel).write_bytes(_encrypted_zip({"2024-01-01-demo-evil-v1.0.0/demo-evil-1.0.0/setup.py": b"x = 1\n",
+                                            "2024-01-01-demo-evil-v1.0.0/demo-evil-1.0.0/run.exe": b"MZ" + bytes(3000)}))
+    samples = tmp_path / "my samples"
+    monkeypatch.setattr(XD, "MANIFEST", tmp_path / "datadog_extracted.csv")
+    monkeypatch.setattr(XD, "MEMBERS", tmp_path / "datadog_members.csv")
+    monkeypatch.setattr(bench_items, "DATADOG_EXTRACTED", tmp_path / "datadog_extracted.csv")
+    monkeypatch.setattr(PREP, "OUT", tmp_path / "known_bad_items.csv")
+    monkeypatch.setattr(CC, "OUT", tmp_path / "chat_ai")
+    assert PREP.main(["--datadog-dir", str(ds), "--samples-dir", str(samples)]) == 0
+    written = [p.relative_to(samples).as_posix() for p in samples.rglob("*") if p.is_file()]
+    assert len(written) == 1 and written[0].startswith("datadog/pypi/demo-evil_1.0.0_") and written[0].endswith("setup.py.sample")
+    rows = bench_items.read_manifest(tmp_path / "known_bad_items.csv")
+    dd = [r for r in rows if r["source"] == "datadog"]
+    assert len(dd) == 1 and dd[0]["has_code"] == "yes" and dd[0]["split"] == "test"
+    assert sum(r["has_code"] == "yes" for r in rows) == 4          # 3 registry items + 1 sample
+    chat = bench_items.read_manifest(tmp_path / "chat_ai" / "items.csv")
+    assert sum(r["expected"] == "malicious" for r in chat) == 4
+    # antivirus quarantine: an emptied sample folder is "no code" and the runner never scores it as "no findings"
+    for p in samples.rglob("*.sample"):
+        p.unlink()
+    assert [r for r in PREP.build(samples) if r["source"] == "datadog"][0]["has_code"] == "no"
+    monkeypatch.setenv("REPOHEALTH_SAMPLES_DIR", str(samples))
+    item = next(i for i in bench_items.all_items()[0] if i["source"] == "datadog")
+    rec = RB.scan_artifact(item, osv=False)
+    assert rec["status"] == "not_assessed" and "missing" in rec["not_assessed_reason"]
+
+
+def test_selfcheck_uses_dev_items_only_and_local_checks(tmp_path, ai_off):
+    import selfcheck
+    specs = selfcheck.dev_items()
+    assert {m for _n, m, _i in specs} == {"repo", "artifact"} and len(specs) == 3
+    assert all(i["split"] == "dev" for _n, _m, i in specs)
+    assert {i["ecosystem"] for _n, m, i in specs if m == "artifact"} == {"PyPI", "npm"}
+    res = {name: ok for name, ok, _d, _f in selfcheck.local_checks(tmp_path / "samples", tmp_path / "cache")}
+    assert res["Samples folder writable"] and res["Dev manifest present, overlap check"]
+    assert res["AI layer off (no Gemini key, no AI module)"] and res["Frozen ruleset recorded in the protocol"]

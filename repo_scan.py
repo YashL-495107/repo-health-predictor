@@ -278,12 +278,37 @@ def scan_repo(client: GitHubClient, owner: str, repo: str) -> dict:
     return scan_data(res, data, owner, repo, url)
 
 
+MAX_LINE_CHARS = None   # None (the app): lines are not capped. The benchmark harness sets a cap (resource limit).
+
+
+def cap_long_lines(data: dict, max_chars: int) -> list[str]:
+    """Truncate every line longer than max_chars in data["text"] and data["py"] (in place), so one huge minified
+    line cannot stall the regex-based checks. Returns the paths that were changed (reported as a limit hit)."""
+    changed = []
+    for key, is_bytes in (("text", False), ("py", True)):
+        for path, body in list((data.get(key) or {}).items()):
+            s = body.decode("utf-8", "ignore") if is_bytes else body
+            if not any(len(line) > max_chars for line in s.split("\n")):
+                continue
+            s = "\n".join(line[:max_chars] for line in s.split("\n"))
+            data[key][path] = s.encode("utf-8") if is_bytes else s
+            if path not in changed:
+                changed.append(path)
+    return changed
+
+
 def scan_data(res: dict, data: dict, owner: str, repo: str, url, bandit_enabled: bool = True) -> dict:
     """The content scan on contents already in memory (data has read_repo's shape). scan_repo calls it after the
     download; the benchmark's artifact mode calls it on a release artifact. bandit_enabled=False skips Bandit (it is
-    the only scanner that writes files to a temporary directory, and no detector reads its findings)."""
+    the only scanner that writes files to a temporary directory, and no detector reads its findings).
+    MAX_LINE_CHARS (module setting, None in the app) caps line length first; capped files go to res["limits_hit"]."""
     res["ran"] = True
     res.setdefault("timings", {})
+    if MAX_LINE_CHARS:
+        capped = cap_long_lines(data, MAX_LINE_CHARS)
+        if capped:
+            res.setdefault("limits_hit", []).append(
+                f"long lines truncated to {MAX_LINE_CHARS} characters in {len(capped)} file(s): {', '.join(capped[:5])}")
     t_scan = time.monotonic()
     findings = []
 

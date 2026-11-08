@@ -6,10 +6,10 @@ Steps
               obtainable code, 10 random known-good, 5 scary-but-legitimate; test split only) and write
               benchmark/chat_ai/items.csv. Re-running gives the same items (the pools are path/id-sorted first).
               Known-bad code is mostly obtainable only from the DataDog samples, so run it after extract_datadog.py.
-  2. prompts  write the exact prompt per item to benchmark/samples/chat_ai_prompts/ (git-ignored: known-bad prompts
+  2. prompts  write the exact prompt per item to <samples folder>/chat_ai_prompts/ (git-ignored: known-bad prompts
               contain sample text), the scoring sheet benchmark/chat_ai/scoring.csv and the repeatability sheet
               benchmark/chat_ai/repeatability.csv (5 runs per item). The tool columns are filled from a benchmark
-              run file (--tool-run, default the artifact test run WITHOUT OSV, the headline run).
+              run file (--tool-run, default the artifact-mode headline run: no OSV, no fragility escalation).
   3. summarise  read the filled sheets and write benchmark/chat_ai/SUMMARY.md (accuracy per side at both operating
               points, verdict drift across the 5 repeats).
 
@@ -47,7 +47,7 @@ CODE_EXT = (".py", ".js", ".mjs", ".cjs", ".ts", ".sh", ".bash", ".ps1", ".bat",
 PRIORITY = ("setup.py", "package.json", "pyproject.toml", "setup.cfg", "__init__.py", "index.js", "install.js",
             "preinstall.js", "postinstall.js", "main.py", "cli.py")
 OUT = BENCH / "chat_ai"
-PROMPTS = BENCH / "samples" / "chat_ai_prompts"
+PROMPTS_SUBDIR = "chat_ai_prompts"     # under the samples folder (git-ignored): known-bad prompts contain sample text
 VERDICTS = ("MALICIOUS", "SUSPICIOUS", "NO_CONCERNS")
 
 PROMPT_TEMPLATE = """You are reviewing a software package before installing it. Below are files from the {ecosystem} package \
@@ -210,9 +210,15 @@ def read_sheet(path: Path) -> list[dict]:
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="Tool vs chat AI comparison sheets (no API calls)")
     ap.add_argument("step", choices=("select", "prompts", "summarise"))
-    ap.add_argument("--tool-run", default=str(BENCH / "runs" / "artifact-test-noosv.jsonl"))
+    ap.add_argument("--tool-run", default=str(BENCH / "runs" / "artifact-test-noosv-nofrag.jsonl"),
+                    help="benchmark run for the tool columns (default: the artifact-mode headline run)")
+    ap.add_argument("--samples-dir", default=None, help="samples folder (default benchmark/samples)")
     a = ap.parse_args(argv)
     os.environ.setdefault("REPOHEALTH_CACHE", str(BENCH / "cache" / "http"))
+    if a.samples_dir:
+        os.environ["REPOHEALTH_SAMPLES_DIR"] = str(Path(a.samples_dir).resolve())
+    import run_benchmark as RB
+    PROMPTS = RB.samples_root() / PROMPTS_SUBDIR
     if a.step == "select":
         items, _ = bench_items.all_items()
         sel = select_items(items)
@@ -239,7 +245,7 @@ def main(argv=None) -> int:
                 prompt, info = build_prompt(it, item_files(it))
                 pfile = PROMPTS / f"{safe_name(it['item_id'])}.txt"
                 pfile.write_text(prompt, encoding="utf-8")
-                row.update({"prompt_file": pfile.relative_to(BENCH).as_posix(),
+                row.update({"prompt_file": pfile.relative_to(RB.samples_root()).as_posix(),
                             "prompt_sha256": hashlib.sha256(prompt.encode()).hexdigest(), **info})
             except Exception as e:
                 row.update({"prompt_file": "", "prompt_sha256": "", "files_shown": 0, "files_total": 0, "code_chars": 0,
