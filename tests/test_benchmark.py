@@ -657,3 +657,14 @@ def test_selfcheck_uses_dev_items_only_and_local_checks(tmp_path, ai_off):
     res = {name: ok for name, ok, _d, _f in selfcheck.local_checks(tmp_path / "samples", tmp_path / "cache")}
     assert res["Samples folder writable"] and res["Dev manifest present, overlap check"]
     assert res["AI layer off (no Gemini key, no AI module)"] and res["Frozen ruleset recorded in the protocol"]
+
+
+def test_contamination_reads_only_the_post_viewing_section(tmp_path):
+    p = tmp_path / "CHANGELOG.md"
+    p.write_text("## Post-viewing changes (x)\n\n(no entries)\n\n## Pre-run changes (y)\n\n- a wiring fix\n", encoding="utf-8")
+    assert RB.contamination(p) == "not contaminated"
+    p.write_text("## Post-viewing changes (x)\n\n- tuned a rule after viewing results\n\n## Pre-run changes (y)\n", encoding="utf-8")
+    assert RB.contamination(p).startswith("CONTAMINATED")
+    p.write_text("# old format\n\n- entry\n", encoding="utf-8")
+    assert RB.contamination(p).startswith("CONTAMINATED")
+    assert RB.contamination() == "not contaminated"          # the real changelog: only a pre-run change

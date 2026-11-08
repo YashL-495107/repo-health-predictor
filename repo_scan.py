@@ -275,7 +275,18 @@ def scan_repo(client: GitHubClient, owner: str, repo: str) -> dict:
         return res
     sha = data["sha"]
     def url(f, ln): return f"https://github.com/{owner}/{repo}/blob/{sha}/{f}#L{ln}" if sha else None
-    return scan_data(res, data, owner, repo, url)
+    return scan_data(res, data, owner, repo, url, identity=repo_identity(owner, repo, data))
+
+
+def repo_identity(owner: str, repo: str, data: dict) -> dict:
+    """The names the content-time detectors may use: the repository and the package its root manifest declares
+    (the same function assess_security uses, so repo mode sees the same package name at both stages)."""
+    from malware_proof import _detect_package_identity
+    try:
+        pkg = _detect_package_identity(data.get("text") or {})
+    except Exception:
+        pkg = None
+    return {"repo": f"{owner}/{repo}", "package": pkg, "source": "repository + root manifest"}
 
 
 MAX_LINE_CHARS = None   # None (the app): lines are not capped. The benchmark harness sets a cap (resource limit).
@@ -297,11 +308,13 @@ def cap_long_lines(data: dict, max_chars: int) -> list[str]:
     return changed
 
 
-def scan_data(res: dict, data: dict, owner: str, repo: str, url, bandit_enabled: bool = True) -> dict:
+def scan_data(res: dict, data: dict, owner: str, repo: str, url, bandit_enabled: bool = True,
+              identity: dict | None = None) -> dict:
     """The content scan on contents already in memory (data has read_repo's shape). scan_repo calls it after the
     download; the benchmark's artifact mode calls it on a release artifact. bandit_enabled=False skips Bandit (it is
     the only scanner that writes files to a temporary directory, and no detector reads its findings).
-    MAX_LINE_CHARS (module setting, None in the app) caps line length first; capped files go to res["limits_hit"]."""
+    MAX_LINE_CHARS (module setting, None in the app) caps line length first; capped files go to res["limits_hit"].
+    identity ({"repo", "package"}) is handed to the content-time detectors for their name-relatedness checks."""
     res["ran"] = True
     res.setdefault("timings", {})
     if MAX_LINE_CHARS:
@@ -368,7 +381,8 @@ def scan_data(res: dict, data: dict, owner: str, repo: str, url, bandit_enabled:
         res["ast_analysed_py"] = sorted(p for p, t in data["text"].items() if parse_ok(p, t))
     except Exception:
         res["ast_analysed_py"] = []
-    _attach_detectors(res, data)
+    res["identity"] = identity
+    _attach_detectors(res, data, identity)
     res["timings"]["content_detectors"] = round(time.monotonic() - t_det, 2)
     return res
 
@@ -391,14 +405,14 @@ def scan_coverage(data: dict) -> dict:
     return out
 
 
-def _attach_detectors(res: dict, data: dict | None = None) -> None:
+def _attach_detectors(res: dict, data: dict | None = None, identity: dict | None = None) -> None:
     """Content-only detector view (security sources are added later by apply_gate). The repository contents are only
     in memory here, so detectors that need them (NEEDS_DATA) run now; apply_gate reuses their results. Never raises."""
     try:
         from detectors import RULESET_VERSION, run_detectors
         from detectors.context import DetectorContext
         res["ruleset_version"] = RULESET_VERSION
-        res["detectors"] = run_detectors(DetectorContext.build(scan=res, data=data))
+        res["detectors"] = run_detectors(DetectorContext.build(scan=res, data=data, identity=identity))
     except Exception as e:  # the scan result must never be lost because of the detector layer
         res["detectors"] = []
         res["detectors_error"] = type(e).__name__

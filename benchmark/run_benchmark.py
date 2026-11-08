@@ -115,10 +115,15 @@ def check_frozen(split: str, readme: Path = BENCH / "README.md") -> str:
     return recorded or ""
 
 
-def contamination() -> str:
-    p = BENCH / "CHANGELOG.md"
+def contamination(path: Path | None = None) -> str:
+    """'not contaminated' unless benchmark/CHANGELOG.md has an entry under 'Post-viewing changes'. Pre-run changes
+    (made before any test-split scan) do not contaminate the test set."""
+    p = path or BENCH / "CHANGELOG.md"
     text = p.read_text(encoding="utf-8") if p.exists() else ""
-    return "not contaminated" if "(no entries)" in text else "CONTAMINATED (see benchmark/CHANGELOG.md)"
+    m = re.search(r"^## Post-viewing changes[^\n]*\n(.*?)(?=^## |\Z)", text, re.M | re.S)
+    if m is None:   # older single-section format: any entry contaminates
+        return "not contaminated" if "(no entries)" in text else "CONTAMINATED (see benchmark/CHANGELOG.md)"
+    return "not contaminated" if m.group(1).strip() in ("", "(no entries)") else "CONTAMINATED (see benchmark/CHANGELOG.md)"
 
 
 def transient(reason: str | None) -> bool:
@@ -449,13 +454,25 @@ def artifact_security(eco: str, name: str, version: str | None, osv: bool) -> di
             "package": {"ecosystem": eco, "name": name}}
 
 
+def github_slug(url: str) -> str | None:
+    m = re.search(r"github\.com[/:]([\w.-]+)/([\w.-]+?)(?:\.git)?(?:[/#?].*)?$", url or "")
+    return f"{m.group(1)}/{m.group(2)}" if m else None
+
+
+def artifact_identity(eco: str, name: str, registry_repo: str | None) -> dict:
+    """Names for the content-time detectors in artifact mode, matching what repo mode passes: the package name (from
+    the registry / dataset path, not from the artifact's own manifest, which the package author controls) and the
+    repository the registry lists, when it is on GitHub."""
+    return {"repo": registry_repo, "package": {"ecosystem": eco, "name": name}, "source": "registry"}
+
+
 def scan_artifact(item: dict, osv: bool) -> dict:
     import releases
     import repo_scan
     from security import apply_gate
     eco, name, version = item["ecosystem"], item["package"], item.get("version") or None
     rec: dict = {"artifact": {}}
-    rc, as_of = None, None
+    rc, as_of, registry_repo = None, None, None
     if item.get("source") == "datadog":
         contents = load_sample_dir(item["sample_dir"])
         if not contents["text"]:   # deleted or quarantined by antivirus: never scan an empty folder as "no findings"
@@ -488,9 +505,11 @@ def scan_artifact(item: dict, osv: bool) -> dict:
               "activity": dict(na), "requested_repo": None, "snapshot": os.environ.get("REPOHEALTH_SNAPSHOT"),
               "target_version": version, "timings": {}}
         version = version or target["version"]
+        registry_repo = github_slug(hist.get("repository_url") or "")
         as_of = releases._dt(target.get("upload_time"))
     data = data_from_contents(contents)
-    scan = repo_scan.scan_data(_empty_scan(), data, eco, name, lambda f, ln: None, bandit_enabled=False)
+    scan = repo_scan.scan_data(_empty_scan(), data, eco, name, lambda f, ln: None, bandit_enabled=False,
+                               identity=artifact_identity(eco, name, registry_repo))
     rec["limits_hit"] = list(contents.get("limits_hit") or []) + list(scan.get("limits_hit") or [])
     sec = artifact_security(eco, name, version, osv)
     health = {"score": None, "label": "Not assessed (artifact mode)"}

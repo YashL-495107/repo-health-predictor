@@ -5,7 +5,7 @@ been viewed, except by appending to `benchmark/CHANGELOG.md`, which marks the te
 
 | | |
 |---|---|
-| Frozen ruleset | **`2026.11.07-9`** (`detectors/version.py`, `RULESET_FROZEN = True`) |
+| Frozen ruleset | **`2026.11.08-10`** (`detectors/version.py`, `RULESET_FROZEN = True`; was `2026.11.07-9`, see `CHANGELOG.md`: a pre-run wiring fix, no test-split item scanned) |
 | Protocol date | 2026-11-07 |
 | Random seed | **20261107** (Python `random.Random(20261107)`), used for every random selection below |
 | AI / Gemini layer | **OFF** for all benchmark runs (no key passed; the AI layer cannot change scores anyway) |

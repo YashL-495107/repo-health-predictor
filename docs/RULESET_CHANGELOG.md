@@ -3,7 +3,30 @@
 Every change to detector logic, thresholds, tier mapping or fragility weights bumps `RULESET_VERSION`
 (`detectors/version.py`). Results produced under different versions are not directly comparable.
 
-## 2026.11.07-9 (FROZEN for the Phase 5 benchmark)
+## 2026.11.08-10 (FROZEN; pre-run wiring fix, no test-split item scanned)
+
+Changes detection outcomes, so the version is bumped. **No test-split item had been scanned** when this was made
+(only dev items, synthetic code and recorded non-benchmark packages); the test set is not contaminated.
+
+- **Wiring bug (both scan modes):** credential_exfiltration's name-relatedness checks (related hosts, the
+  credential-file owner map, the SSH client aliases) read the package/repository name only from `ctx.features`
+  and `ctx.security`. The detector runs at content-scan time (it needs the file contents), where neither exists,
+  so in the real pipeline it never saw a name; only unit tests (which passed the names directly) exercised the
+  rules. Found on the dev artifact run: paramiko got "Named credential sent to dynamic" at paramiko/agent.py:229.
+- **Fix:** `DetectorContext.identity` ({repo, package}). Repo mode (`repo_scan.scan_repo`) passes the repository
+  and the package its root manifest declares (the same function `assess_security` uses); the benchmark's artifact
+  mode passes the registry package name and the GitHub repository the registry lists. The rule logic is unchanged.
+- **Normalisation:** the joined owner token now also removes "." (PyPI treats "-", "_" and "." alike):
+  `docker.py` -> `dockerpy`, like `docker-py` and `docker_py`.
+- Effect on the 8 dev items (artifact mode): paramiko Review recommended -> No findings; the other 7 unchanged.
+- No other detector reads the package/repository name at content time (checked: protestware_destructive,
+  behavior_patterns, decoded_payload, repo_secrets, committed_binary, setup_py_hook, ci_workflow use none; the
+  typosquat check in the behavior scan already received the name in both modes; release, dependency and OSV
+  detectors read it from the release context / security result, which both modes fill).
+- **Known evasion (documented):** in repo mode the package name comes from the repository's own manifest, so a
+  repository that declares `name="paramiko"` gets the SSH client alias. Artifact mode uses the registry name.
+
+## 2026.11.07-9 (frozen for the Phase 5 benchmark; superseded by 2026.11.08-10)
 
 Third and last dev-set round (structural). After this version the ruleset is frozen: any later change must be
 logged in benchmark/CHANGELOG.md and marks the test set as contaminated.

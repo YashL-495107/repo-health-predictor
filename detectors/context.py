@@ -32,6 +32,10 @@ class DetectorContext:
     fragility: Mapping[str, Any] | None = None     # fragility.compute_fragility result
     registry: Mapping[str, Any] | None = None      # registry metadata (Phase 2)
     releases: Any = None                           # release history (Phase 2)
+    # Who is being scanned, for name-relatedness checks (credential_exfiltration's related hosts, credential-file
+    # owners and SSH client aliases): {"repo": "owner/name" | None, "package": {"ecosystem", "name"} | None}.
+    # Set at content-scan time, where features/security are not available yet (since 2026.11.08-10).
+    identity: Mapping[str, Any] | None = None
     extra: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
 
     @classmethod

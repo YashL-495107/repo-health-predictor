@@ -342,18 +342,30 @@ def analyse_pattern(path: str, text: str) -> list[dict]:
 
 def owner_tokens(ctx) -> set[str]:
     """All name tokens (length >= 2, no stop list) of the package and repository, for credential-file ownership."""
-    names = [((ctx.features or {}).get("full_name") or ""), (((ctx.security or {}).get("package") or {}).get("name") or ""),
-             (((ctx.releases or {}).get("package") or {}).get("name") or "")]
+    names = context_names(ctx, with_releases=True)
     toks = set()
     for n in names:
         low = n.lower()
         toks |= {t for t in re.split(r"[/_.\-@]+", low) if len(t) >= 2}
-        toks |= {t.replace("-", "").replace("_", "") for t in low.split("/") if t}
+        toks |= {re.sub(r"[-_.]+", "", t) for t in low.split("/") if t}   # PyPI: "-", "_" and "." are equivalent
     return toks
 
 
+def context_names(ctx, with_releases: bool = False) -> list[str]:
+    """Repository full name and package name(s) from every place the context can carry them: the content-scan
+    identity (both scan modes), repository features and the security result (repo mode, apply_gate), and the release
+    context. Before 2026.11.08-10 only features/security were read, which are absent at content-scan time, so the
+    name-relatedness rules never saw a name in the real pipeline."""
+    ident = getattr(ctx, "identity", None) or {}
+    names = [ident.get("repo") or "", ((ident.get("package") or {}).get("name") or ""),
+             ((ctx.features or {}).get("full_name") or ""), (((ctx.security or {}).get("package") or {}).get("name") or "")]
+    if with_releases:
+        names.append(((ctx.releases or {}).get("package") or {}).get("name") or "")
+    return [n for n in names if n]
+
+
 def related_tokens(ctx) -> set[str]:
-    names = [((ctx.features or {}).get("full_name") or ""), (((ctx.security or {}).get("package") or {}).get("name") or "")]
+    names = context_names(ctx)
     toks = set()
     for n in names:
         toks |= {t.lower() for t in re.split(r"[/_.\-@]+", n) if len(t) >= 4 and t.lower() not in STOP_TOKENS}
