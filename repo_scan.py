@@ -273,18 +273,30 @@ def scan_repo(client: GitHubClient, owner: str, repo: str) -> dict:
         res["skip_reason"] = skip_reason(e)
         _attach_detectors(res)
         return res
-    res["ran"] = True
-    t_scan = time.monotonic()
-    sha, findings = data["sha"], []
+    sha = data["sha"]
     def url(f, ln): return f"https://github.com/{owner}/{repo}/blob/{sha}/{f}#L{ln}" if sha else None
+    return scan_data(res, data, owner, repo, url)
+
+
+def scan_data(res: dict, data: dict, owner: str, repo: str, url, bandit_enabled: bool = True) -> dict:
+    """The content scan on contents already in memory (data has read_repo's shape). scan_repo calls it after the
+    download; the benchmark's artifact mode calls it on a release artifact. bandit_enabled=False skips Bandit (it is
+    the only scanner that writes files to a temporary directory, and no detector reads its findings)."""
+    res["ran"] = True
+    res.setdefault("timings", {})
+    t_scan = time.monotonic()
+    findings = []
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-        f_bandit = executor.submit(run_bandit, data["py"])
+        f_bandit = executor.submit(run_bandit, data["py"]) if bandit_enabled else None
         f_proof = executor.submit(_safe_proof, data, owner, repo, url)
-        bandit = f_bandit.result()
+        bandit = f_bandit.result() if f_bandit else None
         proof = f_proof.result()
 
-    if bandit is None:
+    if not bandit_enabled:
+        res["code_scan"] = "not_run"
+        res["coverage"].append("Python code scan: NOT run (Bandit disabled for this scan)")
+    elif bandit is None:
         res["code_scan"] = "unavailable"
         res["coverage"].append("Python code scan: NOT run (Bandit unavailable)")
     else:
