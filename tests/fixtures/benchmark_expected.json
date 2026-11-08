@@ -1,0 +1,477 @@
+{
+ "PyPI:iniconfig@2.3.0": {
+  "artifact": {
+   "filename": "iniconfig-2.3.0.tar.gz",
+   "members": 23,
+   "sha256": "c76315c77db068650d49c5b56314774a7804df16fee4402c1f19d6d15d8c4730",
+   "version": "2.3.0"
+  },
+  "detectors": {
+   "behavior_patterns": [
+    "ran",
+    "none_found"
+   ],
+   "ci_workflow": [
+    "ran",
+    "none_found"
+   ],
+   "committed_binary": [
+    "ran",
+    "none_found"
+   ],
+   "credential_exfiltration": [
+    "ran",
+    "none_found"
+   ],
+   "decoded_payload": [
+    "ran",
+    "none_found"
+   ],
+   "dependency_injection": [
+    "not_assessed",
+    "unknown"
+   ],
+   "lookalike_name": [
+    "ran",
+    "none_found"
+   ],
+   "osv_advisories": [
+    "not_assessed",
+    "unknown"
+   ],
+   "osv_known_malicious": [
+    "not_assessed",
+    "unknown"
+   ],
+   "protestware_destructive": [
+    "ran",
+    "none_found"
+   ],
+   "publisher_change": [
+    "ran",
+    "none_found"
+   ],
+   "release_delta": [
+    "ran",
+    "none_found"
+   ],
+   "release_vs_git": [
+    "not_assessed",
+    "unknown"
+   ],
+   "repo_secrets": [
+    "ran",
+    "none_found"
+   ],
+   "revival_takeover": [
+    "ran",
+    "none_found"
+   ],
+   "scorecard": [
+    "not_assessed",
+    "unknown"
+   ],
+   "setup_py_hook": [
+    "not_applicable",
+    "unknown"
+   ],
+   "tagless_release": [
+    "not_assessed",
+    "unknown"
+   ],
+   "virustotal": [
+    "not_applicable",
+    "unknown"
+   ]
+  },
+  "findings_by_tier": {
+   "high_risk": 0,
+   "info": 0,
+   "known_malicious": 0,
+   "review": 0
+  },
+  "label": "No findings",
+  "limits_hit": [],
+  "status": "scored"
+ },
+ "PyPI:six@1.17.0": {
+  "artifact": {
+   "filename": "six-1.17.0.tar.gz",
+   "members": 16,
+   "sha256": "ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81",
+   "version": "1.17.0"
+  },
+  "detectors": {
+   "behavior_patterns": [
+    "ran",
+    "none_found"
+   ],
+   "ci_workflow": [
+    "ran",
+    "none_found"
+   ],
+   "committed_binary": [
+    "ran",
+    "none_found"
+   ],
+   "credential_exfiltration": [
+    "ran",
+    "none_found"
+   ],
+   "decoded_payload": [
+    "ran",
+    "none_found"
+   ],
+   "dependency_injection": [
+    "not_assessed",
+    "unknown"
+   ],
+   "lookalike_name": [
+    "ran",
+    "none_found"
+   ],
+   "osv_advisories": [
+    "not_assessed",
+    "unknown"
+   ],
+   "osv_known_malicious": [
+    "not_assessed",
+    "unknown"
+   ],
+   "protestware_destructive": [
+    "ran",
+    "none_found"
+   ],
+   "publisher_change": [
+    "not_applicable",
+    "unknown"
+   ],
+   "release_delta": [
+    "ran",
+    "none_found"
+   ],
+   "release_vs_git": [
+    "not_assessed",
+    "unknown"
+   ],
+   "repo_secrets": [
+    "ran",
+    "none_found"
+   ],
+   "revival_takeover": [
+    "ran",
+    "none_found"
+   ],
+   "scorecard": [
+    "not_assessed",
+    "unknown"
+   ],
+   "setup_py_hook": [
+    "ran",
+    "none_found"
+   ],
+   "tagless_release": [
+    "not_assessed",
+    "unknown"
+   ],
+   "virustotal": [
+    "not_applicable",
+    "unknown"
+   ]
+  },
+  "findings_by_tier": {
+   "high_risk": 0,
+   "info": 0,
+   "known_malicious": 0,
+   "review": 0
+  },
+  "label": "No findings",
+  "limits_hit": [],
+  "status": "scored"
+ },
+ "npm:bufferutil@4.2.0": {
+  "artifact": {
+   "filename": "bufferutil-4.2.0.tgz",
+   "members": 13,
+   "sha256": "5188503861441cf6431dc8343e63c677605c19cd3b1cf8b19c4fb381ce4a9094",
+   "version": "4.2.0"
+  },
+  "detectors": {
+   "behavior_patterns": [
+    "ran",
+    "none_found"
+   ],
+   "ci_workflow": [
+    "ran",
+    "none_found"
+   ],
+   "committed_binary": [
+    "ran",
+    "review"
+   ],
+   "credential_exfiltration": [
+    "ran",
+    "none_found"
+   ],
+   "decoded_payload": [
+    "ran",
+    "none_found"
+   ],
+   "dependency_injection": [
+    "ran",
+    "none_found"
+   ],
+   "lookalike_name": [
+    "ran",
+    "none_found"
+   ],
+   "osv_advisories": [
+    "not_assessed",
+    "unknown"
+   ],
+   "osv_known_malicious": [
+    "not_assessed",
+    "unknown"
+   ],
+   "protestware_destructive": [
+    "ran",
+    "none_found"
+   ],
+   "publisher_change": [
+    "ran",
+    "none_found"
+   ],
+   "release_delta": [
+    "ran",
+    "high_risk"
+   ],
+   "release_vs_git": [
+    "not_assessed",
+    "unknown"
+   ],
+   "repo_secrets": [
+    "ran",
+    "none_found"
+   ],
+   "revival_takeover": [
+    "ran",
+    "none_found"
+   ],
+   "scorecard": [
+    "not_assessed",
+    "unknown"
+   ],
+   "setup_py_hook": [
+    "not_applicable",
+    "unknown"
+   ],
+   "tagless_release": [
+    "not_assessed",
+    "unknown"
+   ],
+   "virustotal": [
+    "not_assessed",
+    "unknown"
+   ]
+  },
+  "findings_by_tier": {
+   "high_risk": 1,
+   "info": 0,
+   "known_malicious": 0,
+   "review": 6
+  },
+  "label": "High-risk patterns: review before use",
+  "limits_hit": [],
+  "status": "scored"
+ },
+ "npm:is-number@7.0.0": {
+  "artifact": {
+   "filename": "is-number-7.0.0.tgz",
+   "members": 4,
+   "sha256": "7b75c1057198cf97696909a9bee176c9c5e9bcb5b03bf3ecef2f484defadd51e",
+   "version": "7.0.0"
+  },
+  "detectors": {
+   "behavior_patterns": [
+    "ran",
+    "none_found"
+   ],
+   "ci_workflow": [
+    "ran",
+    "none_found"
+   ],
+   "committed_binary": [
+    "ran",
+    "none_found"
+   ],
+   "credential_exfiltration": [
+    "ran",
+    "none_found"
+   ],
+   "decoded_payload": [
+    "ran",
+    "none_found"
+   ],
+   "dependency_injection": [
+    "ran",
+    "none_found"
+   ],
+   "lookalike_name": [
+    "ran",
+    "none_found"
+   ],
+   "osv_advisories": [
+    "not_assessed",
+    "unknown"
+   ],
+   "osv_known_malicious": [
+    "not_assessed",
+    "unknown"
+   ],
+   "protestware_destructive": [
+    "ran",
+    "none_found"
+   ],
+   "publisher_change": [
+    "ran",
+    "none_found"
+   ],
+   "release_delta": [
+    "ran",
+    "none_found"
+   ],
+   "release_vs_git": [
+    "not_assessed",
+    "unknown"
+   ],
+   "repo_secrets": [
+    "ran",
+    "none_found"
+   ],
+   "revival_takeover": [
+    "ran",
+    "none_found"
+   ],
+   "scorecard": [
+    "not_assessed",
+    "unknown"
+   ],
+   "setup_py_hook": [
+    "not_applicable",
+    "unknown"
+   ],
+   "tagless_release": [
+    "not_assessed",
+    "unknown"
+   ],
+   "virustotal": [
+    "not_applicable",
+    "unknown"
+   ]
+  },
+  "findings_by_tier": {
+   "high_risk": 0,
+   "info": 0,
+   "known_malicious": 0,
+   "review": 0
+  },
+  "label": "No findings",
+  "limits_hit": [],
+  "status": "scored"
+ },
+ "npm:mitt@3.0.1": {
+  "artifact": {
+   "filename": "mitt-3.0.1.tgz",
+   "members": 10,
+   "sha256": "2ef69c669574ad5b86fdb8b30aed8c8c1705931f19a68bc4b1b234c6d26d7306",
+   "version": "3.0.1"
+  },
+  "detectors": {
+   "behavior_patterns": [
+    "ran",
+    "none_found"
+   ],
+   "ci_workflow": [
+    "ran",
+    "none_found"
+   ],
+   "committed_binary": [
+    "ran",
+    "none_found"
+   ],
+   "credential_exfiltration": [
+    "ran",
+    "none_found"
+   ],
+   "decoded_payload": [
+    "ran",
+    "none_found"
+   ],
+   "dependency_injection": [
+    "ran",
+    "none_found"
+   ],
+   "lookalike_name": [
+    "ran",
+    "none_found"
+   ],
+   "osv_advisories": [
+    "not_assessed",
+    "unknown"
+   ],
+   "osv_known_malicious": [
+    "not_assessed",
+    "unknown"
+   ],
+   "protestware_destructive": [
+    "ran",
+    "none_found"
+   ],
+   "publisher_change": [
+    "ran",
+    "none_found"
+   ],
+   "release_delta": [
+    "ran",
+    "none_found"
+   ],
+   "release_vs_git": [
+    "not_assessed",
+    "unknown"
+   ],
+   "repo_secrets": [
+    "ran",
+    "none_found"
+   ],
+   "revival_takeover": [
+    "ran",
+    "none_found"
+   ],
+   "scorecard": [
+    "not_assessed",
+    "unknown"
+   ],
+   "setup_py_hook": [
+    "not_applicable",
+    "unknown"
+   ],
+   "tagless_release": [
+    "not_assessed",
+    "unknown"
+   ],
+   "virustotal": [
+    "not_applicable",
+    "unknown"
+   ]
+  },
+  "findings_by_tier": {
+   "high_risk": 0,
+   "info": 0,
+   "known_malicious": 0,
+   "review": 0
+  },
+  "label": "No findings",
+  "limits_hit": [],
+  "status": "scored"
+ }
+}
