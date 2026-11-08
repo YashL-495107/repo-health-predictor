@@ -15,10 +15,12 @@ PY_FILES = ["app.py", "security.py", "pillars.py", "fragility.py", "scoring.py",
             "inspect_repo.py", "scan_batch.py", "benchmark_fixtures.py", "audit.py", "intelligence.py", "repo_scan.py",
             "malware_proof.py", "repo_behavior.py", "verify_full_stack.py", "releases.py", "http_cache.py"] + \
            [os.path.relpath(p, ROOT) for p in glob.glob(os.path.join(ROOT, "pages", "*.py"))] + \
-           [os.path.relpath(p, ROOT) for p in glob.glob(os.path.join(ROOT, "detectors", "*.py"))]
+           [os.path.relpath(p, ROOT) for p in glob.glob(os.path.join(ROOT, "detectors", "*.py"))] + \
+           [os.path.relpath(p, ROOT) for p in glob.glob(os.path.join(ROOT, "benchmark", "*.py"))]
 DOC_FILES = ["README.md", "PROJECT_CAPABILITIES.md"] + \
             [os.path.relpath(p, ROOT) for p in glob.glob(os.path.join(ROOT, "docs", "*.md")) if not p.endswith("PLAN.md")] + \
-            [os.path.relpath(p, ROOT) for p in glob.glob(os.path.join(ROOT, "skills", "*.md"))]
+            [os.path.relpath(p, ROOT) for p in glob.glob(os.path.join(ROOT, "skills", "*.md"))] + \
+            [os.path.relpath(p, ROOT) for p in glob.glob(os.path.join(ROOT, "benchmark", "*.md"))]
 
 FORBIDDEN = re.compile(r"\b(?:un)?safe(?:r|st|ly|ty)?\b|\bsecure[ds]?\b|\bclean(?:ed|ly|er|est)?\b|\bguarantee[sd]?\b", re.I)
 NEGATION = re.compile(r"\b(?:not|never|no|cannot)\b[^.;:!?]{0,40}$", re.I)

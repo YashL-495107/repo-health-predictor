@@ -174,6 +174,25 @@ escalates to known_malicious.
 
 In Phase 1, time-based signals use the scan time as `as_of`; release upload times arrive with Phase 2.
 
+## Phase 5 benchmark harness (built, full run not done)
+
+Built and tested (`tests/test_benchmark.py`, synthetic inert inputs only); the protocol is `benchmark/README.md`.
+
+- `benchmark/bench_items.py`: loads the manifests, assigns dev/test splits and moves test items that overlap the dev
+  set (21 credibility repos, 8 dev_fp repos, earlier calibration/backtest repos). 3 items were moved
+  (lodash, impacket, pwntools).
+- `benchmark/run_benchmark.py`: artifact mode (primary) and repo mode (secondary), resumable JSONL output, ablations
+  `--no-osv` and `--no-fragility-escalation`, `--offline` (cache only), refuses to run with an AI/Gemini key present
+  and refuses the test split unless the frozen ruleset in the protocol matches the code.
+- `benchmark/metrics.py`: recall, false-positive rates (Wilson 95% interval, rule of three), precision, per-detector
+  table, contribution, detector coverage, scan time, "Misses and why", "False positives and why" -> `RESULTS.md` + CSVs.
+- `benchmark/extract_datadog.py`: DataDog samples read in memory (ZipCrypto, password from the dataset README), text
+  members written as `*.sample`, executables skipped; traversal, member-count, size and ratio guards.
+- `benchmark/compare_chat_ai.py`: about 30 seeded items, exact prompts, hand-scoring and repeatability sheets, summary.
+
+Smoke-tested on the 8-item dev debug slice only (artifact mode, PyPI recorded once, then replayed offline from the
+cache with identical results, including after an interrupted run was resumed). **No test-set item has been scanned.**
+
 ## What is measured
 
 | Measurement | Script | Result | Caveat |
@@ -183,8 +202,10 @@ In Phase 1, time-based signals use the scan time as `as_of`; release upload time
 
 ## Not yet measured
 
-- Per-detector precision, recall and false-positive rate: **not yet measured** (Phase 5 benchmark).
+- Per-detector precision, recall and false-positive rate: **not yet measured**. The harness is built (above); the full
+  run on the test set happens once, on a machine with network access (`benchmark/README.md` section 8).
 - The Trust score on real packages, known-bad or known-good: **not yet measured**.
+- Tool vs chat AI: sheets and prompts can be generated; **not yet measured**.
 - The fragility weights and threshold: **not validated**.
 - Release-based detectors (Phase 2): unit-tested on synthetic release pairs only; accuracy on real releases **not
   yet measured** (Phase 5). The real incidents (event-stream, ua-parser-js, ...) have not been replayed yet.
@@ -198,3 +219,4 @@ In Phase 1, time-based signals use the scan time as `as_of`; release upload time
   wording rule, consumers, release history parsing and the release detectors, app smoke test.
 - `python verify_phase4_reality.py`: offline end-to-end checks of the detectors, AI layer and batch tools.
 - `python benchmark_fixtures.py`: the fixture benchmark above.
+- `python benchmark/run_benchmark.py --mode artifact --split dev --debug-slice`: harness smoke test on dev items.
