@@ -277,7 +277,8 @@ def test_6_syntax_warning_from_scanned_code_is_silenced_ours_is_not():
         importlib.reload(pyast)                                  # re-installs the module-level filter after "default"
         pyast.parse_ok("a.py", bad)
         compile(bad, "own_module.py", "exec")
-    msgs = [str(x.filename) for x in w if issubclass(x.category, SyntaxWarning)]
+    # invalid escape sequences: SyntaxWarning since Python 3.12, DeprecationWarning before
+    msgs = [str(x.filename) for x in w if issubclass(x.category, (SyntaxWarning, DeprecationWarning))]
     assert msgs == ["own_module.py"]
 
 
