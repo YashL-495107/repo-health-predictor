@@ -44,3 +44,39 @@ def blast_display(br: dict, repo: str) -> dict:
                    f"({name_note}). A score from stars and forks is not shown because it has no data source.")
         simulator = None
     return {"sourced": sourced, "metrics": metrics, "caption": caption, "simulator": simulator}
+
+
+def trust_drivers(res: dict) -> dict:
+    """What drives the Trust score, built only from values apply_gate already returned (no new computation of the
+    score): the three evidence pillars with detectors ran/total and the limiting marker, the caps that apply, and
+    what was not assessed. {"rows": [...], "caps": [str], "caps_line": str, "not_assessed": [str]}."""
+    from pillars import MAINTENANCE_ABANDONED, MAINTENANCE_CEILING
+    pillars = res.get("pillars") or {}
+    limiting_pillar, kind = res.get("limiting_pillar"), res.get("limiting_kind")
+    rows = []
+    for name in ("Integrity", "Behavior", "Exposure"):
+        p = pillars.get(name) or {}
+        cov = p.get("coverage") or {}
+        score = p.get("score")
+        rows.append({"Pillar": name,
+                     "Score": f"{score:.0f}" if isinstance(score, (int, float)) else
+                              ("not applicable" if p.get("status") == "not_applicable" else "not assessed"),
+                     "Detectors ran": f"{cov.get('ran', 0)}/{cov.get('total', 0)}",
+                     "Limiting": "◀ limiting" if kind == "pillar" and limiting_pillar == name else ""})
+    reason = res.get("limiting_reason") or ""
+    caps = []
+    for c in res.get("evidence_caps") or []:
+        binding = kind == "evidence" and str(c.get("rule")) in reason
+        caps.append(f"evidence cap {c.get('value')}: {c.get('rule')}" + (" (limiting)" if binding else ""))
+    m = res.get("maintenance_score")
+    archived = res.get("maintenance_label") == "Archived (read-only)"
+    if archived or (isinstance(m, (int, float)) and m < MAINTENANCE_ABANDONED):
+        why = "repository archived" if archived else f"maintenance {m:.0f}/100, below {MAINTENANCE_ABANDONED}"
+        caps.append(f"maintenance ceiling {MAINTENANCE_CEILING}: {why}" + (" (limiting)" if kind == "maintenance" else ""))
+    caps_line = "Caps applied: " + "; ".join(caps) if caps else "No cap applied."
+    not_assessed = [f"{name} pillar: {(pillars.get(name) or {}).get('reason') or 'not assessed'}"
+                    for name in ("Integrity", "Behavior", "Exposure")
+                    if (pillars.get(name) or {}).get("status") == "not_assessed"]
+    not_assessed += [f"{d['detector']}: {d.get('not_assessed_reason') or 'not assessed'}"
+                     for d in res.get("detectors") or [] if d.get("status") == "not_assessed"]
+    return {"rows": rows, "caps": caps, "caps_line": caps_line, "not_assessed": not_assessed}

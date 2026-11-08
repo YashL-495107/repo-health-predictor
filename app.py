@@ -19,7 +19,7 @@ from repo_scan import scan_repo
 from bus_factor import run_bus_factor_analysis
 import hashlib
 from intelligence import build_ai_cards, SuccessCache, gather_repo_intel, run_ai_layer, _configured_model, resolve_gemini_key, _MISSING
-from ui_text import TRUST_DISCLAIMER, blast_display, headline_label
+from ui_text import TRUST_DISCLAIMER, blast_display, headline_label, trust_drivers
 from blast_radius import analyze_blast_radius
 from detectors import RULESET_VERSION, TIER_DISPLAY
 from releases import collect_release_context
@@ -466,7 +466,16 @@ if go_clicked or (target and st.session_state.get("analyzed") == target):
         for c in sec["coverage"] + scan["coverage"]: st.write("- " + c)
         st.caption("The Trust score combines detector findings (Integrity, Behavior, Exposure), the evidence caps and a maintenance ceiling. No findings does not mean safe: we look for malware indicators and known-bad packages, but static analysis can miss threats and cannot prove intent.")
 
-    st.markdown("#### What drives the maintenance score")
+    st.markdown("#### What drives the Trust score")
+    td = trust_drivers(res)
+    st.dataframe(pd.DataFrame(td["rows"]), hide_index=True, width="stretch")
+    st.write(_md_escape(td["caps_line"]))
+    if td["not_assessed"]:
+        st.caption("Not assessed: " + _md_escape("; ".join(td["not_assessed"])))
+    else:
+        st.caption("Not assessed: nothing (every detector ran or was not applicable).")
+
+    st.markdown(f"#### Maintenance (separate from the Trust score; can cap it at {MAINTENANCE_CEILING} when fragile)")
     table = pd.DataFrame([{"Factor": x["name"], "Score (0-100)": x["score"], "Weight %": x["effective_weight"], "Evidence": x["detail"]} for x in res["factors"]])
     st.dataframe(table, hide_index=True, width="stretch", column_config={"Score (0-100)": st.column_config.ProgressColumn(min_value=0, max_value=100, format="%.0f")})
     for n in res["notes"]: st.caption("ℹ️ " + n)
