@@ -1,0 +1,10 @@
+dataset https://github.com/DataDog/malicious-software-packages-dataset commit 72c723be547033c558244520524b117c8d71663b
+listing: 28988 sample ZIPs (pypi 2273, npm 26715); 26 with a path Windows cannot hold
+candidates: 300; matched at version level 13, unmatched 287
+matched by category: malicious_intent 13
+by ecosystem: PyPI matched 11, PyPI unmatched 139, npm matched 2, npm unmatched 148
+unmatched reasons: no version in the advisory: 206; package not in the dataset: 78; package in the dataset, but not this version: 3
+for information (not used, no substitution): of the candidates whose advisory lists no version, 11 have the package in the dataset
+selection (= extract_datadog.py): 312 ZIPs (candidate 12, candidate+random 1, random 299); 0 with an original path Windows cannot hold (stored under a flat storage name, never dropped)
+already stored: 0; to download: 312
+download size: 312 files, 229.4 MB; limit --max-mb 2000

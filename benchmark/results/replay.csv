@@ -1,0 +1,6 @@
+id,status,label,detectors,reason
+replay:event-stream / flatmap-stream,scored,Review recommended,publisher_change revival_takeover,
+replay:faker,scored,No findings,,
+replay:colors,unobtainable,,,not replayable: all three versions are unpublished on npm (timestamps only); absent from the DataDog manifest. Also an expected miss by design: ungated sabotage is not flagged by protestware_destructive
+replay:node-ipc,scored,Review recommended,dependency_injection,
+replay:ua-parser-js,unobtainable,,,not replayable: all three malicious versions are unpublished on npm (timestamps only) and ua-parser-js is absent from the DataDog manifest; no artifact obtainable from these sources
