@@ -535,7 +535,7 @@ def scan_repository(item: dict, osv: bool) -> dict:
     try:
         feats = fetch_features(client, owner, name)
     except Exception as e:
-        return {"status": "not_assessed", "not_assessed_reason": f"repository features: {type(e).__name__}: {str(e)[:160]}"}
+        return {"status": "not_assessed", "not_assessed_reason": f"repository features: {type(e).__name__}: {e}"}
     scan = repo_scan.scan_repo(client, owner, name)
     try:
         sec = assess_security(client, owner, name)
@@ -563,6 +563,31 @@ def scan_repository(item: dict, osv: bool) -> dict:
 
 # ------------------------------------------------------------------ run loop
 
+def exception_record(e: BaseException) -> dict:
+    """not_assessed record for a scan that raised: the FULL exception text (with the Windows error code, if any) in
+    `error` and `not_assessed_reason`, and the traceback in `traceback`. Never "no findings"."""
+    import traceback as tb
+    text = f"{type(e).__name__}: {e}"
+    if getattr(e, "winerror", None) is not None:
+        text += f" (winerror {e.winerror})"
+    return {"status": "not_assessed", "not_assessed_reason": f"scan raised {text}", "error": text,
+            "traceback": "".join(tb.format_exception(type(e), e, e.__traceback__))}
+
+
+def with_cache_errors(rec: dict) -> dict:
+    """Attach (and reset) the http_cache read/write failures of this item: the scan continued without the cache."""
+    import http_cache
+    with http_cache._lock:
+        errs = list(http_cache.CACHE_ERRORS)
+        http_cache.CACHE_ERRORS.clear()
+    if errs:
+        rec["cache_errors"] = errs
+        rec.setdefault("limits_hit", [])
+        rec["limits_hit"] = list(rec["limits_hit"]) + [f"{len(errs)} cache read/write failure(s); data was used "
+                                                       "without the cache (see cache_errors)"]
+    return rec
+
+
 def run_item(item: dict, mode: str, osv: bool, budget_s: float, scan_fn=None) -> dict:
     """In-process run (--no-isolate, for debugging): a worker thread with a time budget. Python threads cannot be
     killed, so a scan that overruns is abandoned (still running) and recorded as a timeout."""
@@ -576,10 +601,12 @@ def run_item(item: dict, mode: str, osv: bool, budget_s: float, scan_fn=None) ->
             box["rec"] = {"status": "not_assessed", "not_assessed_reason": "killed: out of memory (MemoryError)",
                           "error": "killed"}
         except Exception as e:   # one bad item must not stop the run; it is recorded, never as "no findings"
-            box["rec"] = {"status": "not_assessed", "not_assessed_reason": f"scan raised {type(e).__name__}: {str(e)[:200]}",
-                          "error": type(e).__name__}
+            box["rec"] = exception_record(e)
 
     t0 = time.monotonic()
+    import http_cache
+    with http_cache._lock:
+        http_cache.CACHE_ERRORS.clear()
     th = threading.Thread(target=work, daemon=True)
     th.start()
     th.join(budget_s)
@@ -590,7 +617,7 @@ def run_item(item: dict, mode: str, osv: bool, budget_s: float, scan_fn=None) ->
         rec = box.get("rec") or {"status": "not_assessed", "not_assessed_reason": "no result", "error": "unknown"}
     rec["elapsed_s"] = round(time.monotonic() - t0, 2)
     rec["isolation"] = "thread (--no-isolate)"
-    return rec
+    return with_cache_errors(rec)
 
 
 # ------------------------------------------------------------------ process isolation
@@ -675,8 +702,8 @@ def _child_entry(conn, item: dict, cfg: dict) -> None:
         rec = {"status": "not_assessed", "error": "killed",
                "not_assessed_reason": f"killed: memory limit exceeded ({cap})"}
     except Exception as e:
-        rec = {"status": "not_assessed", "not_assessed_reason": f"scan raised {type(e).__name__}: {str(e)[:200]}",
-               "error": type(e).__name__}
+        rec = exception_record(e)
+    rec = with_cache_errors(rec)
     rec["isolation"] = f"process (memory cap: {cap})"
     rec["ai_modules_loaded"] = [m for m in AI_MODULES if m in sys.modules]
     try:

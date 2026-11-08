@@ -321,4 +321,4 @@ def test_sphinx_static_phantom_is_info_but_phantom_with_network_stays_high_risk(
 
 def test_ruleset_is_frozen():
     from detectors import version
-    assert version.RULESET_FROZEN is True and version.RULESET_VERSION == "2026.11.08-11"
+    assert version.RULESET_FROZEN is True and version.RULESET_VERSION == "2026.11.08-12"

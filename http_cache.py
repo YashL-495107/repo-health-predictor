@@ -8,7 +8,10 @@ REPOHEALTH_CACHE (default .cache/http). Other statuses and network errors are ne
 REPOHEALTH_OFFLINE=1 serves only from the cache (a miss is an error "offline: not cached").
 GITHUB_TOKEN is sent only to api.github.com and is never part of the cache key or the stored data.
 A polite minimum interval is kept between requests to the same host. Concurrency: the interval bookkeeping is
-locked, and each thread writes its own temp file before an atomic rename (parallel scan stages share the cache).
+locked, and each write goes to its own short temp file before an atomic rename (parallel scan stages share the cache).
+File names are hash-only; on Windows, paths near MAX_PATH use the long-path form. A cache read or write that fails
+(antivirus block, permissions) never fails the request: the entry is a miss / is not stored, and the full error text
+is appended to CACHE_ERRORS (the benchmark records it per item).
 
 parallel(): helper used by the scan stages; REPOHEALTH_SEQUENTIAL=1 runs everything in order (for timing
 comparisons and debugging).
@@ -18,6 +21,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import secrets
 import threading
 import time
 from datetime import datetime, timezone
@@ -55,9 +59,69 @@ def snapshot() -> str:
     return os.getenv("REPOHEALTH_SNAPSHOT") or datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
 
+CACHE_ERRORS: list[str] = []   # full text of cache read/write failures in this process (the benchmark records them)
+WIN_LONG_PATH = 240             # below Windows' 260-character MAX_PATH, with room for the temp suffix
+
+
 def _path(url: str, kind: str) -> str:
+    """Hash-only file name (64 hex characters + .json/.bin): the URL never appears in a path, so no illegal
+    characters, trailing dots or spaces, whatever the URL is."""
     key = hashlib.sha256(f"GET {url} {snapshot()}".encode()).hexdigest()
     return os.path.join(cache_dir(), snapshot(), f"{key}.{kind}")
+
+
+def _fs(path: str) -> str:
+    """Windows: long-path form (\\\\?\\...) for absolute paths near MAX_PATH, so a deep checkout still works."""
+    if os.name == "nt":
+        full = os.path.abspath(path)
+        if len(full) >= WIN_LONG_PATH and not full.startswith("\\\\?\\"):
+            return "\\\\?\\" + full
+        return full
+    return path
+
+
+def _note(what: str, path: str, e: BaseException) -> None:
+    msg = f"cache {what} failed for {path}: {type(e).__name__}: {e}"
+    if getattr(e, "winerror", None) is not None:
+        msg += f" (winerror {e.winerror})"
+    with _lock:
+        CACHE_ERRORS.append(msg)
+
+
+def _read(p: str, binary: bool):
+    """Cached content, or None (missing or unreadable: an unreadable entry is a cache miss, recorded)."""
+    fp = _fs(p)
+    if not os.path.exists(fp):
+        return None
+    try:
+        if binary:
+            with open(fp, "rb") as fh:
+                return fh.read()
+        with open(fp, encoding="utf-8") as fh:
+            return json.load(fh)
+    except (OSError, ValueError) as e:
+        _note("read", p, e)
+        return None
+
+
+def _write(p: str, payload: bytes) -> bool:
+    """Atomic write through a short temp name in the same folder. A failure (antivirus block, permissions, path
+    limits) never fails the request: the fetched data is still used, and the full error is recorded."""
+    fp = _fs(p)
+    tmp = os.path.join(os.path.dirname(fp), f".{os.path.basename(p)[:12]}{secrets.token_hex(4)}.tmp")
+    try:
+        os.makedirs(os.path.dirname(fp), exist_ok=True)
+        with open(tmp, "wb") as fh:
+            fh.write(payload)
+        os.replace(tmp, fp)
+        return True
+    except OSError as e:
+        _note("write", p, e)
+        try:
+            os.remove(tmp)
+        except OSError:
+            pass
+        return False
 
 
 def _polite(url: str):
@@ -84,10 +148,9 @@ def _headers(url: str, extra: dict | None) -> dict:
 def get_json(url: str, headers: dict | None = None, timeout: float = TIMEOUT) -> tuple[object | None, int | None, str | None]:
     """Returns (data, status, error). data is None unless status == 200."""
     p = _path(url, "json")
-    if os.path.exists(p):
-        with open(p, encoding="utf-8") as fh:
-            rec = json.load(fh)
-        return rec["data"], rec["status"], None
+    rec = _read(p, binary=False)
+    if isinstance(rec, dict) and "status" in rec:
+        return rec.get("data"), rec["status"], None
     if os.getenv("REPOHEALTH_OFFLINE") == "1":
         return None, None, "offline: not cached"
     _polite(url)
@@ -105,20 +168,16 @@ def get_json(url: str, headers: dict | None = None, timeout: float = TIMEOUT) ->
             data = r.json()
         except ValueError:
             return None, 200, "bad JSON"
-    os.makedirs(os.path.dirname(p), exist_ok=True)
-    tmp = f"{p}.{os.getpid()}.{threading.get_ident()}.tmp"     # unique per thread: parallel stages share the cache
-    with open(tmp, "w", encoding="utf-8") as fh:
-        json.dump({"url": url, "status": r.status_code, "data": data}, fh)
-    os.replace(tmp, p)
+    _write(p, json.dumps({"url": url, "status": r.status_code, "data": data}).encode("utf-8"))
     return data, r.status_code, None
 
 
 def get_bytes(url: str, max_bytes: int, timeout: float = 60) -> tuple[bytes | None, str | None]:
     """Download at most max_bytes. Returns (content, error). Oversize downloads are aborted, not truncated."""
     p = _path(url, "bin")
-    if os.path.exists(p):
-        with open(p, "rb") as fh:
-            return fh.read(), None
+    cached = _read(p, binary=True)
+    if cached is not None:
+        return cached, None
     if os.getenv("REPOHEALTH_OFFLINE") == "1":
         return None, "offline: not cached"
     _polite(url)
@@ -138,9 +197,5 @@ def get_bytes(url: str, max_bytes: int, timeout: float = 60) -> tuple[bytes | No
         return None, "timeout"
     except requests.RequestException as e:
         return None, type(e).__name__
-    os.makedirs(os.path.dirname(p), exist_ok=True)
-    tmp = f"{p}.{os.getpid()}.{threading.get_ident()}.tmp"
-    with open(tmp, "wb") as fh:
-        fh.write(bytes(buf))
-    os.replace(tmp, p)
+    _write(p, bytes(buf))
     return bytes(buf), None

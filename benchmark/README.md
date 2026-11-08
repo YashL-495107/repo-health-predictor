@@ -5,7 +5,7 @@ been viewed, except by appending to `benchmark/CHANGELOG.md`, which marks the te
 
 | | |
 |---|---|
-| Frozen ruleset | **`2026.11.08-11`** (`detectors/version.py`, `RULESET_FROZEN = True`; frozen at `2026.11.07-9`, then two pre-run changes, `2026.11.08-10` and `2026.11.08-11`, see `CHANGELOG.md`; no test-split item had been scanned) |
+| Frozen ruleset | **`2026.11.08-12`** (`detectors/version.py`, `RULESET_FROZEN = True`; frozen at `2026.11.07-9`, then three pre-run changes, `2026.11.08-10`, `2026.11.08-11` and `2026.11.08-12`, see `CHANGELOG.md`; no test-split item had been scanned) |
 | Protocol date | 2026-11-07 |
 | Random seed | **20261107** (Python `random.Random(20261107)`), used for every random selection below |
 | AI / Gemini layer | **OFF** for all benchmark runs (no key passed; the AI layer cannot change scores anyway) |
@@ -179,7 +179,7 @@ ever executed; still, use a normal user account (not an administrator shell).
 **Antivirus (Windows Defender).** Do not disable it globally. The DataDog clone and the samples folder contain real
 malware as encrypted ZIPs and inert `.sample` text; Defender may quarantine some files (they then become "not
 obtainable" items, which is reported, not hidden). A per-folder exclusion for exactly those two folders is at your
-discretion; remove it afterwards. Use a dedicated folder such as `C:\bench\samples`, not Downloads and not a
+discretion; remove it afterwards. The download cache (`benchmark\cache\http`) holds the registry archives of every scanned package, including security tools such as impacket that antivirus often flags; a blocked cache write no longer stops the item (the archive is read in memory and the full error is recorded in the item's `cache_errors`). Use a dedicated folder such as `C:\bench\samples`, not Downloads and not a
 cloud-synced folder. Never open, run or double-click anything in those folders.
 
 The exact sequence (one snapshot date for every run, so later runs reuse the cached downloads):

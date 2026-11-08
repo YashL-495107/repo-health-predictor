@@ -11,6 +11,7 @@ import base64
 import json
 import re
 import requests
+from pathlib import PurePosixPath
 from urllib.parse import quote
 from github_client import GitHubClient, GitHubError
 from malware_proof import _detect_package_identity
@@ -49,16 +50,22 @@ DEV_REQ_FILE = re.compile(r"(?:^|[-_./])(?:dev|develop|development|test|tests|te
 DEV_EXTRAS = {"dev", "develop", "development", "test", "tests", "testing", "doc", "docs", "lint", "typing"}
 
 
-def dependency_scope(source_file: str, *, npm_dev: bool = False, extra: str | None = None) -> str:
+def dependency_scope(source_file: str, *, npm_dev: bool = False, extra: str | None = None,
+                     package_manifest: bool = False) -> str:
     """'runtime' or 'dev' (since 2026.11.08-11). dev: npm devDependencies or lockfile entries marked dev, requirements
     files named for dev/test/docs (requirements-dev.txt, docs/requirements.txt, test-requirements.txt, ...), and
-    extras named dev/test/docs. Only runtime dependencies count toward Exposure review findings and the security caps;
-    dev-scope advisories are reported as Info."""
+    extras named dev/test/docs. Since 2026.11.08-12: when the project declares its own Python package
+    (package_manifest=True: pyproject.toml / setup.py / setup.cfg), EVERY requirements*.txt file (root, docs/, test/,
+    dev) is dev pins; without a package manifest (an application) the root requirements.txt stays runtime.
+    Only runtime dependencies count toward Exposure review findings and the security caps; dev-scope advisories are
+    reported as Info."""
     if npm_dev:
         return "dev"
     if extra and extra.strip().lower() in DEV_EXTRAS:
         return "dev"
     name = source_file.replace("\\", "/").lower()
+    if name.endswith((".txt", ".in")) and PurePosixPath(name).name.startswith("requirements") and package_manifest:
+        return "dev"
     if name.endswith((".txt", ".in")) and DEV_REQ_FILE.search(name.rsplit(".", 1)[0]):
         return "dev"
     return "runtime"
@@ -83,12 +90,34 @@ def _read_file(client: GitHubClient, owner: str, repo: str, path: str) -> str | 
     if not isinstance(data, dict) or data.get("encoding") != "base64" or not data.get("content"): return None
     return base64.b64decode(data["content"]).decode("utf-8", errors="replace")
 
+PY_PACKAGE_MANIFESTS = ("pyproject.toml", "setup.py", "setup.cfg")
+
+
+def declares_python_package(manifests: dict[str, str]) -> bool:
+    """True when the repository is a Python PACKAGE (it declares itself, and so its own runtime dependencies, in
+    pyproject.toml [project] / [tool.poetry], setup.py or setup.cfg [metadata] / [options]). Its requirements*.txt
+    files are then development pins (docs, tests, tooling), not what users install. Since 2026.11.08-12."""
+    py = manifests.get("pyproject.toml") or ""
+    cfg = manifests.get("setup.cfg") or ""
+    return bool(re.search(r"^\[(?:project|tool\.poetry)\]\s*$", py, re.M)
+                or manifests.get("setup.py") is not None
+                or re.search(r"^\[(?:metadata|options)\]\s*$", cfg, re.M))
+
+
 def collect_dependencies(client: GitHubClient, owner: str, repo: str) -> dict:
     deps, unpinned, files = [], 0, []
+    manifests: dict[str, str] = {}
     txt = _read_file(client, owner, repo, "requirements.txt")
     if txt is not None:
+        for fn in PY_PACKAGE_MANIFESTS:     # only needed to decide what requirements.txt is
+            m = _read_file(client, owner, repo, fn)
+            if m is not None:
+                manifests[fn] = m
+        is_package = declares_python_package(manifests)
         p, u = parse_requirements(txt)
-        deps += p; unpinned += u; files.append("requirements.txt")
+        scope = dependency_scope("requirements.txt", package_manifest=is_package)
+        deps += [{**d, "scope": scope} for d in p]; unpinned += u
+        files.append("requirements.txt" + (" (development pins: the project declares its own package)" if scope == "dev" else ""))
     lock = _read_file(client, owner, repo, "package-lock.json")
     if lock is not None:
         try:
@@ -107,7 +136,8 @@ def collect_dependencies(client: GitHubClient, owner: str, repo: str) -> dict:
         k = (d["ecosystem"], d["name"].lower(), d["version"])
         if k not in seen:
             seen.add(k); uniq.append(d)
-    return {"deps": uniq[:MAX_DEPS], "unpinned": unpinned, "files": files, "truncated": len(uniq) > MAX_DEPS}
+    return {"deps": uniq[:MAX_DEPS], "unpinned": unpinned, "files": files, "truncated": len(uniq) > MAX_DEPS,
+            "manifests": manifests}
 
 def osv_scan(deps: list[dict]) -> list[dict]:
     if not deps: return []

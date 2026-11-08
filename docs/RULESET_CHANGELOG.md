@@ -3,7 +3,31 @@
 Every change to detector logic, thresholds, tier mapping or fragility weights bumps `RULESET_VERSION`
 (`detectors/version.py`). Results produced under different versions are not directly comparable.
 
-## 2026.11.08-11 (FROZEN; pre-run structural fixes from the dev repository-mode run, no test-split item scanned)
+## 2026.11.08-12 (FROZEN; final pre-run dev round, no test-split item scanned)
+
+Changes detection outcomes (item 2), so the version is bumped. **No test-split item had been scanned.**
+
+1. **Windows: http_cache robustness** (no detection change). Reported: in artifact mode the dev item impacket 0.13.1
+   failed on Windows with "OSError: [Errno 22] Invalid argument" on a cache path. Checked: -11 did not change
+   impacket's release pair (0.13.1 vs 0.13.0 under -10 and -11), cache file names were already hash-only
+   (64 hex characters, no URL text, no trailing dots or spaces), and the temp names were long but legal. Most likely
+   cause (not reproducible here): the antivirus blocked writing or reading the cached impacket archive (impacket is
+   an offensive-security toolkit that antivirus commonly flags); Windows reports such a block through the C runtime
+   as errno 22 "Invalid argument". Changes: a failed cache read is a miss and a failed cache write no longer fails
+   the request (the data is used from memory); both are recorded with the full error in the item's `cache_errors`;
+   temp files get short names; paths near MAX_PATH use the Windows long-path form. A scan that raises now stores
+   the FULL exception text (with the Windows error code) in `error` and the traceback in `traceback`.
+2. **Dependency scope**: when the project declares its own Python package (pyproject.toml [project] /
+   [tool.poetry], setup.py, setup.cfg [metadata] / [options]), requirements*.txt files are development pins:
+   advisories there are Info "OSV (dev dependency)" and do not raise the security level or the caps (49 / 69,
+   values unchanged). Without a package manifest (an application) the root requirements.txt stays runtime.
+   requirements.txt is the only requirements file read (unchanged); the extra manifest reads happen only when it
+   exists. MAL- hits are unchanged in every scope.
+3. **Documentation only**: two existing rules kept by design added to the known false-positive classes in
+   PROJECT_CAPABILITIES.md (the offensive-terms cap of 59; Scorecard below 4 plus the maintenance ceiling on
+   dormant rule repositories).
+
+## 2026.11.08-11 (pre-run structural fixes from the dev repository-mode run, no test-split item scanned; superseded by 2026.11.08-12)
 
 Changes detection outcomes, so the version is bumped. **No test-split item had been scanned**; the evidence is the
 dev set only (repository-mode run on the maintainer's machine; artifact mode on dev packages here).

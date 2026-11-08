@@ -18,3 +18,8 @@ test set (`run_benchmark.contamination()` reads it).
   and generated version files, runtime-only dependency advisories, parse-warning hygiene, dev-set de-duplication).
   Details: docs/RULESET_CHANGELOG.md. **No test-split item had been scanned**: only dev items, synthetic code and
   recorded non-benchmark packages. Protocol table updated to 2026.11.08-11.
+- **2026.11.08-11 -> 2026.11.08-12** (2026-11-08): final pre-run dev round: Windows-robust download cache and full error text
+  in run records (no detection change), requirements*.txt as development pins when the project declares its own
+  Python package, documentation of two existing false-positive classes. Details: docs/RULESET_CHANGELOG.md.
+  **No test-split item had been scanned**: only dev items, synthetic code and recorded non-benchmark packages.
+  Protocol table updated to 2026.11.08-12.

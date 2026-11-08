@@ -1,6 +1,6 @@
 # Project capabilities
 
-Status as of ruleset `2026.11.08-11` (**frozen** for the Phase 5 benchmark; `2026.11.07-9` plus two pre-run changes, see benchmark/CHANGELOG.md) (branch `trust-engine`). Changes per ruleset version: [docs/RULESET_CHANGELOG.md](docs/RULESET_CHANGELOG.md). This file says what is built, what is
+Status as of ruleset `2026.11.08-12` (**frozen** for the Phase 5 benchmark; `2026.11.07-9` plus three pre-run changes, see benchmark/CHANGELOG.md) (branch `trust-engine`). Changes per ruleset version: [docs/RULESET_CHANGELOG.md](docs/RULESET_CHANGELOG.md). This file says what is built, what is
 measured and what is not yet measured. Every number here comes from a script in this repository; anything without
 a script behind it is marked "not yet measured".
 
@@ -246,3 +246,12 @@ benchmark false positive of these kinds is expected and is reported under "False
 - **Offensive security tools** (sqlmap, dev repository-mode run): security tools contain the same code as the
   malware they test for (reading credential stores, sending data to a remote host), so the behavior scan's
   credential-stealer pattern fires. Dual-use code cannot be told apart by static patterns alone.
+- **Offensive-security terms cap (59)** (signature-base, pwntools, dev repository-mode run): an existing rule kept by
+  design. Words such as malware, exploit, payload, pentest or red-team in the repository name, description or topics
+  cap the headline at 59 ("Review recommended"). Defensive projects (detection-signature collections) and
+  exploit-development libraries use the same words, so they are capped too. It is a dual-use warning, not evidence.
+- **Scorecard below 4 plus the maintenance ceiling** (Yara-Rules, dev repository-mode run): existing rules kept by
+  design. An OpenSSF Scorecard overall score below 4 raises the security level to "Elevated", which applies the 69
+  cap (its reason text reads "vulnerable dependencies", even when the trigger is the Scorecard); a maintenance score
+  below 40 (or an archived repository) adds the ceiling of 50. Dormant rule repositories score low on both, so they
+  are limited without any finding in their content.
