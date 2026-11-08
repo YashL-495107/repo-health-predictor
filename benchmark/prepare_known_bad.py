@@ -2,7 +2,8 @@
 
   python benchmark/prepare_known_bad.py --datadog-dir PATH [--samples-dir PATH] [--skip-extract]
 
-1. runs the pre-declared DataDog extraction (extract_datadog.py; protocol section 6), unless --skip-extract;
+1. runs the pre-declared DataDog extraction (extract_datadog.py; protocol section 6), unless --skip-extract; with a
+   folder made by fetch_datadog_subset.py the ZIPs are read through its subset/mapping.csv (Windows-compatible names);
 2. regenerates manifests/known_bad_items.csv: every known-bad item (OSV MAL- candidates whose registry code is still
    published, plus the extracted DataDog samples) with its split after the dev-overlap check and whether its code is
    present on this machine (a sample folder emptied by antivirus counts as "no code");
@@ -66,6 +67,12 @@ def main(argv=None) -> int:
         rc = extract_datadog.main(["--dataset", a.datadog_dir, "--samples-dir", str(samples_root)])
         if rc:
             return rc
+    mapping = extract_datadog.load_mapping(Path(a.datadog_dir))
+    if mapping:   # a fetched subset: ZIPs are read through <dir>/subset/mapping.csv (Windows-compatible names)
+        unsafe = [m for m in mapping.values() if m.get("note")]
+        print(f"DataDog subset mapping: {len(mapping)} ZIP(s) stored under Windows-compatible names"
+              + (f"; {len(unsafe)} with a original path Windows cannot hold, kept: e.g. {unsafe[0]['original_path']} "
+                 f"({unsafe[0]['note']})" if unsafe else ""))
     rows = build(samples_root)
     with open(OUT, "w", newline="", encoding="utf-8") as fh:
         fh.write("# Known-bad items after extraction and the dev-overlap check (no scan); has_code = code present on "

@@ -110,26 +110,66 @@ def parse_sample_path(rel: str) -> dict | None:
             "version": parts[-2], "file": parts[-1], "sample_path": rel}
 
 
+SUBSET_DIR = "subset"                 # <dataset>/subset/<eco>/<category>/<sha1 of original path>.zip
+MAPPING_FIELDS = ["original_path", "safe_path", "size", "sha256", "git_blob", "method", "note"]
+
+
+def safe_sample_path(r: dict) -> str:
+    """Windows-compatible flat storage name of a sample ZIP (relative to the dataset folder). The original dataset path is
+    never created on disk: some cannot exist on Windows (names ending in '.', reserved names)."""
+    h = hashlib.sha1(r["sample_path"].encode("utf-8", "surrogateescape")).hexdigest()
+    return f"{SUBSET_DIR}/{r['eco_dir']}/{safe_component(r['kind'], 40)}/{h}.zip"
+
+
+def load_mapping(dataset: Path) -> dict[str, dict]:
+    """{original path: row} from <dataset>/subset/mapping.csv (written by fetch_datadog_subset.py); {} without it."""
+    p = Path(dataset) / SUBSET_DIR / "mapping.csv"
+    if not p.is_file():
+        return {}
+    with open(p, newline="", encoding="utf-8") as fh:
+        return {r["original_path"]: r for r in csv.DictReader(fh)}
+
+
+def write_mapping(dataset: Path, mapping: dict[str, dict]) -> None:
+    p = Path(dataset) / SUBSET_DIR / "mapping.csv"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    tmp = p.with_name("mapping.csv.part")
+    with open(tmp, "w", newline="", encoding="utf-8") as fh:
+        w = csv.DictWriter(fh, fieldnames=MAPPING_FIELDS)
+        w.writeheader()
+        w.writerows(sorted(mapping.values(), key=lambda r: r["original_path"]))
+    os.replace(tmp, p)
+
+
+def sample_location(dataset: Path, rel: str, mapping: dict[str, dict] | None = None) -> Path:
+    """Where a sample ZIP is on disk: its storage name from the subset mapping when there is one, else its original path
+    (a plain folder or a full clone)."""
+    m = (mapping if mapping is not None else load_mapping(dataset)).get(rel)
+    return Path(dataset) / (m["safe_path"] if m else rel)
+
+
 def git_listing(dataset: Path) -> list[str] | None:
     """Every sample ZIP path in the clone's HEAD tree, from git (tree objects only: `ls-tree --name-only` never needs
-    the file contents, so it works on a partial / sparse clone without downloading anything). None when the dataset
-    folder is not a git repository or git is unavailable."""
+    the file contents, so it works on a partial clone without downloading anything; -z keeps any path unquoted).
+    None when the dataset folder is not a git repository or git is unavailable."""
     if not (dataset / ".git").exists():
         return None
     import subprocess
     try:
-        out = subprocess.run(["git", "-C", str(dataset), "-c", "core.quotepath=off", "ls-tree", "-r", "--name-only",
+        out = subprocess.run(["git", "-C", str(dataset), "-c", "core.quotepath=off", "ls-tree", "-r", "-z", "--name-only",
                               "HEAD", "--", "samples/pypi", "samples/npm"],
-                             capture_output=True, text=True, encoding="utf-8", timeout=600, check=True).stdout
+                             capture_output=True, timeout=600, check=True).stdout
     except (OSError, subprocess.SubprocessError):
         return None
-    return [line for line in out.splitlines() if line.endswith(".zip")]
+    paths = [p.decode("utf-8", "surrogateescape") for p in out.split(b"\0") if p]
+    return [p for p in paths if p.endswith(".zip")]
 
 
 def list_samples(dataset: Path) -> list[dict]:
-    """All sample ZIPs of the dataset, path-sorted, each with present=True when the file is on disk. In a git clone
-    the listing comes from git, so a sparse clone (fetch_datadog_subset.py) still sees the FULL dataset listing and the
-    pre-declared random draw is the same as on a full clone; otherwise the folder is walked."""
+    """All sample ZIPs of the dataset, path-sorted, each with present=True when the file is on disk (at its storage
+    name from the subset mapping, or at its original path). In a git clone the listing comes from git, so a partial
+    clone (fetch_datadog_subset.py) still sees the FULL dataset listing and the pre-declared random draw is the same
+    as on a full clone; otherwise the folder is walked."""
     paths = git_listing(dataset)
     if paths is None:
         paths = []
@@ -137,11 +177,12 @@ def list_samples(dataset: Path) -> list[dict]:
             base = dataset / "samples" / eco_dir
             if base.is_dir():
                 paths += [p.relative_to(dataset).as_posix() for p in base.rglob("*.zip")]
+    mapping = load_mapping(dataset)
     out = []
     for rel in paths:
         info = parse_sample_path(rel)
         if info:
-            out.append({**info, "present": (dataset / rel).is_file()})
+            out.append({**info, "present": sample_location(dataset, rel, mapping).is_file()})
     return sorted(out, key=lambda r: r["sample_path"])
 
 
@@ -344,8 +385,8 @@ def main(argv=None) -> int:
     print(DEFENDER_WARNING, "\n", file=sys.stderr)
     samples_root = Path(a.samples_dir or os.environ.get("REPOHEALTH_SAMPLES_DIR") or DEFAULT_SAMPLES).resolve()
     dataset = Path(a.dataset)
-    if not (dataset / "samples").is_dir():
-        print(f"not a dataset clone (no samples/ folder): {dataset}", file=sys.stderr)
+    if not ((dataset / "samples").is_dir() or (dataset / ".git").exists() or (dataset / SUBSET_DIR / "mapping.csv").is_file()):
+        print(f"not a dataset folder (no samples/ folder, git clone or subset/mapping.csv): {dataset}", file=sys.stderr)
         return 2
     commit = dataset_commit(dataset)
     listing = list_samples(dataset)
@@ -369,20 +410,21 @@ def main(argv=None) -> int:
     if a.limit is not None:
         chosen = chosen[: a.limit]
     rows, member_rows = [], []
+    mapping = load_mapping(dataset)
     for k, r in enumerate(chosen, 1):
-        zpath = dataset / r["sample_path"]
+        zpath = sample_location(dataset, r["sample_path"], mapping)   # storage name in a fetched subset
         if not zpath.is_file():
             rows.append({"ecosystem": r["ecosystem"], "package": r["package"], "version": r["version"], "kind": r["kind"],
                          "sample_path": r["sample_path"], "selected_by": r["selected_by"], "zip_bytes": "",
                          "dataset_commit": commit, "id": f"DD-{r['ecosystem']}-{r['package']}-{r['version']}-notfetched",
-                         "zip_sha256": "", "status": "not fetched", "reason": "selected but not on disk (sparse clone)",
+                         "zip_sha256": "", "status": "not fetched", "reason": "selected but not on disk (not in the fetched subset)",
                          "sample_dir": "", "members_total": "", "text_written": 0, "bytes_written": 0, "skipped": "",
-                         "limits_hit": ""})
+                         "limits_hit": "", "storage_note": ""})
             continue
         size = zpath.stat().st_size
         base = {"ecosystem": r["ecosystem"], "package": r["package"], "version": r["version"], "kind": r["kind"],
                 "sample_path": r["sample_path"], "selected_by": r["selected_by"], "zip_bytes": size,
-                "dataset_commit": commit}
+                "dataset_commit": commit, "storage_note": (mapping.get(r["sample_path"]) or {}).get("note", "")}
         if size > MAX_ZIP_BYTES:
             rows.append({**base, "id": f"DD-{r['ecosystem']}-{r['package']}-{r['version']}-toolarge", "zip_sha256": "",
                          "status": "skipped", "reason": f"ZIP larger than {MAX_ZIP_BYTES} bytes", "sample_dir": "",
@@ -412,7 +454,7 @@ def main(argv=None) -> int:
         print(f"[{k}/{len(chosen)}] {sid}: {status}, {n} text file(s), skipped {sum(skipped.values())}")
     cols = ["id", "ecosystem", "package", "version", "kind", "sample_path", "selected_by", "zip_sha256", "zip_bytes",
             "status", "reason", "sample_dir", "members_total", "text_written", "bytes_written", "skipped", "limits_hit",
-            "dataset_commit"]
+            "dataset_commit", "storage_note"]
     note = (f"# DataDog samples extracted as inert text (.sample) | dataset commit {commit} | seed {SEED} | "
             f"method: benchmark/README.md section 6 | samples themselves are NOT committed\n")
     with open(MANIFEST, "w", newline="", encoding="utf-8") as fh:

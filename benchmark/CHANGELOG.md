@@ -30,3 +30,10 @@ test set (`run_benchmark.contamination()` reads it).
   `extract_datadog.py` lists samples from git in a clone (same random draw on a sparse clone) and matches candidates at
   version level; section 6 of the README amended accordingly, with the DataDog manifest rule. **No test-split item had
   been scanned**: only a metadata dry run against the dataset (trees and the two manifest files; no sample downloaded).
+- **DataDog fetch on Windows** (2026-11-08, ruleset unchanged at 2026.11.08-12; **no ruleset or scanner file changed**):
+  the previous fetch failed on Windows ("git checkout main failed: error: invalid path" for an npm package folder
+  ending in "."). The partial clone is now never checked out; selected ZIPs are fetched by HTTPS (git objects as
+  fallback), verified against their git blob ids and stored under flat hash names with `subset/mapping.csv`, which
+  extract_datadog.py and prepare_known_bad.py read through. The selection is byte-identical (tested on the real
+  listing: the same 312 ZIPs). **No test-split item had been scanned**: only a metadata dry run (trees, the two
+  manifests, HEAD requests; no sample downloaded).

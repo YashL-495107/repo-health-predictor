@@ -24,7 +24,9 @@ DOC_FILES = ["README.md", "PROJECT_CAPABILITIES.md"] + \
 
 FORBIDDEN = re.compile(r"\b(?:un)?safe(?:r|st|ly|ty)?\b|\bsecure[ds]?\b|\bclean(?:ed|ly|er|est)?\b|\bguarantee[sd]?\b", re.I)
 NEGATION = re.compile(r"\b(?:not|never|no|cannot)\b[^.;:!?]{0,40}$", re.I)
-ALLOWED_LITERALS = ("SecureCodingDojo",)   # quoted third-party names
+# quoted third-party names, and the storage-note marker the benchmark owner asked for ("unsafe name, obtained via
+# <method>": a dataset FILE NAME that Windows cannot hold, not a verdict on a package)
+ALLOWED_LITERALS = ("SecureCodingDojo", "unsafe name, obtained via")
 
 
 def violations(text: str) -> list[str]:
