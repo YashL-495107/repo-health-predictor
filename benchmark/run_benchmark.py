@@ -678,6 +678,7 @@ def run_item_isolated(item: dict, cfg: dict, budget_s: float) -> dict:
     wconn.close()
     rec = None
     deadline = t0 + budget_s
+    timed_out = False
     try:
         # short polls plus a liveness check: on Windows a child that dies abruptly does not always make poll() see
         # the closed pipe, so waiting on the pipe alone would turn a crash into a timeout
@@ -690,17 +691,21 @@ def run_item_isolated(item: dict, cfg: dict, budget_s: float) -> dict:
                     rec = rconn.recv()
                 break
             if time.monotonic() >= deadline:
+                timed_out = True
                 break
     except (EOFError, OSError):
-        rec = None
+        rec = None      # the pipe closed without a result: the process died (classified below by its exit code)
     if rec is None:
-        if p.is_alive():
+        if timed_out:
             p.kill()
             p.join(10)
             rec = {"status": "not_assessed", "error": "timeout",
                    "not_assessed_reason": f"timeout: no result within {budget_s:.0f} s (process killed)"}
         else:
-            p.join(5)
+            p.join(10)               # a dying process can still be alive for a moment after its pipe closed
+            if p.is_alive():
+                p.kill()
+                p.join(5)
             rec = {"status": "not_assessed", "error": "killed",
                    "not_assessed_reason": f"killed: the item process ended without a result (exit code {p.exitcode})"}
         rec["isolation"] = "process"
