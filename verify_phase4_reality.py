@@ -323,15 +323,19 @@ def test_gemini_key_caption():
     none = cap("", None, "")
     short = cap("abcdefgh", None, "")
     shown = [from_secrets, from_sidebar_both, bad_type, env_only, none, short]
-    ok = (from_secrets == "Gemini key from: secrets (39 chars, ends …ab12)"
-          and from_sidebar_both.startswith("Gemini key from: sidebar (39 chars, ends …ab12)") and "both exist" in from_sidebar_both
-          and "zz99" not in from_sidebar_both
-          and bad_type.startswith("Gemini key from: none") and "is a dict, not a string" in bad_type
-          and env_only.startswith("Gemini key from: environment (39 chars, ends …ab12)") and "stripped" in env_only
-          and none == "Gemini key from: none"
-          and short == "Gemini key from: sidebar (8 chars, too short to show its ending)"
-          and not any(key[:-4] in c or key[-5:] in c for c in shown))
-    _record("Sidebar key caption: source, length, last 4 only, notes", ok, "\n".join(shown))
+    # since the UI fix of 2026-11-08 the diagnostic shows no part of any key (no length, no characters), and the
+    # app does not display it at all
+    other = "AIzaOTHERsecretKEYvalue000000000000zz99"
+    ok = (from_secrets == "Gemini key from: secrets (set)"
+          and from_sidebar_both.startswith("Gemini key from: sidebar (set)") and "both exist" in from_sidebar_both
+          and bad_type.startswith("Gemini key: none") and "is a dict, not a string" in bad_type
+          and env_only == "Gemini key from: environment (set)"
+          and none == "Gemini key: none"
+          and short == "Gemini key from: sidebar (set)"
+          and not any(ch in c for c in shown for ch in (key[-4:], key[:8], other[-4:], "39", "chars", "ends")))
+    _record("Key diagnostic never shows any part of a key (no length, no characters); app does not display it",
+            ok and "describe_gemini_key" not in open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "app.py"),
+                                                    encoding="utf-8").read(), "\n".join(shown))
 
 def test_sdk_error_status_message_scrubbed():
     from google.genai import errors

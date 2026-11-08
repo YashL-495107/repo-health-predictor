@@ -157,6 +157,7 @@ def compute_repo_blast_radius(features: dict, security: dict, release_diff: dict
         "blast_score": blast_score,
         "tier": tier,
         "total_dependents": total_dependents,
+        "dependents_source": "deps.dev" if deps_info else None,   # None: deps.dev unsupported, unreachable or no data
         "direct_dependents": direct_dependents,
         "indirect_dependents": indirect_dependents,
         "estimated_downstream_repos": reach_signal,

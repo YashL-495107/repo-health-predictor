@@ -78,19 +78,13 @@ def resolve_gemini_key(sidebar_value, secrets_value=_MISSING, env_value=None) ->
 
 
 def describe_gemini_key(key: str, source: str, notes: list[str] | None = None) -> str:
-    """One-line diagnostic: source, length after normalising, and at most the last 4 characters."""
+    """One-line diagnostic for logs: where the key came from and whether it is usable. It never includes any part
+    of the key (no length, no characters). The app does not display it."""
     if source == "none" or not key:
-        text = "Gemini key from: none"
+        text = "Gemini key: none"
     else:
         cleaned, err = clean_api_key(key)
-        if err:
-            text = f"Gemini key from: {source} (unusable: {err})"
-        else:
-            # Only reveal an ending when the key is long enough that 4 characters are a small fraction of it.
-            ending = f", ends …{cleaned[-4:]}" if len(cleaned) >= 12 else ", too short to show its ending"
-            text = f"Gemini key from: {source} ({len(cleaned)} chars{ending})"
-            if len(cleaned) != len(key):
-                text += "; whitespace/quotes/hidden characters were stripped"
+        text = f"Gemini key from: {source} (unusable: {err})" if err else f"Gemini key from: {source} (set)"
     for n in notes or []:
         text += f". Note: {n}"
     return text

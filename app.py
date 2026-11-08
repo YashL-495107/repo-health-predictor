@@ -18,7 +18,8 @@ from security import action_verdict, apply_gate, assess_security, content_flags,
 from repo_scan import scan_repo
 from bus_factor import run_bus_factor_analysis
 import hashlib
-from intelligence import build_ai_cards, SuccessCache, gather_repo_intel, run_ai_layer, _configured_model, resolve_gemini_key, describe_gemini_key, _MISSING
+from intelligence import build_ai_cards, SuccessCache, gather_repo_intel, run_ai_layer, _configured_model, resolve_gemini_key, _MISSING
+from ui_text import TRUST_DISCLAIMER, blast_display, headline_label
 from blast_radius import analyze_blast_radius
 from detectors import RULESET_VERSION, TIER_DISPLAY
 from releases import collect_release_context
@@ -110,6 +111,7 @@ def analyze(owner: str, repo: str, token: str, _progress=None) -> dict:
     try:
         release_diff = (scan.get("malware_proof") or {}).get("release_diff")
         blast = analyze_blast_radius(features, security, release_diff, deps=deps_list)
+        blast["fetched_at"] = time.strftime("%Y-%m-%d", time.gmtime())     # when the deps.dev counts were read
     except Exception as e: blast = {"blast_score": 0.0, "tier": "Unknown", "pinned_deps": 0, "unpinned_deps": 0, "typosquat_alerts": [], "compromise_simulation": "", "total_dependents": 0}
 
     try: intel = _stage(_progress, "Forks and issue triage", lambda: gather_repo_intel(mk(), owner, repo, features), timings, "intel")
@@ -259,7 +261,7 @@ with st.sidebar:
     token = user_token.strip() or server_token()
     gemini_key_input = st.text_input("Gemini API key (optional, for AI migration & triage)", type="password", placeholder="Leave empty for deterministic heuristics", help="Used for generative architecture migration code snippets and semantic issue triage.")
     gemini_key, key_source, key_notes = resolve_gemini_key(gemini_key_input, _gemini_secret_raw(), os.getenv("GEMINI_API_KEY", ""))
-    st.caption(describe_gemini_key(gemini_key, key_source, key_notes))
+    # no key diagnostics in the UI: never display any part of a secret (source, length or characters)
     st.caption("Maintenance score bands")
     st.markdown(f"- **Healthy**: {HEALTHY}+\n- **Slowing down**: {SLOWING}-{HEALTHY - 1}\n- **Likely abandoned**: below {SLOWING}")
 
@@ -295,12 +297,13 @@ if go_clicked or (target and st.session_state.get("analyzed") == target):
     color = COLORS.get(res["maintenance_label"], "#444")
     trust_color = TRUST_COLORS.get(res.get("trust_label_base"), "#444")
     trust_val = "n/a" if res.get("trust_score") is None else f"{res['trust_score']:.0f}"
+    shown_label = headline_label(res["label"], res.get("trust_label_base"), len(data["scan"].get("findings") or []))
     st.subheader(f["full_name"])
     if f["description"]: st.write(f["description"])
 
     left, right = st.columns([1, 2])
     with left:
-        st.markdown(f"<div style='border-left:8px solid {trust_color};padding:6px 16px'><div style='font-size:14px;color:#888'>Trust score <span style='font-size:12px'>(indicators, not proof)</span></div><div style='font-size:56px;font-weight:700;line-height:1.1'>{trust_val}<span style='font-size:20px;color:#888'> / 100</span></div><div style='font-size:20px;font-weight:600;color:{trust_color}'>{html.escape(res['label'])}</div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='border-left:8px solid {trust_color};padding:6px 16px'><div style='font-size:14px;color:#888'>Trust score <span style='font-size:12px'>(indicators, not proof)</span></div><div style='font-size:56px;font-weight:700;line-height:1.1'>{trust_val}<span style='font-size:20px;color:#888'> / 100</span> <span style='font-size:13px;color:#888;font-weight:400'>{TRUST_DISCLAIMER}</span></div><div style='font-size:20px;font-weight:600;color:{trust_color}'>{html.escape(shown_label)}</div></div>", unsafe_allow_html=True)
         if res.get("limiting_reason"): st.caption(_md_escape(res["limiting_reason"]))
         st.write("")
         m1, m2, m3 = st.columns(3)
@@ -346,7 +349,7 @@ if go_clicked or (target and st.session_state.get("analyzed") == target):
     if base in (LABEL_KNOWN_MALICIOUS, LABEL_HIGH_RISK, LABEL_REVIEW, LABEL_FRAGILE, LABEL_NO_FINDINGS, LABEL_NOT_ASSESSED):
         box = st.error if base == LABEL_KNOWN_MALICIOUS else (st.warning if base in (LABEL_HIGH_RISK, LABEL_REVIEW) else st.info)
         detail = why if "DO NOT USE" in headline else _md_escape(res.get("limiting_reason") or "")
-        box(f"**{_md_escape(res['label'])}.** {detail}")
+        box(f"**{_md_escape(shown_label)}.** {detail}")
         st.caption(f"Maintenance advice: {headline}. {why}" if "DO NOT USE" not in headline else "")
     else:
         box = st.error if (headline in ("Replace it", "Review urgently") or "DO NOT USE" in headline) else (st.warning if headline in ("Upgrade or review", "Use with caution", "Review the findings before using", "Plan to migrate", "Review the code findings", "High-risk patterns found: review manually before use") else st.info)
@@ -373,26 +376,6 @@ if go_clicked or (target and st.session_state.get("analyzed") == target):
             if beh.get("patterns"):
                 st.warning("Malware-like combination(s): " + ", ".join(beh["patterns"]) + ". Indicators, not proof of intent.")
 
-    st.markdown("#### 🧠 AI explanation of findings (advisory, never changes the score)")
-    st.caption("Skills come from the local skills/ folder; the AI can be wrong and cannot change the verdict.")
-    cards = build_ai_cards(audit_trails)
-    if not cards:
-        st.info("AI explanation not shown: " + str(ai_status))
-    else:
-        if any(c["failed"] for c in cards): st.info("AI explanation status: " + str(ai_status))
-        for card in cards:
-            # Titles are built from validated enums or fixed text; the location comes from the repo, so escape it.
-            with st.expander(f"{'⚠️' if card['failed'] else '🔍'} {_md_escape(card['location'])}: {card['title']}"):
-                if card["failed"]:
-                    st.text(card["reason"])
-                    continue
-                trail = card["trail"]
-                st.text("Skill used: " + trail["skill_used"])
-                st.text("Issue addressed: " + trail.get("issue_addressed", ""))
-                st.text("How:\n" + "\n".join("  • " + h for h in trail.get("how", [])))
-                st.text(f"Verdict: {trail['verdict']} ({trail['confidence']} confidence)")
-                st.text("Location: " + card["location"])
-
     bf_data = data.get("bus_factor")
     if bf_data and not str(bf_data.get("burnout_status", "")).startswith("Unavailable"):
         st.markdown("#### 🚌 Bus Factor, Knowledge Monopoly & Maintainer Burnout")
@@ -408,21 +391,53 @@ if go_clicked or (target and st.session_state.get("analyzed") == target):
     br_data = data.get("blast_radius")
     if br_data and br_data.get("tier") != "Unknown":
         st.markdown("#### 💥 Supply-Chain Blast Radius & Typosquatting Guard")
-        r1, r2, r3, r4 = st.columns(4)
-        r1.metric("Ecosystem Tier", br_data.get("tier", "Localized"))
-        r2.metric("Blast Radius Score", f"{br_data.get('blast_score', 0):.0f} / 100")
-        r3.metric("Pinned Deps", f"{br_data.get('pinned_deps', 0)} / {br_data.get('total_deps', 0)}")
-        r4.metric("Typosquat Alerts", len(br_data.get("typosquat_alerts", [])))
+        bd = blast_display(br_data, f["full_name"])
+        for col, (name, value) in zip(st.columns(4), bd["metrics"]): col.metric(name, value)
+        st.caption(_md_escape(bd["caption"]))
         if br_data.get("typosquat_alerts"):
             for alert in br_data["typosquat_alerts"]: st.error(f"🚨 **TYPOSQUATTING ALERT:** Dependency `{alert['package']}` resembles popular package `{alert['resembles']}` ({alert.get('ecosystem', 'PyPI')}). Verify authenticity immediately!")
         elif br_data.get("typosquat_warning"): st.warning(f"⚠️ {br_data['typosquat_warning']}")
-        sim = br_data.get("compromise_simulation")
-        if sim: st.info("⚡ **Compromise Simulator:** " + sim)
+        if bd["simulator"]: st.info("⚡ **Compromise Simulator:** " + bd["simulator"])
 
     intel = data.get("intelligence")
     if intel:
-        st.markdown("#### 🧠 AI Migration Engine, Semantic Issue Triage & Active Forks")
-        ai_rep = intel.get("ai_report", {})
+        triage = intel.get("issue_triage", {})
+        counts = triage.get("counts", {})
+        forks = intel.get("forks", [])
+        if counts or forks:
+            st.markdown("#### Issue triage & active forks")
+        if counts:
+            tc1, tc2, tc3, tc4 = st.columns(4)
+            tc1.metric("Security / Vulnerability", counts.get("Security / Vulnerability", 0))
+            tc2.metric("Crash / Memory / Hang", counts.get("Crash / Memory / Hang", 0))
+            tc3.metric("Breaking / Compatibility", counts.get("Breaking / Compatibility", 0))
+            tc4.metric("General Bug / Feature", counts.get("General Bug / Feature", 0))
+        if forks:
+            with st.expander(f"Active Community Takeover Forks Ahead of Upstream ({len(forks)} found)"): st.dataframe(pd.DataFrame(forks), hide_index=True, width="stretch")
+
+    # Everything Gemini produces, in ONE collapsed section: advisory text, never part of the score or the benchmark.
+    with st.expander("AI-generated, advisory, not part of the benchmark", expanded=False):
+        st.markdown("##### 🧠 AI explanation of findings")
+        st.caption("Skills come from the local skills/ folder; the AI can be wrong and cannot change the score or the verdict.")
+        cards = build_ai_cards(audit_trails)
+        if not cards:
+            st.info("AI explanation not shown: " + str(ai_status))
+        else:
+            if any(c["failed"] for c in cards): st.info("AI explanation status: " + str(ai_status))
+            for card in cards:
+                # Titles are built from validated enums or fixed text; the location comes from the repo, so escape it.
+                st.markdown(f"**{'⚠️' if card['failed'] else '🔍'} {_md_escape(card['location'])}: {card['title']}**")
+                if card["failed"]:
+                    st.text(card["reason"])
+                    continue
+                trail = card["trail"]
+                st.text("Skill used: " + trail["skill_used"])
+                st.text("Issue addressed: " + trail.get("issue_addressed", ""))
+                st.text("How:\n" + "\n".join("  • " + h for h in trail.get("how", [])))
+                st.text(f"Verdict: {trail['verdict']} ({trail['confidence']} confidence)")
+                st.text("Location: " + card["location"])
+        ai_rep = (intel or {}).get("ai_report", {})
+        st.markdown("##### 🧠 AI Migration Engine")
         if str(ai_rep.get("source", "")).startswith("Gemini"):
             st.caption(f"Source: Gemini ({ai_rep.get('model') or 'unknown model'})")
         else:
@@ -432,17 +447,6 @@ if go_clicked or (target and st.session_state.get("analyzed") == target):
                 st.info("No Gemini key set: showing heuristic results.")
             st.caption("Source: Heuristic engine")
         if ai_rep.get("executive_memo"): st.text("Executive Memo: " + str(ai_rep["executive_memo"]))
-        triage = intel.get("issue_triage", {})
-        counts = triage.get("counts", {})
-        if counts:
-            tc1, tc2, tc3, tc4 = st.columns(4)
-            tc1.metric("Security / Vulnerability", counts.get("Security / Vulnerability", 0))
-            tc2.metric("Crash / Memory / Hang", counts.get("Crash / Memory / Hang", 0))
-            tc3.metric("Breaking / Compatibility", counts.get("Breaking / Compatibility", 0))
-            tc4.metric("General Bug / Feature", counts.get("General Bug / Feature", 0))
-        forks = intel.get("forks", [])
-        if forks:
-            with st.expander(f"Active Community Takeover Forks Ahead of Upstream ({len(forks)} found)"): st.dataframe(pd.DataFrame(forks), hide_index=True, width="stretch")
         alts = ai_rep.get("alternatives", [])
         if alts:
             st.markdown("##### 🔄 Recommended Drop-in Replacements & Migration")
