@@ -3,7 +3,48 @@
 Every change to detector logic, thresholds, tier mapping or fragility weights bumps `RULESET_VERSION`
 (`detectors/version.py`). Results produced under different versions are not directly comparable.
 
-## 2026.11.08-10 (FROZEN; pre-run wiring fix, no test-split item scanned)
+## 2026.11.08-11 (FROZEN; pre-run structural fixes from the dev repository-mode run, no test-split item scanned)
+
+Changes detection outcomes, so the version is bumped. **No test-split item had been scanned**; the evidence is the
+dev set only (repository-mode run on the maintainer's machine; artifact mode on dev packages here).
+
+1. **Legacy behavior regex rules on code/script files only** (`repo_behavior.scan_behavior`): py, js/mjs/cjs/jsx,
+   ts/tsx, coffee, sh/bash/zsh, ps1/psm1, bat/cmd, vbs, rb, php, go, java, kt, scala, cs, rs, pl, lua, swift, c/cpp/h,
+   .pth, and extension-less files with a "#!" line. Data/config text (yml, yaml, txt, md, json, toml, ini, cfg, xml,
+   rule files, wordlists) is no longer scanned by these rules. Install-hook checks (package.json scripts, setup.py
+   cmdclass) and CI workflows (ci_workflow) are unchanged.
+2. **Test files by filename** in the shared non-shipping classifier (`detectors/paths.py`): `*_test.go`,
+   `*_test.<ext>`, `test_*.py`, `*.test.js/ts` (also jsx/tsx/mjs/cjs), `*.spec.js/ts`, `conftest.py`. As before,
+   this only turns review-tier single indicators into info; high_risk and known_malicious are never touched.
+3. **Release selection** (`releases.select_window`, used by parse_pypi/parse_npm): N = the most recently published
+   STABLE release (pre-releases skipped when any stable release exists; replay mode keeps its target); its
+   predecessor = the highest lower version in the same major line published up to N (stable preferred), falling
+   back to the chronologically previous release only if there is none. Releases published after N are outside the
+   window. Applies to release_delta, tagless_release, publisher_change and dependency_injection (they read
+   [N, predecessor, ...]); revival_takeover keeps the chronological previous release for its dormancy gap.
+4. **tagless_release**: a phantom file is high_risk only with an install-time or concealed capability (install
+   hook, decoded payload) or a network/process capability that is NEW relative to the predecessor's artifact (same
+   file, same capability there = not new; no predecessor = new; predecessor unreadable = review). Otherwise review.
+   Capability-free generated version files (`_version.py`, `*_version.py`, `__version__.py`, `version.py`) are info
+   (before, `_version.py` and `version.py` were skipped entirely).
+5. **Dependency advisories, runtime only** (`security.assess_security`). Exactly what changed: dependencies now carry
+   a scope (`security.dependency_scope`); package-lock.json entries marked `"dev": true` are dev (the only dev source
+   read today: root requirements.txt and package.json `dependencies` were already runtime-only, and dev/test/docs
+   requirements files and extras are classified but not read). Dev-scope advisories (a) no longer raise the
+   security level, so they no longer trigger the existing caps (49 for 3+ vulnerable dependencies, 69 for some),
+   and (b) are reported as Info "OSV (dev dependency)" instead of an "OSV (dependency)" finding, so osv_advisories
+   gives them no review tier. Cap values, GitHub advisories and MAL- (malicious package) hits in ANY scope are
+   unchanged.
+6. **Hygiene**: SyntaxWarnings raised while parsing scanned code (ast.parse only) are silenced via a module filter
+   on the parse filename `<scanned-code>`; warnings from this project's own code still show. The benchmark dev set
+   is de-duplicated by item id (pypa/pip was listed in dev_fp and dev_credibility).
+
+Dev evidence (artifact mode, dev packages): axios 0.35.0 was compared with 1.21.0 ("adds process execution absent
+from 1.21.0", review) and is now compared with 0.34.0 (same file and capability: no finding); httpx was analysed at
+the pre-release 1.0.dev6 and is now analysed at 0.28.1. The other 21 dev packages are unchanged. One verification
+check changed its fixture file type (Python code in a .txt file -> .py; the .txt case is now asserted unscanned).
+
+## 2026.11.08-10 (pre-run wiring fix, no test-split item scanned; superseded by 2026.11.08-11)
 
 Changes detection outcomes, so the version is bumped. **No test-split item had been scanned** when this was made
 (only dev items, synthetic code and recorded non-benchmark packages); the test set is not contaminated.

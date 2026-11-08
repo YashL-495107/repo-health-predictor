@@ -12,7 +12,16 @@ passed through function calls, returns, attributes of other objects, or other mo
 from __future__ import annotations
 
 import ast
+import re
+import warnings
 from pathlib import PurePosixPath
+
+# Scanned code is only parsed (ast.parse), never executed. Its own invalid escape sequences etc. raise SyntaxWarning at
+# parse time; they are noise, so they are silenced for parses made with the SCANNED_FILENAME marker only (a module-level
+# filter, which works across threads, unlike catch_warnings). Warnings from this project's own code are unaffected.
+SCANNED_FILENAME = "<scanned-code>"
+warnings.filterwarnings("ignore", category=SyntaxWarning, module=re.escape(SCANNED_FILENAME) + r"\Z")
+
 
 MAX_PARSE_BYTES = 400_000
 MAX_NODES = 200_000
@@ -51,7 +60,7 @@ def _safe_parse(text: str) -> tuple[ast.AST | None, str | None]:
     if len(text.encode("utf-8", "ignore")) > MAX_PARSE_BYTES:
         return None, "too large"
     try:
-        tree = ast.parse(text)
+        tree = ast.parse(text, filename=SCANNED_FILENAME)
     except SyntaxError:
         return None, "syntax error"
     except (RecursionError, MemoryError, ValueError, OverflowError) as e:

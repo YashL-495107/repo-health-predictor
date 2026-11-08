@@ -13,3 +13,8 @@ test set (`run_benchmark.contamination()` reads it).
   name-relatedness checks never received the package/repository name in the real pipeline (both modes); found on
   the dev artifact run (paramiko). Details: docs/RULESET_CHANGELOG.md. **No test-split item had been scanned**: only
   dev items, synthetic code and recorded non-benchmark packages. Protocol table updated to 2026.11.08-10.
+- **2026.11.08-10 -> 2026.11.08-11** (2026-11-08): structural fixes from the dev repository-mode run (behavior regexes on
+  code files only, test files by name, stable/same-major release selection, tagless_release new-capability rule
+  and generated version files, runtime-only dependency advisories, parse-warning hygiene, dev-set de-duplication).
+  Details: docs/RULESET_CHANGELOG.md. **No test-split item had been scanned**: only dev items, synthetic code and
+  recorded non-benchmark packages. Protocol table updated to 2026.11.08-11.

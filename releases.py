@@ -175,6 +175,92 @@ def _load_artifact(art: dict | None) -> tuple[dict | None, str]:
     return (c, "read") if not c["error"] else (None, f"unreadable ({c['error']})")
 
 
+
+# ---------------------------------------------------------------- release selection (since 2026.11.08-11)
+
+_SEMVER = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$")
+_PEP440_FALLBACK = re.compile(r"^v?(?:(\d+)!)?(\d+(?:\.\d+)*)(.*)$", re.I)
+
+
+def parse_version(v: str, ecosystem: str) -> tuple[tuple | None, bool]:
+    """(sort key, is_prerelease). key None = unparseable (never chosen by version order, never 'stable').
+    npm: semver (a '-' suffix is a pre-release). PyPI: PEP 440 via `packaging` (a/b/rc/dev are pre-releases),
+    with a small fallback parser when `packaging` is not installed."""
+    v = str(v or "").strip()
+    if ecosystem == "npm":
+        m = _SEMVER.match(v)
+        if not m:
+            return None, True
+        pre = m.group(4)
+        pre_key = tuple((0, int(p), "") if p.isdigit() else (1, 0, p) for p in pre.split(".")) if pre else ()
+        return (int(m.group(1)), int(m.group(2)), int(m.group(3)), 0 if pre else 1, pre_key), bool(pre)
+    try:
+        from packaging.version import InvalidVersion, Version
+        try:
+            pv = Version(v)
+        except InvalidVersion:
+            return None, True
+        return (pv,), bool(pv.is_prerelease)
+    except ImportError:
+        m = _PEP440_FALLBACK.match(v)
+        if not m:
+            return None, True
+        rel = tuple(int(x) for x in m.group(2).split("."))
+        rest = m.group(3).lower()
+        pre = bool(re.search(r"(a|b|c|rc|alpha|beta|pre|preview|dev)\d*", rest))
+        return (int(m.group(1) or 0), rel + (0,) * (6 - len(rel)), 0 if pre else 1, rest), pre
+
+
+def major_of(key: tuple | None, ecosystem: str):
+    if key is None:
+        return None
+    if ecosystem == "npm":
+        return key[0]
+    head = key[0]
+    if hasattr(head, "release"):
+        return (head.epoch, head.release[0])
+    return (head, key[1][0])
+
+
+def select_window(entries: list[tuple[str, str]], n: int, until_version: str | None, ecosystem: str) -> tuple[list[str], dict]:
+    """entries: (version, upload time ISO). Returns (versions ordered [N, predecessor, older releases newest-first],
+    meta). N = the most recently published STABLE release (pre-releases are skipped when any stable release exists),
+    or until_version in replay mode. The predecessor is the highest version below N in the same major line among the
+    releases published up to N (stable ones preferred); only when there is none, the chronologically previous release.
+    Releases published after N are outside the window. meta: n_version, predecessor, predecessor_rule,
+    chronological_previous."""
+    seq = sorted(entries, key=lambda e: _dt(e[1]) or datetime.min)
+    if until_version is not None:
+        idx = next((i for i, e in enumerate(seq) if e[0] == until_version), None)
+        if idx is None:
+            return [], {}
+        seq = seq[:idx + 1]
+        n_ver = until_version
+    else:
+        if not seq:
+            return [], {}
+        stable = [v for v, _t in seq if (pv := parse_version(v, ecosystem))[0] is not None and not pv[1]]
+        n_ver = stable[-1] if stable else seq[-1][0]
+    t_n = _dt(dict(seq)[n_ver]) or datetime.min
+    before = [v for v, t in seq if v != n_ver and (_dt(t) or datetime.min) <= t_n]
+    chrono_prev = before[-1] if before else None
+    n_key, _ = parse_version(n_ver, ecosystem)
+    n_major = major_of(n_key, ecosystem)
+    cands = []
+    for v in before:
+        k, pre = parse_version(v, ecosystem)
+        if k is not None and n_key is not None and major_of(k, ecosystem) == n_major and k < n_key:
+            cands.append((k, pre, v))
+    if cands:
+        pool = [c for c in cands if not c[1]] or cands
+        pred, rule = max(pool, key=lambda c: c[0])[2], "version order, same major line"
+    else:
+        pred, rule = chrono_prev, "chronological (no lower version in the same major line)"
+    rest = [v for v in reversed(before) if v != pred][: max(0, n - 2)]
+    order = [n_ver] + ([pred] if pred else []) + rest
+    return order, {"n_version": n_ver, "predecessor": pred, "predecessor_rule": rule if pred else None,
+                   "chronological_previous": chrono_prev}
+
 # ---------------------------------------------------------------- PyPI
 
 _REQ_NAME = re.compile(r"^\s*([A-Za-z0-9][A-Za-z0-9._-]*)")
@@ -209,8 +295,8 @@ def _pypi_artifact(files: list[dict], prefer: str | None = None) -> dict | None:
 
 
 def parse_pypi(project: dict, n: int = DEFAULT_N, until_version: str | None = None) -> list[dict]:
-    """Newest-first list of the last n releases (no network). Versions without files are skipped.
-    until_version: replay mode, the window ends at that release (later releases are ignored)."""
+    """The release window (no network): [N, predecessor, older releases newest-first], see select_window.
+    Versions without files are skipped. until_version: replay mode, N is that release."""
     rels = []
     for v, files in (project.get("releases") or {}).items():
         times = [f.get("upload_time_iso_8601") for f in files if f.get("upload_time_iso_8601")]
@@ -219,11 +305,12 @@ def parse_pypi(project: dict, n: int = DEFAULT_N, until_version: str | None = No
         rels.append({"version": v, "upload_time": min(times), "yanked": all(f.get("yanked") for f in files),
                      "files": [{k: f.get(k) for k in ("filename", "url", "size", "packagetype")} for f in files],
                      "_files_raw": files})
-    rels.sort(key=lambda r: _dt(r["upload_time"]) or datetime.min)
-    if until_version is not None:
-        idx = next((i for i, r in enumerate(rels) if r["version"] == until_version), None)
-        rels = rels[:idx + 1] if idx is not None else []
-    return list(reversed(rels[-n:]))
+    order, meta = select_window([(r["version"], r["upload_time"]) for r in rels], n, until_version, "PyPI")
+    by_v = {r["version"]: r for r in rels}
+    out = [by_v[v] for v in order]
+    if out:
+        out[0]["selection"] = meta
+    return out
 
 
 def _pypi_publisher(name: str, version: str, filename: str) -> tuple[str | None, str]:
@@ -303,17 +390,17 @@ def fetch_pypi(name: str, n: int = DEFAULT_N, deadline: float | None = None, unt
 def parse_npm(packument: dict, n: int = DEFAULT_N, until_version: str | None = None) -> tuple[list[dict], list[str]]:
     times = {v: t for v, t in (packument.get("time") or {}).items() if v not in ("created", "modified")}
     versions = packument.get("versions") or {}
-    listed = sorted((v for v in versions if v in times), key=lambda v: _dt(times[v]) or datetime.min)
-    if until_version is not None:   # replay mode: the window ends at that release
-        listed = listed[:listed.index(until_version) + 1] if until_version in listed else []
-    window = listed[-n:]
-    first = _dt(times[window[0]]) if window else None
-    last = _dt(times[window[-1]]) if window else None
+    listed = [v for v in versions if v in times]
+    order, meta = select_window([(v, times[v]) for v in listed], n, until_version, "npm")
+    stamps = [_dt(times[v]) for v in order if _dt(times[v])]
+    first = min(stamps) if stamps else None
+    last = _dt(times[order[0]]) if order else None
+    window = order
     unlisted = sorted((v for v in times if v not in versions and first and (_dt(times[v]) or datetime.min) >= first
                        and (until_version is None or (_dt(times[v]) or datetime.max) <= last)),
                       key=lambda v: _dt(times[v]) or datetime.min)
     rels = []
-    for v in reversed(window):
+    for v in window:
         d = versions[v]
         dist = d.get("dist") or {}
         scripts = d.get("scripts") or {}
@@ -328,6 +415,8 @@ def parse_npm(packument: dict, n: int = DEFAULT_N, until_version: str | None = N
                      "publisher": ((d.get("_npmUser") or {}).get("name")),
                      "publisher_source": "npm _npmUser" if d.get("_npmUser") else "no _npmUser in packument",
                      "git_head": d.get("gitHead")})
+    if rels:
+        rels[0]["selection"] = meta
     return rels, unlisted
 
 

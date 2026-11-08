@@ -21,6 +21,9 @@ NON_SHIPPING_DIRS = {"test", "tests", "testing", "testdata", "test_data", "fixtu
                      # rule-definition directories (detection rules contain indicator strings by design)
                      "rules", "signatures", "yara", "sigma", "detections"}
 NON_SHIPPING_FILES = {"tasks.py", "noxfile.py"}
+# test files recognised by NAME (since 2026.11.08-11): *_test.go, *_test.<ext>, test_*.py, *.test.js/ts, *.spec.js/ts
+# (incl. jsx/tsx/mjs/cjs), conftest.py
+TEST_FILE = re.compile(r"(?:^test_[^/]*\.py|^conftest\.py|_test\.[a-z0-9]+|\.(?:test|spec)\.(?:[cm]?js|jsx|[cm]?ts|tsx))$", re.I)
 NEVER = {".github"}
 # token match inside a directory name ("certbot_integration_tests", "sample-config"); underscore-led names
 # (_static, _build) and .agents are matched as whole segments only
@@ -37,6 +40,8 @@ def non_shipping(path: str | None) -> str | None:
         return None
     if p.name.lower() in NON_SHIPPING_FILES:
         return f"{p.name} (developer task file)"
+    if TEST_FILE.search(p.name):
+        return f"{p.name} (test file)"
     for part in parts[:-1]:
         if part in NON_SHIPPING_DIRS:
             return f"{part}/ directory"

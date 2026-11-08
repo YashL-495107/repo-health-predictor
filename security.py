@@ -30,7 +30,7 @@ def parse_requirements(text: str) -> tuple[list[dict], int]:
         if not line or line.startswith(("-", "git+", "http")): continue
         m = re.match(r"^([A-Za-z0-9_.\-]+)(?:\[[^\]]*\])?\s*(==)\s*([A-Za-z0-9_.+!\-]+)$", line)
         if m and "*" not in m.group(3):
-            pinned.append({"name": m.group(1), "version": m.group(3), "ecosystem": "PyPI"})
+            pinned.append({"name": m.group(1), "version": m.group(3), "ecosystem": "PyPI", "scope": "runtime"})
         elif re.match(r"^[A-Za-z0-9_.\-]+", line):
             unpinned += 1
     return pinned, unpinned
@@ -40,10 +40,29 @@ def parse_package_json(text: str) -> tuple[list[dict], int]:
     pinned, unpinned = [], 0
     for name, spec in (data.get("dependencies") or {}).items():
         if re.fullmatch(r"\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.\-+]+)?", str(spec).strip()):
-            pinned.append({"name": name, "version": spec.strip(), "ecosystem": "npm"})
+            pinned.append({"name": name, "version": spec.strip(), "ecosystem": "npm", "scope": "runtime"})
         else:
             unpinned += 1
     return pinned, unpinned
+
+DEV_REQ_FILE = re.compile(r"(?:^|[-_./])(?:dev|develop|development|test|tests|testing|doc|docs|lint|ci|typing)(?:[-_./]|$)", re.I)
+DEV_EXTRAS = {"dev", "develop", "development", "test", "tests", "testing", "doc", "docs", "lint", "typing"}
+
+
+def dependency_scope(source_file: str, *, npm_dev: bool = False, extra: str | None = None) -> str:
+    """'runtime' or 'dev' (since 2026.11.08-11). dev: npm devDependencies or lockfile entries marked dev, requirements
+    files named for dev/test/docs (requirements-dev.txt, docs/requirements.txt, test-requirements.txt, ...), and
+    extras named dev/test/docs. Only runtime dependencies count toward Exposure review findings and the security caps;
+    dev-scope advisories are reported as Info."""
+    if npm_dev:
+        return "dev"
+    if extra and extra.strip().lower() in DEV_EXTRAS:
+        return "dev"
+    name = source_file.replace("\\", "/").lower()
+    if name.endswith((".txt", ".in")) and DEV_REQ_FILE.search(name.rsplit(".", 1)[0]):
+        return "dev"
+    return "runtime"
+
 
 def parse_package_lock(text: str) -> list[dict]:
     data = json.loads(text)
@@ -52,7 +71,9 @@ def parse_package_lock(text: str) -> list[dict]:
         if not path or "node_modules/" not in path: continue
         name = path.split("node_modules/")[-1]
         if info.get("version") and not info.get("link"):
-            out.append({"name": name, "version": info["version"], "ecosystem": "npm"})
+            # lockfile v2/v3 marks packages needed only for development ("dev"; "devOptional" is also optional/peer)
+            out.append({"name": name, "version": info["version"], "ecosystem": "npm",
+                        "scope": dependency_scope("package-lock.json", npm_dev=bool(info.get("dev")))})
     return out
 
 def _read_file(client: GitHubClient, owner: str, repo: str, path: str) -> str | None:
@@ -82,7 +103,7 @@ def collect_dependencies(client: GitHubClient, owner: str, repo: str) -> dict:
                 deps += p; unpinned += u; files.append("package.json")
             except ValueError: pass
     seen, uniq = set(), []
-    for d in deps:
+    for d in sorted(deps, key=lambda d: d.get("scope") != "runtime"):   # runtime wins when both list a package
         k = (d["ecosystem"], d["name"].lower(), d["version"])
         if k not in seen:
             seen.add(k); uniq.append(d)
@@ -211,11 +232,17 @@ def assess_security(client: GitHubClient, owner: str, repo: str) -> dict:
             coverage.append("Dependencies: no requirements.txt / package.json found, NOT checked")
             checks["osv_dependencies"] = "not_applicable"
         else:
-            hits = osv_scan(dep["deps"])
+            all_hits = osv_scan(dep["deps"])
+            is_mal_hit = lambda h: h.get("is_mal") or any(vid.startswith("MAL-") for vid in h["ids"])
+            # since 2026.11.08-11: dev/test/docs dependencies do not count toward the level (caps) or review findings;
+            # MAL- (malicious package) hits are unchanged in every scope
+            hits = [h for h in all_hits if h.get("scope", "runtime") == "runtime" or is_mal_hit(h)]
+            dev_hits = [h for h in all_hits if h not in hits]
             checked += 1
             checks["osv_dependencies"] = "ran"
             checks["osv_dependencies_detail"] = {"scanned": len(dep["deps"]), "unpinned_not_scanned": dep["unpinned"],
                                                  "truncated": dep["truncated"], "vulnerable": len(hits),
+                                                 "vulnerable_dev_only": len(dev_hits),
                                                  "detailed": min(len(hits), MAX_DETAIL)}
             note = f"Dependencies: scanned {len(dep['deps'])} exact versions from {', '.join(dep['files'])}"
             if dep["unpinned"]: note += f"; {dep['unpinned']} more have no exact version and were NOT scanned"
@@ -233,6 +260,12 @@ def assess_security(client: GitHubClient, owner: str, repo: str) -> dict:
                 severity = "High" if is_mal else "Elevated"
                 source = "OSV (Confirmed Malware)" if is_mal else "OSV (dependency)"
                 findings.append({"severity": severity, "source": source, "item": f"{h['name']} {h['version']}", "detail": f"{len(h['ids'])} advisory(ies), e.g. {main_id}: {info.get('summary', '')}.{fix}"})
+            for h in dev_hits[:MAX_DETAIL]:
+                findings.append({"severity": "Info", "source": "OSV (dev dependency)", "item": f"{h['name']} {h['version']}",
+                                 "detail": f"{len(h['ids'])} advisory(ies), e.g. {h['ids'][0]}. Development/test/docs "
+                                           "dependency only: not installed for users, so it does not lower the score."})
+            if dev_hits:
+                coverage.append(f"Dependencies: {len(dev_hits)} vulnerable development-only dependency(ies) reported as Info")
     except (requests.RequestException, ValueError, GitHubError) as e: coverage.append(f"Dependencies: NOT checked ({type(e).__name__})")
 
     try:

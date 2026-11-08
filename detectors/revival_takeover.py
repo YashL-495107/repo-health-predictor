@@ -75,7 +75,11 @@ def detect(ctx) -> dict:
         return gate
     rc = ctx.releases or {}
     rels = hist["releases"]
-    new, old = rels[0], rels[1]
+    new = rels[0]
+    # dormancy is about time: compare N with the CHRONOLOGICALLY previous release, not the version-order predecessor
+    # that release_delta & co. use since 2026.11.08-11 (an old 0.x line release would look like a long silence)
+    prev_v = (new.get("selection") or {}).get("chronological_previous")
+    old = next((r for r in rels[1:] if r["version"] == prev_v), rels[1])
     tn, to = _t(new.get("upload_time")), _t(old.get("upload_time"))
     pair = version_pair(hist, new, old)
     notes, silence, activity, ev = [], [], [], [pair]

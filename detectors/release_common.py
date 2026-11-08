@@ -34,6 +34,9 @@ def release_finding(detector: str, tier: str, rule: str, detail: str, evidence: 
 
 
 def version_pair(hist: dict, new: dict, old: dict | None) -> dict:
+    sel = new.get("selection") or {}
     return {"type": "version_pair", "ecosystem": hist.get("ecosystem"), "package": hist.get("name"),
             "new": new["version"], "new_upload_time": new.get("upload_time"),
-            "old": old["version"] if old else None, "old_upload_time": old.get("upload_time") if old else None}
+            "old": old["version"] if old else None, "old_upload_time": old.get("upload_time") if old else None,
+            # since 2026.11.08-11: N = latest stable release; predecessor by version order in the same major line
+            "pair_rule": sel.get("predecessor_rule") if old and sel.get("predecessor") == old["version"] else None}

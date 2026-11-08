@@ -129,7 +129,22 @@ def load_items() -> list[dict]:
         for r in read_manifest(CREDIBILITY):
             items.append(_item("dev", "", "", "", id_=f"dev:{r['repo']}", repo=r["repo"], source="dev_credibility.csv",
                                extra={"split": "dev", "obtainable": "yes", "group": r.get("group", "")}))
-    return items
+    return dedupe(items)
+
+
+def dedupe(items: list[dict]) -> list[dict]:
+    """One item per id (case-insensitive). A repository listed in two dev manifests (pypa/pip is in dev_fp.csv and
+    dev_credibility.csv) is kept once: the first entry (dev_fp, which carries the package) wins; the other source is
+    recorded in also_in."""
+    out, by_id = [], {}
+    for it in items:
+        k = it["id"].lower()
+        if k in by_id:
+            by_id[k].setdefault("also_in", []).append(it["source"])
+            continue
+        by_id[k] = it
+        out.append(it)
+    return out
 
 
 def assign_splits(items: list[dict], dev: dict | None = None) -> tuple[list[dict], list[dict]]:
