@@ -677,9 +677,20 @@ def run_item_isolated(item: dict, cfg: dict, budget_s: float) -> dict:
     p.start()
     wconn.close()
     rec = None
+    deadline = t0 + budget_s
     try:
-        if rconn.poll(budget_s):
-            rec = rconn.recv()
+        # short polls plus a liveness check: on Windows a child that dies abruptly does not always make poll() see
+        # the closed pipe, so waiting on the pipe alone would turn a crash into a timeout
+        while True:
+            if rconn.poll(0.5):
+                rec = rconn.recv()
+                break
+            if not p.is_alive():
+                if rconn.poll(0.5):
+                    rec = rconn.recv()
+                break
+            if time.monotonic() >= deadline:
+                break
     except (EOFError, OSError):
         rec = None
     if rec is None:
