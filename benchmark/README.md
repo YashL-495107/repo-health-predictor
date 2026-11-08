@@ -87,6 +87,16 @@ been viewed, except by appending to `benchmark/CHANGELOG.md`, which marks the te
   `known_bad_candidates.csv`, plus a random sample of 150 sample files per ecosystem with `random.Random(20261107)` over
   the path-sorted listing; extract in memory with the dataset's password, keep text members only (renamed `.sample`,
   executables skipped), never write executables and never run anything. Record the dataset commit hash in the manifest.
+  **Amendment (2026-11-08, before any test-split scan; no ruleset file changed):** the dataset is about 108 GB, so it
+  is not cloned in full: `fetch_datadog_subset.py` makes a partial sparse clone (trees only) and downloads only the
+  selected ZIPs. (1) Candidates are matched at **version level**, (ecosystem, package, version), with the benchmark's
+  shared normalisation (`bench_items.package_key`: PEP 503 for PyPI, exact for npm; `bench_items.version_key`: PEP 440
+  canonical form for PyPI, exact for npm). A candidate without a sample of its own version is NOT matched to another
+  version; the reason is recorded in `manifests/datadog_subset.csv`. Candidates whose advisory lists no version
+  cannot match. (2) The random draw is over the FULL dataset listing (from git, also in a sparse clone), so it is the
+  same as on a full clone. (3) **DataDog manifest rule:** in `samples/<eco>/manifest.json`, a package mapped to
+  `null` is malicious in every version; a package mapped to a list of versions is malicious ONLY in those versions.
+  The match report records what the manifest says about each candidate's version.
 - **Replay / regression cases** (`replay_incidents.csv`): event-stream/flatmap-stream, ua-parser-js, colors/faker,
   node-ipc, xz-utils. Each verified from a primary source (advisory) with its URL and the malicious change; marked
   "replayable" or "not replayable" with the reason. Never reconstructed or simulated.
@@ -201,8 +211,12 @@ python benchmark\run_benchmark.py --selfcheck --samples-dir $samples
 python benchmark\run_benchmark.py --mode artifact --split dev --snapshot $snap --samples-dir $samples
 python benchmark\run_benchmark.py --mode repo --split dev --snapshot $snap
 
-# 3. Known-bad preparation: extraction (pre-declared), known-bad item manifest, chat-AI item list. No scan.
-git clone --depth 1 https://github.com/DataDog/malicious-software-packages-dataset C:\bench\dd
+# 3. Known-bad preparation. The DataDog dataset is ~108 GB: do NOT git clone it. fetch_datadog_subset.py makes a
+#    partial sparse clone (trees only, ~12 MB) and downloads only the selected ZIPs (needs Git for Windows).
+#    First a dry run (matches candidates, prints files and MB, downloads no sample), then the fetch (refuses above
+#    --max-mb), then extraction (pre-declared), the known-bad item manifest and the chat-AI item list. No scan.
+python benchmark\fetch_datadog_subset.py --dir C:\bench\dd --dry-run
+python benchmark\fetch_datadog_subset.py --dir C:\bench\dd --max-mb 2000
 python benchmark\prepare_known_bad.py --datadog-dir C:\bench\dd --samples-dir $samples
 
 # 4. Test split, artifact mode: the headline run, then the runs shown beside it, then the replay cases
@@ -225,7 +239,14 @@ python benchmark\compare_chat_ai.py prompts --samples-dir $samples
 python benchmark\compare_chat_ai.py summarise
 ```
 
-Commit `benchmark/manifests/datadog_extracted.csv`, `datadog_members.csv`, `known_bad_items.csv`,
+Step 3, measured here on 2026-11-08 (dataset commit 72c723be, dry run, no sample downloaded): 28,988 sample ZIPs
+listed (2,273 PyPI, 26,715 npm); 13 of the 300 candidates match at version level (all malicious_intent), 287 do not
+(206 advisories list no version, 78 packages are not in the dataset, 3 have other versions only); the selection is
+312 ZIPs (13 candidate matches, 299 random), 229.4 MB to download; the tree-only clone took 24 s and 12 MB. Rerunning
+the fetch skips files already on disk. If the antivirus quarantines a ZIP, the fetch reports it as missing and
+extraction records it as "not fetched".
+
+Commit `benchmark/manifests/datadog_subset.csv`, `datadog_subset_fetch.txt`, `datadog_extracted.csv`, `datadog_members.csv`, `known_bad_items.csv`,
 `benchmark/chat_ai/items.csv`, `RESULTS.md` and `benchmark/results/` (hashes, ids and numbers only). Never commit
 the samples folder or the prompts.
 

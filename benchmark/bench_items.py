@@ -39,6 +39,29 @@ def norm(name: str) -> str:
     return re.sub(r"[-_.]+", "-", (name or "").strip().lower())
 
 
+def package_key(eco: str, name: str) -> str:
+    """The package-name key used everywhere in the benchmark: PyPI names are PEP 503-normalised (case, "-", "_" and
+    "." are equivalent); npm names are compared exactly (npm forbids upper case, and "." / "_" are significant)."""
+    return norm(name) if eco == "PyPI" else (name or "").strip()
+
+
+def version_key(eco: str, version: str) -> str:
+    """PyPI: the PEP 440 canonical form ("1.0" and "1.0.0" are the same release); npm: the string itself."""
+    v = (version or "").strip()
+    if eco == "PyPI" and v:
+        try:
+            from packaging.utils import canonicalize_version     # "1.0.0" and "1.0" -> "1" (PEP 440 equal)
+            from packaging.version import InvalidVersion, Version
+            try:
+                Version(v)
+            except InvalidVersion:
+                return v
+            return canonicalize_version(v)
+        except ImportError:
+            return v
+    return v
+
+
 def read_manifest(path: Path) -> list[dict]:
     """CSV rows, skipping '#' comment lines (the generator writes one header note)."""
     if not path.exists():

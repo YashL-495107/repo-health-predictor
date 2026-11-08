@@ -485,9 +485,11 @@ def test_extract_selection_is_seeded_and_parses_scoped_npm():
     listing = [XD.parse_sample_path(f"samples/npm/malicious_intent/@sc/pkg{i}/1.0.{i}/2024-01-01-pkg-v1.zip") for i in range(30)]
     listing += [XD.parse_sample_path(f"samples/pypi/compromised_lib/lib{i}/0.{i}/2024-01-01-lib-v0.zip") for i in range(30)]
     assert listing[0]["package"] == "@sc/pkg0" and listing[0]["ecosystem"] == "npm"
-    a = XD.select_samples(sorted(listing, key=lambda r: r["sample_path"]), {("PyPI", "lib3")}, n_random=5)
-    b = XD.select_samples(sorted(listing, key=lambda r: r["sample_path"]), {("PyPI", "lib3")}, n_random=5)
+    cands = {("PyPI", "lib3", "0.3"), ("PyPI", "lib4", "9.9")}          # version-level; lib4 9.9 is not in the dataset
+    a = XD.select_samples(sorted(listing, key=lambda r: r["sample_path"]), cands, n_random=5)
+    b = XD.select_samples(sorted(listing, key=lambda r: r["sample_path"]), cands, n_random=5)
     assert a == b and any(r["package"] == "lib3" and "candidate" in r["selected_by"] for r in a)
+    assert not any(r["package"] == "lib4" and "candidate" in r["selected_by"] for r in a)   # no substitute version
     assert len([r for r in a if r["eco_dir"] == "npm"]) == 5
     assert XD.parse_sample_path("samples/pypi/x.zip") is None
 

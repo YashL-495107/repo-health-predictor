@@ -182,7 +182,7 @@ class OsvIndex:
 
     @staticmethod
     def key(eco: str, name: str) -> str:
-        return bench_items.norm(name) if eco == "PyPI" else name
+        return bench_items.package_key(eco, name)
 
     def _have(self, con, eco: str) -> bool:
         return con.execute("SELECT n FROM meta WHERE eco = ?", (eco,)).fetchone() is not None

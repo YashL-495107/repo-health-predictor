@@ -23,3 +23,10 @@ test set (`run_benchmark.contamination()` reads it).
   Python package, documentation of two existing false-positive classes. Details: docs/RULESET_CHANGELOG.md.
   **No test-split item had been scanned**: only dev items, synthetic code and recorded non-benchmark packages.
   Protocol table updated to 2026.11.08-12.
+- **DataDog subset fetch** (2026-11-08, ruleset unchanged at 2026.11.08-12, tag ruleset-2026.11.08-12-frozen):
+  benchmark tooling and docs only, **no ruleset file changed** (no detector, rule, weight or threshold).
+  `fetch_datadog_subset.py` (partial sparse clone of the ~108 GB dataset, version-level candidate matching with the
+  shared name/version normalisation and no substitute versions, size guard before any download, resumable);
+  `extract_datadog.py` lists samples from git in a clone (same random draw on a sparse clone) and matches candidates at
+  version level; section 6 of the README amended accordingly, with the DataDog manifest rule. **No test-split item had
+  been scanned**: only a metadata dry run against the dataset (trees and the two manifest files; no sample downloaded).

@@ -20,9 +20,12 @@ Output goes to the samples folder (--samples-dir; default benchmark/samples/, gi
 sample paths relative to that folder, so run_benchmark.py must get the same --samples-dir. Committed: manifests/datadog_extracted.csv (one row per sample:
 id, hashes, sizes, members skipped and why) and manifests/datadog_members.csv (per member: action and reason, hash).
 
-Selection (pre-declared in benchmark/README.md section 6, before any result): every sample whose (ecosystem, package)
-appears in known_bad_candidates.csv, plus 150 sample files per ecosystem drawn with random.Random(20261107) (a fresh
-generator per ecosystem, pypi first) from the path-sorted listing. The union is extracted, without duplicates.
+Selection (pre-declared in benchmark/README.md section 6, before any result; amended 2026-11-08 before any test scan):
+every sample whose (ecosystem, package, version) matches a candidate in known_bad_candidates.csv (shared name and
+version normalisation, no substitute version), plus 150 sample files per ecosystem drawn with random.Random(20261107)
+(a fresh generator per ecosystem, pypi first) from the path-sorted FULL listing (from git in a clone, so a sparse
+clone gives the same draw). The union is extracted, without duplicates; selected files not on disk are recorded as
+"not fetched".
 
 Usage:  python benchmark/extract_datadog.py --dataset C:\\path\\to\\malicious-software-packages-dataset [--dry-run]
 """
@@ -107,25 +110,61 @@ def parse_sample_path(rel: str) -> dict | None:
             "version": parts[-2], "file": parts[-1], "sample_path": rel}
 
 
+def git_listing(dataset: Path) -> list[str] | None:
+    """Every sample ZIP path in the clone's HEAD tree, from git (tree objects only: `ls-tree --name-only` never needs
+    the file contents, so it works on a partial / sparse clone without downloading anything). None when the dataset
+    folder is not a git repository or git is unavailable."""
+    if not (dataset / ".git").exists():
+        return None
+    import subprocess
+    try:
+        out = subprocess.run(["git", "-C", str(dataset), "-c", "core.quotepath=off", "ls-tree", "-r", "--name-only",
+                              "HEAD", "--", "samples/pypi", "samples/npm"],
+                             capture_output=True, text=True, encoding="utf-8", timeout=600, check=True).stdout
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return [line for line in out.splitlines() if line.endswith(".zip")]
+
+
 def list_samples(dataset: Path) -> list[dict]:
+    """All sample ZIPs of the dataset, path-sorted, each with present=True when the file is on disk. In a git clone
+    the listing comes from git, so a sparse clone (fetch_datadog_subset.py) still sees the FULL dataset listing and the
+    pre-declared random draw is the same as on a full clone; otherwise the folder is walked."""
+    paths = git_listing(dataset)
+    if paths is None:
+        paths = []
+        for eco_dir in ECOS:
+            base = dataset / "samples" / eco_dir
+            if base.is_dir():
+                paths += [p.relative_to(dataset).as_posix() for p in base.rglob("*.zip")]
     out = []
-    for eco_dir in ECOS:
-        base = dataset / "samples" / eco_dir
-        if not base.is_dir():
-            continue
-        for p in base.rglob("*.zip"):
-            rel = p.relative_to(dataset).as_posix()
-            info = parse_sample_path(rel)
-            if info:
-                out.append(info)
+    for rel in paths:
+        info = parse_sample_path(rel)
+        if info:
+            out.append({**info, "present": (dataset / rel).is_file()})
     return sorted(out, key=lambda r: r["sample_path"])
 
 
-def select_samples(listing: list[dict], candidates: set[tuple[str, str]], n_random: int = N_RANDOM_PER_ECO,
+def candidate_keys(rows: list[dict]) -> set[tuple[str, str, str]]:
+    """(ecosystem, package key, version key) of the known-bad candidates; rows without a version cannot match a
+    version-level sample (since the pre-run amendment of 2026-11-08: no other version is substituted)."""
+    return {(r["ecosystem"], bench_items.package_key(r["ecosystem"], r["package"]),
+             bench_items.version_key(r["ecosystem"], r["version"])) for r in rows if (r.get("version") or "").strip()}
+
+
+def sample_key(r: dict) -> tuple[str, str, str]:
+    return (r["ecosystem"], bench_items.package_key(r["ecosystem"], r["package"]),
+            bench_items.version_key(r["ecosystem"], r["version"]))
+
+
+def select_samples(listing: list[dict], candidates: set[tuple[str, str, str]], n_random: int = N_RANDOM_PER_ECO,
                    seed: int = SEED) -> list[dict]:
+    """Pre-declared selection (README section 6, amended 2026-11-08 before any test scan): every sample whose
+    (ecosystem, package, VERSION) matches a known-bad candidate (shared name/version keys), plus n_random sample
+    files per ecosystem drawn with a fresh random.Random(seed) from the path-sorted FULL listing."""
     chosen: dict[str, dict] = {}
     for r in listing:
-        if (r["ecosystem"], r["package"]) in candidates:
+        if sample_key(r) in candidates:
             chosen[r["sample_path"]] = {**r, "selected_by": "candidate"}
     for eco_dir in ECOS:   # pypi first, then npm; a fresh generator per ecosystem
         pool = [r for r in listing if r["eco_dir"] == eco_dir]
@@ -310,8 +349,12 @@ def main(argv=None) -> int:
         return 2
     commit = dataset_commit(dataset)
     listing = list_samples(dataset)
-    cands = {(r["ecosystem"], r["package"]) for r in bench_items.read_manifest(bench_items.MAN / "known_bad_candidates.csv")}
+    cands = candidate_keys(bench_items.read_manifest(bench_items.MAN / "known_bad_candidates.csv"))
     chosen = select_samples(listing, cands)
+    missing = [r for r in chosen if not r.get("present", True)]
+    if missing:
+        print(f"{len(missing)} selected sample(s) are not on disk (sparse clone: run fetch_datadog_subset.py); they are "
+              "recorded as 'not fetched'", file=sys.stderr)
     by = {}
     for r in chosen:
         by.setdefault((r["ecosystem"], r["selected_by"]), 0)
@@ -328,6 +371,14 @@ def main(argv=None) -> int:
     rows, member_rows = [], []
     for k, r in enumerate(chosen, 1):
         zpath = dataset / r["sample_path"]
+        if not zpath.is_file():
+            rows.append({"ecosystem": r["ecosystem"], "package": r["package"], "version": r["version"], "kind": r["kind"],
+                         "sample_path": r["sample_path"], "selected_by": r["selected_by"], "zip_bytes": "",
+                         "dataset_commit": commit, "id": f"DD-{r['ecosystem']}-{r['package']}-{r['version']}-notfetched",
+                         "zip_sha256": "", "status": "not fetched", "reason": "selected but not on disk (sparse clone)",
+                         "sample_dir": "", "members_total": "", "text_written": 0, "bytes_written": 0, "skipped": "",
+                         "limits_hit": ""})
+            continue
         size = zpath.stat().st_size
         base = {"ecosystem": r["ecosystem"], "package": r["package"], "version": r["version"], "kind": r["kind"],
                 "sample_path": r["sample_path"], "selected_by": r["selected_by"], "zip_bytes": size,
