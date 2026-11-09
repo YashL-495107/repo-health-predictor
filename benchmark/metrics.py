@@ -262,6 +262,67 @@ def headline_name(cfg: dict) -> str:
     return ", ".join(parts) + ("" if ok else " -- WARNING: not the protocol's headline settings")
 
 
+HISTORY_DETECTORS = ("publisher_change", "revival_takeover", "dependency_injection", "release_delta")
+
+
+def osv_flagged(r: dict) -> bool:
+    """The OSV MAL- lookup flagged the item (osv_known_malicious, or a MAL- dependency in dependency_injection)."""
+    d = r.get("detectors") or {}
+    return (d.get("osv_known_malicious") or {}).get("tier") == "known_malicious" or any(
+        f.get("detector") == "dependency_injection" and f.get("tier") == "known_malicious" for f in r.get("findings") or [])
+
+
+def baseline_block(head: dict, frag_on: dict, with_osv: dict, split: str = "test") -> tuple[list[str], list[dict]]:
+    """Baseline comparison from the existing run files (no new scan). Returns (markdown lines, CSV rows)."""
+    def rec(run):
+        return [r for r in class_rows(run, "known_bad", split) if scored(r)]
+    bad_h, bad_o = rec(head), rec(with_osv) if with_osv else []
+    n = len(bad_h)
+    rows, out = [], []
+
+    def add(name, k, total, note=""):
+        rows.append([name, rate_text(k, total) if total else "not run", note])
+        out.append({"row": name, "count": k, "n": total, "note": note})
+    by_id_o = {r["id"]: r for r in bad_o}
+    osv_ids = {i for i, r in by_id_o.items() if osv_flagged(r)}
+    if with_osv:
+        add("OSV-only (MAL- lookup alone)", len(osv_ids), len(bad_o), "circular: the known-bad labels come from OSV MAL- records")
+    for op, tiers in OPS.items():
+        add(f"detectors only, {op} (headline)", sum(tiers_hit(r, tiers) for r in bad_h), n, "no OSV knowledge")
+    if with_osv:
+        for op, tiers in OPS.items():
+            add(f"detectors + OSV, {op}", sum(tiers_hit(r, tiers) for r in bad_o), len(bad_o), "circular for known-bad")
+    if frag_on:
+        bad_f = rec(frag_on)
+        for op, tiers in OPS.items():
+            add(f"fragility escalation ON, {op}", sum(tiers_hit(r, tiers) for r in bad_f), len(bad_f),
+                "artifact mode, single-input fragility (maintainer count only)")
+    for op, tiers in OPS.items():
+        add(f"fragility escalation OFF, {op} (= headline)", sum(tiers_hit(r, tiers) for r in bad_h), n, "")
+    if with_osv:
+        for op, tiers in OPS.items():
+            caught = [r for r in bad_h if tiers_hit(r, tiers) and r["id"] not in osv_ids]
+            add(f"caught by the detectors ({op}) but not by OSV-only", len(caught), n, "")
+    good = [r for r in class_rows(head, "known_good", split) if scored(r)]
+    fps = [r for r in good if tiers_hit(r, LENIENT)]
+    hist_fp = [r for r in fps if set(detectors_fired(r, LENIENT)) & set(HISTORY_DETECTORS)]
+    rows.append([f"lenient false positives (random known-good) involving {', '.join(HISTORY_DETECTORS)}",
+                 f"{len(hist_fp)} of {len(fps)}", ""])
+    out.append({"row": "history-detector lenient FPs", "count": len(hist_fp), "n": len(fps), "note": ""})
+    all_scored = [r for r in head.values() if r.get("split") == split and scored(r)]
+    for d in HISTORY_DETECTORS:
+        ran_bad = sum((r.get("detectors") or {}).get(d, {}).get("status") == "ran" for r in bad_h)
+        ran_all = sum((r.get("detectors") or {}).get(d, {}).get("status") == "ran" for r in all_scored)
+        rows.append([f"{d} ran on", f"{ran_bad} of {n} scored known-bad; {ran_all} of {len(all_scored)} scored items", ""])
+        out.append({"row": f"{d} ran", "count": ran_bad, "n": n, "note": f"{ran_all} of {len(all_scored)} scored items"})
+    L = ["## Baseline comparison", "",
+         "Known-bad labels come from OSV MAL- records, so OSV-only recall is circular and biased upward: it is NOT a "
+         "fair comparison with the detectors. The only fair statement is how many known-bad items the detectors flag "
+         "with no OSV knowledge (the headline rows). Built from the existing run files; no new scan.", ""]
+    L += _table(["row", "known-bad flagged (or as stated)", "note"], rows) + [""]
+    return L, out
+
+
 def build_report(head: dict, frag_on: dict, with_osv: dict, repo: dict, replay: dict,
                  split: str = "test") -> tuple[str, dict]:
     """head: the headline run; frag_on / with_osv: shown beside it. Returns (markdown, csv_tables)."""
@@ -409,6 +470,8 @@ def build_report(head: dict, frag_on: dict, with_osv: dict, repo: dict, replay: 
         abl.append([nm, rate_text(rb["strict"]["hits"], rb["strict"]["n"]), rate_text(rb["lenient"]["hits"], rb["lenient"]["n"]),
                     rate_text(fb["hard"]["fp"], fb["hard"]["n"], zero_rule=True)])
     L += _table(["run", "strict recall", "lenient recall", "hard FP (random known-good)"], abl) + [""]
+    base_lines, tables["baseline"] = baseline_block(head, frag_on, main, split)
+    L += base_lines
 
     # misses
     misses = []

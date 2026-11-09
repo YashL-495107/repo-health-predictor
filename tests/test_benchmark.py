@@ -670,3 +670,36 @@ def test_contamination_reads_only_the_post_viewing_section(tmp_path):
     p.write_text("# old format\n\n- entry\n", encoding="utf-8")
     assert RB.contamination(p).startswith("CONTAMINATED")
     assert RB.contamination() == "not contaminated"          # the real changelog: only a pre-run change
+
+
+def test_baseline_comparison_section():
+    def rec(id_, cat, tiers=None, dets=None, findings=None):
+        r = _rec(id_, cat, tiers=tiers, detectors=dets)
+        r["findings"] = findings or []
+        return r
+    hist = {"publisher_change": {"tier": "review", "status": "ran"}, "dependency_injection": {"tier": "none_found", "status": "ran"}}
+    head = {r["id"]: r for r in [
+        rec("b1", "known_bad", {"high_risk": 1}, {"setup_py_hook": {"tier": "high_risk", "status": "ran"}}),
+        rec("b2", "known_bad", {"review": 1}, {"behavior_patterns": {"tier": "review", "status": "ran"},
+                                                "dependency_injection": {"tier": "none_found", "status": "ran"}}),
+        rec("b3", "known_bad"),
+        rec("g1", "known_good", {"review": 1}, hist),
+        rec("g2", "known_good", {"review": 1}, {"setup_py_hook": {"tier": "review", "status": "ran"}}),
+        rec("g3", "known_good")]}
+    osv = {"osv_known_malicious": {"tier": "known_malicious", "status": "ran"}}
+    with_osv = {k: dict(v) for k, v in head.items()}
+    with_osv["b1"] = rec("b1", "known_bad", {"high_risk": 1, "known_malicious": 1}, osv)
+    with_osv["b3"] = rec("b3", "known_bad", {"known_malicious": 1}, osv)
+    lines, rows = M.baseline_block(head, head, with_osv)
+    r = {x["row"]: x for x in rows}
+    assert (r["OSV-only (MAL- lookup alone)"]["count"], r["OSV-only (MAL- lookup alone)"]["n"]) == (2, 3)
+    assert r["detectors only, strict (headline)"]["count"] == 1 and r["detectors only, lenient (headline)"]["count"] == 2
+    assert r["detectors + OSV, lenient"]["count"] == 3
+    assert r["caught by the detectors (lenient) but not by OSV-only"]["count"] == 1          # b2
+    assert r["caught by the detectors (strict) but not by OSV-only"]["count"] == 0
+    assert (r["history-detector lenient FPs"]["count"], r["history-detector lenient FPs"]["n"]) == (1, 2)
+    assert r["dependency_injection ran"]["count"] == 1 and r["dependency_injection ran"]["note"] == "2 of 6 scored items"   # b2 and g1
+    text = "\n".join(lines)
+    assert "circular and biased upward" in text and "NOT a fair comparison" in text
+    md, tables = M.build_report(head, head, with_osv, {}, {})
+    assert "## Baseline comparison" in md and tables["baseline"] == rows
