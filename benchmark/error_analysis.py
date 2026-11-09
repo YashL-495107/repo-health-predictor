@@ -16,11 +16,16 @@ sample, install-time script present or not, version shape, read limits) and a ro
 rules below. Nothing here claims what a package intends; "human-verified" is "no" for every row.
 
 Bucket rules for misses (first rule that matches wins; each uses facts listed in the row):
-  M1 "install-time script present but no detector fired": no finding at any tier, and an install-time script exists:
-     a setup.py member (executed by pip when an sdist is installed) or an npm package.json with a preinstall, install
-     or postinstall script. A real detector gap: every such item is listed.
-  M2 "install-script fact not determinable here": no finding, npm package.json present, but its text is not on this
-     machine (run with --samples-dir to read it). Listed so it is never silently counted as "no hook".
+  M1a "setup.py present (normal for source packages), no hook pattern matched": PyPI, no finding at any tier, and the
+      sample has a setup.py member. pip executes setup.py when it installs a source package, so this is normal and
+      only says no install-time pattern was found in it. Every such item is listed.
+  M1b "install hook declared (preinstall/postinstall), no finding: detector-gap candidate, cause not established":
+      npm, no finding at any tier, and the sample's package.json declares a preinstall, install or postinstall script.
+      A candidate detector gap, not an established one: every such item is listed.
+  M2 "install-script fact not determinable here": npm, no finding, package.json listed in the sample, but its
+     scripts could not be read: either the samples / facts CSV are not available here, or (with the facts CSV) no
+     package.json was found in the extracted sample ("unknown" in results/npm_install_facts.csv). Listed so it is
+     never silently counted as "no hook".
   M3 "no executable content": no finding and no code file in the sample (only metadata / text / data members).
   M4 "inflated version, no finding": no finding, code present, no install-time script, and the version is inflated
      (first number >= 90, or every number is 9, e.g. 9.9.9).
@@ -63,7 +68,9 @@ CODE_EXT = {".py", ".pyw", ".pth", ".js", ".mjs", ".cjs", ".jsx", ".ts", ".tsx",
 NPM_HOOKS = ("preinstall", "install", "postinstall")
 HISTORY_DETECTORS = ("publisher_change", "revival_takeover", "dependency_injection", "release_delta")
 
-MISS_BUCKETS = ["install-time script present but no detector fired", "install-script fact not determinable here",
+BUCKET_SETUP_PY = "setup.py present (normal for source packages), no hook pattern matched"
+BUCKET_NPM_HOOK = "install hook declared (preinstall/postinstall), no finding: detector-gap candidate, cause not established"
+MISS_BUCKETS = [BUCKET_SETUP_PY, BUCKET_NPM_HOOK, "install-script fact not determinable here",
                 "no executable content", "inflated version, no finding", "sample partial (read limits hit), no finding",
                 "code present, no hook, no pattern matched", "facts not available (registry artifact)", "review-tier only"]
 FP_BUCKETS = ["setup.py build hook on a native-build package (native sources not verified)", "publisher change to GitHub Actions plus revival_takeover",
@@ -114,11 +121,13 @@ def npm_hooks(samples_dir: Path | None, sample_dir: str) -> list[str] | None:
 
 
 def collect_npm_facts(samples_dir: Path, misses: list[dict], ext: dict) -> list[dict]:
-    """npm install-script facts read from the extracted samples: item id, ecosystem, yes/no/unknown and the hook keys.
-    No package contents and no local paths are recorded."""
+    """npm install-script facts read from the extracted samples, for the npm items with no finding at any tier: item id,
+    ecosystem, yes / no / unknown ("unknown" = no package.json found in the extracted sample) and the hook keys. No
+    package contents and no local paths are recorded."""
     out = []
     for m in sorted(misses, key=lambda r: r["id"]):
-        if m["ecosystem"] != "npm" or m["id"] not in ext:
+        # only the npm items with no finding at any tier: the only ones whose bucket depends on these facts
+        if m["ecosystem"] != "npm" or m["id"] not in ext or parse_why(m["why"])[0] != "none":
             continue
         hooks = npm_hooks(samples_dir, ext[m["id"]].get("sample_dir", ""))
         out.append({"id": m["id"], "ecosystem": "npm",
@@ -172,11 +181,13 @@ def miss_bucket(kind: str, facts: dict | None, ecosystem: str, version: str, hoo
         return "review-tier only"
     if facts is None:
         return "facts not available (registry artifact)"
-    install = facts["setup_py"] or bool(hooks)
-    if install:
-        return "install-time script present but no detector fired"
-    if ecosystem == "npm" and facts["package_json"] and hooks is None:
-        return "install-script fact not determinable here"
+    if ecosystem == "npm":
+        if hooks:
+            return BUCKET_NPM_HOOK
+        if hooks is None and facts["package_json"]:
+            return "install-script fact not determinable here"
+    elif facts["setup_py"]:
+        return BUCKET_SETUP_PY
     if facts["code_files"] == 0:
         return "no executable content"
     if inflated_version(version):
@@ -232,8 +243,12 @@ def analyse(samples_dir: Path | None = None, npm_facts: dict | None = None, npm_
             fact_bits.append(f"{facts['code_files']} code file(s), {facts['code_bytes']:,} bytes")
             fact_bits.append("setup.py present" if facts["setup_py"] else "no setup.py")
             if m["ecosystem"] == "npm":
-                fact_bits.append(("npm install hooks: " + (", ".join(hooks) or "none")) if hooks is not None else
-                                 ("package.json present, scripts not readable here" if facts["package_json"] else "no package.json"))
+                if hooks is not None:
+                    fact_bits.append("npm install hooks: " + (", ".join(hooks) or "none"))
+                elif kind == "none" and (samples_dir is not None or npm_facts is not None):
+                    fact_bits.append("no package.json found in the extracted sample")
+                else:
+                    fact_bits.append("package.json present, scripts not readable here" if facts["package_json"] else "no package.json")
         else:
             fact_bits.append("registry artifact: member facts not in the extraction manifests")
         if inflated_version(m["version"]):
@@ -315,11 +330,23 @@ def render(res: dict) -> str:
           f"{len(misses)} scored known-bad items are not a strict hit: {groups.get('review-tier only', 0)} have a "
           f"review-tier finding only, {groups.get('no finding at any tier', 0)} have no finding at any tier.", ""]
     L += _table(["bucket", "count", "examples"], summary(misses, MISS_BUCKETS)) + [""]
-    gap = [r for r in misses if r["bucket"] == "install-time script present but no detector fired"]
-    L += ["### Detector gap: install-time script present but no detector fired (every item)", "",
-          f"{len(gap)} item(s). Each has an install-time script (a setup.py, or an npm install hook) and no finding at "
-          "any tier.", ""]
-    L += _table(["item", "ecosystem", "facts"], [[r["item"], r["ecosystem"], r["facts"]] for r in gap]) + [""]
+    for bucket, intro in ((BUCKET_SETUP_PY, "PyPI items with no finding at any tier whose sample has a setup.py (pip runs "
+                           "it when installing a source package; normal, not by itself a sign of anything)."),
+                          (BUCKET_NPM_HOOK, "npm items with no finding at any tier whose package.json declares an install "
+                           "hook. A candidate detector gap; the cause is not established.")):
+        lst = [r for r in misses if r["bucket"] == bucket]
+        L += [f"### {bucket} (every item)", "", f"{len(lst)} item(s). {intro}", ""]
+        if lst:
+            L += _table(["item", "ecosystem", "facts"], [[r["item"], r["ecosystem"], r["facts"]] for r in lst]) + [""]
+    nd = [r for r in misses if r["bucket"] == "install-script fact not determinable here"]
+    L += ["### install-script fact not determinable here (every item)", ""]
+    if src in ("csv", "samples"):
+        L += [f"{len(nd)} item(s): no package.json found in the extracted sample (\"unknown\" in the npm facts), so "
+              "whether an install hook is declared is not known.", ""]
+    else:
+        L += [f"{len(nd)} item(s): the npm facts are not available here (no samples, no facts CSV).", ""]
+    if nd:
+        L += _table(["item", "ecosystem", "facts"], [[r["item"], r["ecosystem"], r["facts"]] for r in nd]) + [""]
     L += ["## Known-good and scary false positives (lenient)", "",
           f"{len(fps)} items ({sum(r['set'] == 'known_good' for r in fps)} random known-good, "
           f"{sum(r['set'] == 'scary' for r in fps)} scary). Of the random known-good ones, "

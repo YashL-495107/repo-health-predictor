@@ -699,6 +699,9 @@ def test_baseline_comparison_section():
     assert r["detectors + OSV, lenient"]["count"] == 3
     assert r["caught by the detectors (lenient) but not by OSV-only"]["count"] == 1          # b2
     assert r["caught by the detectors (strict) but not by OSV-only"]["count"] == 0
+    assert r["caught by the detectors (lenient) but not by OSV-only"]["note"] == (
+        "these are misses of the OSV lookup in this run (name/version matching), not gaps in OSV's coverage: "
+        "every known-bad label comes from an OSV record")
     assert (r["history-detector lenient FPs"]["count"], r["history-detector lenient FPs"]["n"]) == (1, 2)
     assert r["dependency_injection ran"]["count"] == 1 and r["dependency_injection ran"]["note"] == "2 of 6 scored items"   # b2 and g1
     text = "\n".join(lines)

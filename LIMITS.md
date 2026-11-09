@@ -55,8 +55,11 @@ files next to it (`benchmark/results/`, `benchmark/manifests/`); each limit name
 - **Scoped npm packages** are stored by DataDog as one folder `@scope@name`, while OSV and the candidates use
   `@scope/name`; they do not match, so a scoped candidate is never paired with its sample (at least one candidate,
   `@isv-occ-payment/occ-payment-service` 77.77.79, is in the dataset). Not fixed, to keep the pre-declared selection.
-- **Install-time scripts that no detector flags:** `benchmark/ERROR_ANALYSIS.md` lists every known-bad item with an
-  install-time script (setup.py or npm install hook) and no finding at any tier.
+- **Install-time scripts without a finding:** `benchmark/ERROR_ANALYSIS.md` lists every known-bad item with no finding
+  at any tier that has a setup.py (bucket "setup.py present (normal for source packages), no hook pattern matched":
+  pip runs setup.py for every source package, so this alone is not a sign of anything) and every npm item whose
+  package.json declares an install hook (bucket "install hook declared (preinstall/postinstall), no finding:
+  detector-gap candidate, cause not established"). Neither bucket is human-verified.
 
 ## Threat model (short)
 

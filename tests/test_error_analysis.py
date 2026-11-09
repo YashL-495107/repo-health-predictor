@@ -23,8 +23,13 @@ def test_miss_bucket_rules_in_order():
     b = EA.miss_bucket
     assert b("review", facts(), "PyPI", "1.0", None, False) == "review-tier only"
     assert b("none", None, "PyPI", "1.0", None, False) == "facts not available (registry artifact)"
-    assert b("none", facts(setup=True), "PyPI", "99.0", None, True) == "install-time script present but no detector fired"
-    assert b("none", facts(pkg=True), "npm", "1.0.0", ["preinstall"], False) == "install-time script present but no detector fired"
+    assert b("none", facts(setup=True), "PyPI", "99.0", None, True) == EA.BUCKET_SETUP_PY
+    assert EA.BUCKET_SETUP_PY == "setup.py present (normal for source packages), no hook pattern matched"
+    assert b("none", facts(pkg=True), "npm", "1.0.0", ["preinstall"], False) == EA.BUCKET_NPM_HOOK
+    assert EA.BUCKET_NPM_HOOK == ("install hook declared (preinstall/postinstall), no finding: detector-gap candidate, "
+                                  "cause not established")
+    assert b("none", facts(setup=True, pkg=True), "npm", "1.0.0", None, False) == "install-script fact not determinable here"
+    assert b("none", facts(setup=True, pkg=True), "npm", "1.0.0", [], False) == "code present, no hook, no pattern matched"
     assert b("none", facts(pkg=True), "npm", "1.0.0", None, False) == "install-script fact not determinable here"
     assert b("none", facts(code=0, pkg=True), "npm", "1.0.0", [], False) == "no executable content"
     assert b("none", facts(pkg=True), "npm", "99.1.0", [], False) == "inflated version, no finding"
@@ -89,8 +94,16 @@ def test_committed_document_is_current_in_either_state():
     else:
         res = EA.analyse(None, facts)
         assert committed == EA.render(res)
-        assert not [r for r in res["misses"] if r["bucket"] == "install-script fact not determinable here"]
         assert "npm install-script facts come from `results/npm_install_facts.csv`" in committed
+        # "not determinable" rows are allowed, but exactly the items the CSV marks "unknown", each listed with the reason
+        unknown = sorted(i for i, keys in facts.items() if keys is None)
+        nd = sorted(r["item"] for r in res["misses"] if r["bucket"] == "install-script fact not determinable here")
+        assert nd == unknown
+        section = committed[committed.index("### install-script fact not determinable here (every item)"):]
+        section = section[:section.index("\n## ")]
+        assert f"{len(unknown)} item(s): no package.json found in the extracted sample" in section
+        for item in unknown:
+            assert item in section and "no package.json found in the extracted sample" in section
 
 
 def test_no_intent_claims_and_sqlmap_status():
@@ -119,7 +132,8 @@ def test_samples_run_writes_facts_csv_and_renders_identically_from_it(tmp_path, 
     facts_csv, out1, out2 = tmp_path / "npm_install_facts.csv", tmp_path / "a.md", tmp_path / "b.md"
     assert EA.main(["--samples-dir", str(samples), "--npm-facts", str(facts_csv), "--out", str(out1)]) == 0
     rows_ = EA.rows(facts_csv)
-    assert list(rows_[0].keys()) == EA.NPM_FACT_FIELDS and len(rows_) == len(npm)
+    npm_none = [m for m in npm if EA.parse_why(m["why"])[0] == "none"]      # facts only for no-finding npm items
+    assert list(rows_[0].keys()) == EA.NPM_FACT_FIELDS and len(rows_) == len(npm_none)
     text = facts_csv.read_text(encoding="utf-8")
     assert str(tmp_path) not in text and "node x.js" not in text and "datadog/" not in text   # no paths, no contents
     assert {r["has_install_script"] for r in rows_} == {"yes", "no"}
@@ -130,7 +144,7 @@ def test_samples_run_writes_facts_csv_and_renders_identically_from_it(tmp_path, 
     assert "install-script fact not determinable here | 0 |" in doc
     assert "npm install-script facts come from `results/npm_install_facts.csv`" in doc
     res = EA.analyse(None, EA.load_npm_facts(facts_csv), facts_csv)
-    gap = [r for r in res["misses"] if r["bucket"] == "install-time script present but no detector fired"]
+    gap = [r for r in res["misses"] if r["bucket"] == EA.BUCKET_NPM_HOOK]
     assert any(r["ecosystem"] == "npm" and "npm install hooks: preinstall" in r["facts"] for r in gap)
 
 
@@ -141,3 +155,23 @@ def test_unknown_when_the_sample_has_no_package_json(tmp_path):
     assert facts and {f["has_install_script"] for f in facts} == {"unknown"}
     path = EA.write_npm_facts(facts, tmp_path / "f.csv")
     assert set(EA.load_npm_facts(path).values()) == {None}                 # unknown stays "not determinable"
+
+
+
+def test_unknown_items_are_listed_with_the_reason_when_facts_are_present(tmp_path):
+    misses = EA.rows(EA.RESULTS / "misses.csv")
+    ext = {r["id"]: r for r in EA.rows(EA.MAN / "datadog_extracted.csv")}
+    facts = EA.collect_npm_facts(tmp_path / "empty", misses, ext)          # every no-finding npm item: unknown
+    for f in facts[1:]:
+        f["has_install_script"], f["install_script_keys"] = "no", ""
+    path = EA.write_npm_facts(facts, tmp_path / "f.csv")
+    res = EA.analyse(None, EA.load_npm_facts(path), path)
+    nd = [r for r in res["misses"] if r["bucket"] == "install-script fact not determinable here"]
+    assert [r["item"] for r in nd] == [facts[0]["id"]] and nd[0]["facts"].count("no package.json found in the extracted sample") == 1
+    doc = EA.render(res)
+    assert "1 item(s): no package.json found in the extracted sample" in doc and facts[0]["id"] in doc
+
+
+def test_old_bucket_name_is_gone():
+    for name in ("benchmark/error_analysis.py", "benchmark/ERROR_ANALYSIS.md", "LIMITS.md", "README.md"):
+        assert "install-time script present but no detector fired" not in (ROOT / name).read_text(encoding="utf-8"), name

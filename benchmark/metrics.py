@@ -302,7 +302,9 @@ def baseline_block(head: dict, frag_on: dict, with_osv: dict, split: str = "test
     if with_osv:
         for op, tiers in OPS.items():
             caught = [r for r in bad_h if tiers_hit(r, tiers) and r["id"] not in osv_ids]
-            add(f"caught by the detectors ({op}) but not by OSV-only", len(caught), n, "")
+            add(f"caught by the detectors ({op}) but not by OSV-only", len(caught), n,
+                "these are misses of the OSV lookup in this run (name/version matching), not gaps in OSV's coverage: "
+                "every known-bad label comes from an OSV record")
     good = [r for r in class_rows(head, "known_good", split) if scored(r)]
     fps = [r for r in good if tiers_hit(r, LENIENT)]
     hist_fp = [r for r in fps if set(detectors_fired(r, LENIENT)) & set(HISTORY_DETECTORS)]
