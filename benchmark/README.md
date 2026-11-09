@@ -190,7 +190,20 @@ Amendment (Stage 2 hardening, committed before any test-set item was scanned):
 
 ## 9. Running it (Windows, PowerShell)
 
-Everything runs from the repository folder, on branch `trust-engine`, with Python 3.11 or newer. Nothing scanned is
+Everything runs from the repository folder, on branch `trust-engine`, with Python 3.11 or newer.
+
+**One command (added 2026-11-09, no protocol change):** `scripts\reproduce.ps1` (PowerShell) or `scripts/reproduce.sh`
+(bash) first checks that the tag `ruleset-2026.11.08-12-frozen` exists, that the ruleset version, freeze flag and the
+frozen row above all say `2026.11.08-12`, that `GITHUB_TOKEN` is set, that the test set is not contaminated and that
+`--selfcheck` passes; then it prints and runs the sequence below, writing to `benchmark\runs\repro\` and
+`benchmark\repro\` (the committed results are never overwritten). `-Quick` / `--quick` runs only the checks, the
+selfcheck and a `-Limit` / `--limit` subset (default 5) of the test split. The full mode needs the DataDog subset and never
+downloads it unless `-Fetch` / `--fetch` is passed. `-DryRun` / `--dry-run` prints the commands without running anything.
+
+```powershell
+.\scripts\reproduce.ps1 -Quick
+.\scripts\reproduce.ps1 -DatadogDir C:\bench\dd -SamplesDir C:\bench\samples
+``` Nothing scanned is
 ever executed; still, use a normal user account (not an administrator shell).
 
 **Antivirus (Windows Defender).** Do not disable it globally. The DataDog clone and the samples folder contain real
