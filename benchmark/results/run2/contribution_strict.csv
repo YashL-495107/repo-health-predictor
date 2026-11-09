@@ -1,0 +1,6 @@
+detectors,hits
+behavior_patterns,21
+setup_py_hook,12
+behavior_patterns + setup_py_hook,3
+credential_exfiltration,2
+behavior_patterns + credential_exfiltration,1

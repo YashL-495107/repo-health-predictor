@@ -1,0 +1,20 @@
+detector,n,ran,not_assessed,not_applicable,top_reasons
+behavior_patterns,461,461,0,0,
+ci_workflow,461,461,0,0,
+committed_binary,461,461,0,0,
+credential_exfiltration,461,461,0,0,
+decoded_payload,461,461,0,0,
+dependency_injection,461,132,327,2,"release history not fetched (311); declared dependencies not available for both releases (16); only 1 published release(s), nothing to compare (2)"
+lookalike_name,461,461,0,0,
+osv_advisories,461,0,461,0,"lookup failed or no data: github_advisories=not_assessed, osv_dependencies=not_assessed (461)"
+osv_known_malicious,461,0,461,0,"lookup failed or no data: osv_dependencies=not_assessed, own_package=not_assessed (461)"
+protestware_destructive,461,461,0,0,
+publisher_change,461,101,311,49,"release history not fetched (311); publisher identity not available for <version> (no provenance (not uploaded with Trusted P (43); publisher identity not available for earlier releases, nothing to compare (4)"
+release_delta,461,146,313,2,"release history not fetched (311); only 1 published release(s), nothing to compare (2); release artifact not read (none) (1)"
+release_vs_git,461,0,461,0,artifact mode: no git repository to compare with (461)
+repo_secrets,461,461,0,0,
+revival_takeover,461,148,311,2,"release history not fetched (311); only 1 published release(s), nothing to compare (2)"
+scorecard,461,0,461,0,OpenSSF Scorecard lookup failed (461)
+setup_py_hook,461,159,0,302,no setup.py (302)
+tagless_release,461,0,461,0,release history not fetched (311); artifact mode: the repository is not used (150)
+virustotal,461,0,2,459,no committed executables (459); no VirusTotal API key set (2)

@@ -1,0 +1,17 @@
+row,count,n,note
+OSV-only (MAL- lookup alone),227,314,circular: the known-bad labels come from OSV MAL- records
+"detectors only, strict (headline)",39,314,no OSV knowledge
+"detectors only, lenient (headline)",157,314,no OSV knowledge
+"detectors + OSV, strict",242,314,circular for known-bad
+"detectors + OSV, lenient",267,314,circular for known-bad
+"fragility escalation ON, strict",39,314,"artifact mode, single-input fragility (maintainer count only)"
+"fragility escalation ON, lenient",157,314,"artifact mode, single-input fragility (maintainer count only)"
+"fragility escalation OFF, strict (= headline)",39,314,
+"fragility escalation OFF, lenient (= headline)",157,314,
+caught by the detectors (strict) but not by OSV-only,15,314,"these are misses of the OSV lookup in this run (name/version matching), not gaps in OSV's coverage: every known-bad label comes from an OSV record"
+caught by the detectors (lenient) but not by OSV-only,40,314,"these are misses of the OSV lookup in this run (name/version matching), not gaps in OSV's coverage: every known-bad label comes from an OSV record"
+history-detector lenient FPs,7,17,
+publisher_change ran,2,314,101 of 461 scored items
+revival_takeover ran,3,314,148 of 461 scored items
+dependency_injection ran,3,314,132 of 461 scored items
+release_delta ran,3,314,146 of 461 scored items
