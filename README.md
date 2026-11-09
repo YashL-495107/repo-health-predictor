@@ -23,6 +23,15 @@ Headline (artifact mode, no OSV lookup), from `benchmark/RESULTS.md`:
 | scary-but-legitimate lenient false positives | 4/18 |
 | dormant libraries flagged | 0/12 |
 
+**Run 1 is biased downward (antivirus).** After extraction, Windows Defender removed 138 extracted `.sample` files
+of known-bad DataDog items (count from the Defender protection history; `benchmark/verify_samples.py` measures the
+exact number and lists them in `benchmark/results/samples_missing.csv`). Those items were scored on less code than
+was extracted, so the run-1 known-bad recall above is biased downward (Defender removed exactly the files it
+recognised as malicious, which are the ones most likely to carry the indicators). Run 2 rescans the same items
+with the same frozen ruleset after `extract_datadog.py --restore-missing` restored the files (sha256 checked against
+the manifest) and with a Defender exclusion for the samples folder only. Both runs are reported; neither replaces
+the other. See [LIMITS.md](LIMITS.md) and `benchmark/README.md` section 9.
+
 These are artifact-mode numbers. For what the app does (repository mode), see `benchmark/RESULTS.md`,
 section "Repo mode (what the app does)": false-positive rates on the known-good, scary and dormant sets.
 Repo-mode known-bad recall is not measured. 304 items were not scored (297 known-bad without obtainable code). Precision holds only at the benchmark's class

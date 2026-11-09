@@ -40,6 +40,7 @@ import random
 import re
 import sys
 import zipfile
+from collections import defaultdict
 from pathlib import Path, PurePosixPath
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -346,6 +347,39 @@ def read_sample(blob: bytes, password: bytes = PASSWORD) -> dict:
     return out
 
 
+NESTED_RE = re.compile(r"(\.tar\.gz|\.tgz|\.whl|\.zip|\.egg|\.tar)$", re.I)
+
+
+def member_key(member: str) -> str | None:
+    """The in-memory text key read_sample gives a manifest member (before the common-root strip), rebuilt from the
+    manifest's member name alone: direct members by safe_member_path, nested-archive members "<archive>!<inner>" under
+    "<archive folder>/<archive stem>/". None when the name is rejected (it was then not written)."""
+    outer, sep, inner = member.partition("!")
+    if sep and outer.lower().endswith(NESTED_EXT):
+        path, why = safe_member_path(outer)
+        sp, why2 = safe_member_path(inner)
+        if why or why2:
+            return None
+        stem = safe_component(NESTED_RE.sub("", PurePosixPath(path).name))
+        return f"{path.rsplit('/', 1)[0] + '/' if '/' in path else ''}{stem}/{sp}"
+    path, why = safe_member_path(member)
+    return None if why else path
+
+
+def written_paths(member_rows: list[dict]) -> list[tuple[dict, str]]:
+    """(manifest member row, path relative to the sample folder) for every member with action "written": the SAME
+    mapping write_sample uses (common top-level folders stripped, ".sample" appended)."""
+    keyed = [(r, member_key(r["member"])) for r in member_rows if r.get("action") == "written"]
+    keyed = [(r, k) for r, k in keyed if k]
+    strip = strip_common_root(sorted({k for _r, k in keyed}))
+    return [(r, "/".join(k.split("/")[strip:]) + ".sample") for r, k in keyed]
+
+
+def written_bytes(text: str) -> bytes:
+    """What write_sample stores for a text member (UTF-8)."""
+    return text.encode("utf-8")
+
+
 def write_sample(text: dict[str, str], dest: Path) -> tuple[int, int]:
     """Write text members as <path>.sample under dest (common top-level directories stripped). Returns (files, bytes)."""
     paths = sorted(text)
@@ -374,16 +408,79 @@ def sample_dir_for(r: dict, zip_sha: str, samples_root: Path = DEFAULT_SAMPLES) 
     return Path(samples_root) / "datadog" / r["eco_dir"] / name
 
 
+def restore_missing(dataset: Path, samples_root: Path, extracted_csv: Path | None = None,
+                    members_csv: Path | None = None) -> dict:
+    """Re-extract ONLY the members that verify_samples reports missing or mismatching, from the existing ZIPs (in
+    memory, the same read_sample path; nothing is executed). Each restored member must come from the same ZIP
+    (zip sha256 = manifest) and the same member bytes (member sha256 = manifest); it is then written as inert .sample
+    text exactly as extraction wrote it. The manifests are never changed."""
+    import verify_samples
+    problems = verify_samples.check(samples_root, extracted_csv, members_csv, dataset)["problems"]
+    ext = {r["id"]: r for r in verify_samples.read_rows(extracted_csv or MANIFEST)}
+    members = defaultdict(list)
+    for m in verify_samples.read_rows(members_csv or MEMBERS):
+        members[m["id"]].append(m)
+    mapping = load_mapping(dataset)
+    by_id = defaultdict(list)
+    for p in problems:
+        by_id[p["id"]].append(p["member_path"])
+    out = {"restored": 0, "failed": [], "ids": len(by_id)}
+    for sid, rels in sorted(by_id.items()):
+        e = ext[sid]
+        zpath = sample_location(dataset, e["sample_path"], mapping)
+        if not zpath.is_file():
+            out["failed"] += [(sid, r, "ZIP not on disk") for r in rels]
+            continue
+        blob = zpath.read_bytes()
+        if hashlib.sha256(blob).hexdigest() != e["zip_sha256"]:
+            out["failed"] += [(sid, r, "ZIP sha256 differs from the manifest") for r in rels]
+            continue
+        res = read_sample(blob)
+        strip = strip_common_root(sorted(res["text"]))
+        by_rel = {"/".join(k.split("/")[strip:]) + ".sample": k for k in res["text"]}
+        manifest_sha = {rel: r["sha256"] for r, rel in written_paths(members[sid])}
+        read_sha = {rel: r["sha256"] for r, rel in written_paths(res["members"])}
+        dest = (samples_root / e["sample_dir"]).resolve()
+        for rel in rels:
+            key = by_rel.get(rel)
+            if key is None or read_sha.get(rel) != manifest_sha.get(rel):
+                out["failed"].append((sid, rel, "member not found in the ZIP or its sha256 differs from the manifest"))
+                continue
+            target = (dest / rel).resolve()
+            if dest not in target.parents:
+                out["failed"].append((sid, rel, "path outside the sample folder"))
+                continue
+            data = written_bytes(res["text"][key])
+            target.parent.mkdir(parents=True, exist_ok=True)
+            tmp = target.with_name(target.name + ".part")
+            tmp.write_bytes(data)
+            os.replace(tmp, target)
+            if hashlib.sha256(target.read_bytes()).hexdigest() != hashlib.sha256(data).hexdigest():
+                out["failed"].append((sid, rel, "written file does not read back (removed again?)"))
+                continue
+            out["restored"] += 1
+    return out
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="Extract DataDog samples as inert text (.sample)")
     ap.add_argument("--dataset", required=True, help="local clone of DataDog/malicious-software-packages-dataset")
     ap.add_argument("--dry-run", action="store_true", help="list and select only; read and write nothing")
     ap.add_argument("--limit", type=int, default=None, help="extract at most N samples (debugging)")
+    ap.add_argument("--restore-missing", action="store_true",
+                    help="re-extract only the members verify_samples.py reports missing or mismatching (manifest unchanged)")
     ap.add_argument("--samples-dir", default=None, help="where the .sample text goes (default benchmark/samples, "
                     "git-ignored); use a dedicated folder outside Downloads; pass the same folder to run_benchmark.py")
     a = ap.parse_args(argv)
     print(DEFENDER_WARNING, "\n", file=sys.stderr)
     samples_root = Path(a.samples_dir or os.environ.get("REPOHEALTH_SAMPLES_DIR") or DEFAULT_SAMPLES).resolve()
+    if a.restore_missing:
+        r = restore_missing(Path(a.dataset), samples_root)
+        print(f"restored {r['restored']} member(s) in {r['ids']} sample(s); failed: {len(r['failed'])}")
+        for sid, rel, why in r["failed"][:20]:
+            print(f"  FAILED {sid} {rel}: {why}")
+        print(f"now run: python benchmark/verify_samples.py --samples-dir {samples_root} --dataset-dir {a.dataset}")
+        return 0 if not r["failed"] else 1
     dataset = Path(a.dataset)
     if not ((dataset / "samples").is_dir() or (dataset / ".git").exists() or (dataset / SUBSET_DIR / "mapping.csv").is_file()):
         print(f"not a dataset folder (no samples/ folder, git clone or subset/mapping.csv): {dataset}", file=sys.stderr)

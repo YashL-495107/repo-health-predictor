@@ -212,6 +212,21 @@ obtainable" items, which is reported, not hidden). A per-folder exclusion for ex
 discretion; remove it afterwards. The download cache (`benchmark\cache\http`) holds the registry archives of every scanned package, including security tools such as impacket that antivirus often flags; a blocked cache write no longer stops the item (the archive is read in memory and the full error is recorded in the item's `cache_errors`). Use a dedicated folder such as `C:\bench\samples`, not Downloads and not a
 cloud-synced folder. Never open, run or double-click anything in those folders.
 
+**Removed sample files (run 1) and the restore (run 2).** In run 1, Defender removed 138 extracted `.sample` files of
+known-bad items after extraction, without making the items "not obtainable": they were scored on less code. Check and
+restore, read-only first; the restore writes only the files the check lists, never executes anything, checks each
+ZIP's and file's sha256 against the manifests and leaves the manifests unchanged:
+
+```powershell
+python benchmark\verify_samples.py --samples-dir C:\bench\samples --dataset-dir C:\bench\dd
+python benchmark\extract_datadog.py --dataset C:\bench\dd --samples-dir C:\bench\samples --restore-missing
+python benchmark\verify_samples.py --samples-dir C:\bench\samples --dataset-dir C:\bench\dd --out benchmark\results\samples_missing_after_restore.csv
+```
+
+Run 2 writes to separate files (`benchmark\runs\run2\`, `benchmark\RESULTS_run2.md`, `benchmark\results\run2\`); run 1's
+files stay as committed. Known-good false-positive rates and repository mode do not read DataDog samples, so the repo-
+mode run is not repeated.
+
 The exact sequence (one snapshot date for every run, so later runs reuse the cached downloads):
 
 ```powershell

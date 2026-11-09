@@ -31,6 +31,16 @@ files next to it (`benchmark/results/`, `benchmark/manifests/`); each limit name
   registry, unpublished or replaced by a security holding package), **4 known-bad samples were missing from disk at
   scan time** (recorded as "deleted or quarantined?"; the cause was not recorded, antivirus action is likely but
   unverified), and 3 known-good / scary artifacts were over the 5 MB limit.
+- **Antivirus removed sample files in run 1.** After extraction, Windows Defender removed 138 extracted `.sample`
+  files of known-bad DataDog items (count from the Defender protection history, not from a repository script;
+  `benchmark/verify_samples.py` measures the exact number against `benchmark/manifests/datadog_members.csv` and writes
+  the ids and file names to `benchmark/results/samples_missing.csv`). An item with removed files is still scored, on
+  less code than was extracted, so **run-1 known-bad recall (strict and lenient) is biased downward**; false-positive
+  rates on known-good items are not affected by this. **Run 2** uses restored inputs: `extract_datadog.py
+  --restore-missing` re-extracts only the missing or mismatching files from the same ZIPs (ZIP and file sha256 checked
+  against the manifests, which stay unchanged), and the scan runs with a Defender exclusion for the samples folder
+  only. Run 2 uses the same frozen ruleset and changes no rule, so it does not contaminate the test set. **Both runs
+  are reported**, run 1 is not overwritten. The 4 samples missing at scan time (above) may be the same cause.
 - **Dormant libraries:** 0/12 got a finding or a threat label in artifact mode.
 
 ## Detector coverage gaps
