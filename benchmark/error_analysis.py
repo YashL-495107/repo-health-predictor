@@ -71,7 +71,8 @@ def rows(path: Path) -> list[dict]:
 
 
 def file_sha(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()[:12] if path.exists() else "missing"
+    """sha256 of the file with line endings normalised to LF, so a Windows checkout (CRLF) gives the same value."""
+    return hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()[:12] if path.exists() else "missing"
 
 
 # ------------------------------------------------------------------ facts
