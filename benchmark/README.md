@@ -227,6 +227,10 @@ Run 2 writes to separate files (`benchmark\runs\run2\`, `benchmark\RESULTS_run2.
 files stay as committed. Known-good false-positive rates and repository mode do not read DataDog samples, so the repo-
 mode run is not repeated.
 
+`benchmark/RESULTS.md` is now built by `python benchmark/compare_runs.py`: the run-2 document (`RESULTS_run2.md`) with a
+"Runs" section in front (run 1 vs run 2, computed from both runs' CSVs). Run 1's document is kept as `RESULTS_run1.md`;
+`ERROR_ANALYSIS.md` is rendered with `error_analysis.py --results-dir benchmark/results/run2`.
+
 The exact sequence (one snapshot date for every run, so later runs reuse the cached downloads):
 
 ```powershell

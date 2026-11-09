@@ -12,31 +12,29 @@ and a plain-English explanation.
 Next to the maintenance health score, the app shows a **Trust score (0-100, indicators, not proof;
 not a safety guarantee)**: the weakest of three evidence pillars (Integrity, Behavior, Exposure) from static detectors, then evidence
 caps. It was benchmarked once on a held-out test set with a frozen ruleset (git tag `ruleset-2026.11.08-12-frozen`).
-Headline (artifact mode, no OSV lookup), from `benchmark/RESULTS.md`:
+Headline (artifact mode, no OSV lookup, run 2), from `benchmark/RESULTS.md`:
 
 | measure | result |
 |---|---|
-| known-bad strict recall | 7.1% (22/310; 95% CI 4.7%-10.5%) |
-| known-bad lenient recall | 40.3% (125/310) |
+| known-bad strict recall | 12.4% (39/314; 95% CI 9.2%-16.5%) |
+| known-bad lenient recall | 50.0% (157/314; 95% CI 44.5%-55.5%) |
 | random known-good strict / hard false positives | 0/117 (rule of three: at most 2.6%) |
 | random known-good lenient false positives | 14.5% (17/117) |
 | scary-but-legitimate lenient false positives | 4/18 |
 | dormant libraries flagged | 0/12 |
 
-**Run 1 is biased downward (antivirus).** After extraction, Windows Defender removed 138 extracted `.sample` files
-of known-bad DataDog items (count from the Defender protection history; `benchmark/verify_samples.py` measures the
-exact number and lists them in `benchmark/results/samples_missing.csv`). Those items were scored on less code than
-was extracted, so the run-1 known-bad recall above is biased downward (Defender removed exactly the files it
-recognised as malicious, which are the ones most likely to carry the indicators). Run 2 rescans the same items
-with the same frozen ruleset after `extract_datadog.py --restore-missing` restored the files (sha256 checked against
-the manifest) and with a Defender exclusion for the samples folder only. Both runs are reported; neither replaces
-the other. See [LIMITS.md](LIMITS.md) and `benchmark/README.md` section 9.
+**Run 2 is the headline; run 1 is superseded.** In run 1, Windows Defender had removed extracted `.sample` files
+of known-bad DataDog items (136 files in 122 items, measured by `benchmark/verify_samples.py`), so run-1 known-bad recall
+was biased downward: 7.1% strict (22/310) and 40.3% lenient (125/310). Run 2 rescanned the same items with the same
+frozen ruleset after `extract_datadog.py --restore-missing` restored the files (sha256 checked against the manifests)
+and with a Defender exclusion for the samples folder only. False-positive rates are identical in both runs. Both runs
+are reported: `benchmark/RESULTS.md`, section "Runs", and [LIMITS.md](LIMITS.md).
 
 These are artifact-mode numbers. For what the app does (repository mode), see `benchmark/RESULTS.md`,
 section "Repo mode (what the app does)": false-positive rates on the known-good, scary and dormant sets.
-Repo-mode known-bad recall is not measured. 304 items were not scored (297 known-bad without obtainable code). Precision holds only at the benchmark's class
-ratio (310 : 117), not real-world prevalence. Strict recall is low: use this as a triage aid beside OSV, not a
-replacement. Read [METHOD.md](METHOD.md), [LIMITS.md](LIMITS.md), `benchmark/RESULTS.md` and
+Repo-mode known-bad recall is not measured. 300 items were not scored (297 known-bad without obtainable code). Precision holds only at the benchmark's class
+ratio (314 : 117), not real-world prevalence. Strict recall is low: use this as a triage aid beside OSV, not a
+replacement. Read [METHOD.md](METHOD.md), [LIMITS.md](LIMITS.md), [THREAT_MODEL.md](THREAT_MODEL.md), `benchmark/RESULTS.md` and
 `benchmark/ERROR_ANALYSIS.md` before quoting any number. Reproduce with `scripts/reproduce.ps1 -Quick` (PowerShell)
 or `scripts/reproduce.sh --quick` (bash); see `benchmark/README.md` section 9.
 

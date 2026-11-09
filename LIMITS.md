@@ -1,16 +1,17 @@
 # Limits
 
-What the Trust score and its benchmark do **not** show. Numbers are quoted from `benchmark/RESULTS.md` and the result
-files next to it (`benchmark/results/`, `benchmark/manifests/`); each limit names its source. Method: [METHOD.md](METHOD.md).
+What the Trust score and its benchmark do **not** show. Numbers are quoted from `benchmark/RESULTS.md` (run 2, the
+headline) and its result files (`benchmark/results/run2/`, `benchmark/manifests/`); each limit names its source.
+Threat model: [THREAT_MODEL.md](THREAT_MODEL.md). Method: [METHOD.md](METHOD.md).
 
 ## What a result means
 
 - **Indicators, not proof.** A finding is a pattern worth a human look, not evidence of intent.
 - **"No findings" never means the package is harmless.** It means none of these detectors fired on what they could
   read. The score is not a safety guarantee.
-- **Strict recall is low: 7.1% (22/310; 95% CI 4.7%-10.5%)**, lenient 40.3% (125/310). Most known-bad samples are
+- **Strict recall is low: 12.4% (39/314; 95% CI 9.2%-16.5%)**, lenient 50.0% (157/314). Most known-bad samples are
   not flagged as high-risk. This is a triage aid to use beside OSV / registry malware feeds, not a replacement for them.
-- **Precision (100.0% strict, 88.0% lenient) holds only at the benchmark's class ratio** of 310 known-bad to 117
+- **Precision (100.0% strict, 90.2% lenient) holds only at the benchmark's class ratio** of 314 known-bad to 117
   random known-good. Real registries have far fewer malicious packages, so real-world precision is lower and was not
   measured.
 - **Dual-use code is flagged.** Security tools contain the same code as the malware they test for. In the app (repo
@@ -25,29 +26,31 @@ files next to it (`benchmark/results/`, `benchmark/manifests/`); each limit name
   artifact section) and its unscored items are in `benchmark/RESULTS.md`, section "Repo mode (what the app does)".
   **Repo-mode known-bad recall is not measured**: the known-bad items are package versions and samples without a
   repository.
-- **OSV numbers are circular.** The known-bad labels come from OSV MAL- records, so the with-OSV recall (74.5% strict)
+- **OSV numbers are circular.** The known-bad labels come from OSV MAL- records, so OSV-only recall (72.3%, 227/314) and the with-OSV recall (77.1% strict)
   measures the label source, not the detectors. The headline excludes the OSV lookup.
-- **304 items were not scored** and are never imputed: **297 known-bad items have no obtainable code** (removed from the
-  registry, unpublished or replaced by a security holding package), **4 known-bad samples were missing from disk at
-  scan time** (recorded as "deleted or quarantined?"; the cause was not recorded, antivirus action is likely but
-  unverified), and 3 known-good / scary artifacts were over the 5 MB limit.
-- **Antivirus removed sample files in run 1.** After extraction, Windows Defender removed 138 extracted `.sample`
-  files of known-bad DataDog items (count from the Defender protection history, not from a repository script;
-  `benchmark/verify_samples.py` measures the exact number against `benchmark/manifests/datadog_members.csv` and writes
-  the ids and file names to `benchmark/results/samples_missing.csv`). An item with removed files is still scored, on
-  less code than was extracted, so **run-1 known-bad recall (strict and lenient) is biased downward**; false-positive
-  rates on known-good items are not affected by this. **Run 2** uses restored inputs: `extract_datadog.py
-  --restore-missing` re-extracts only the missing or mismatching files from the same ZIPs (ZIP and file sha256 checked
-  against the manifests, which stay unchanged), and the scan runs with a Defender exclusion for the samples folder
-  only. Run 2 uses the same frozen ruleset and changes no rule, so it does not contaminate the test set. **Both runs
-  are reported**, run 1 is not overwritten. The 4 samples missing at scan time (above) may be the same cause.
+- **300 items were not scored** and are never imputed: **297 known-bad items have no obtainable code** (removed from the
+  registry, unpublished or replaced by a security holding package) and 3 known-good / scary artifacts were over the
+  5 MB limit.
+- **Antivirus removed sample files in run 1 (fixed in run 2).** After extraction, Windows Defender removed extracted
+  `.sample` files of known-bad DataDog items: `benchmark/verify_samples.py` found **136 files missing in 122 items**
+  (`benchmark/results/samples_missing.csv`; the Defender protection history showed 138, a count not produced by a
+  repository script). 4 of those items had lost every file and were "missing from disk at scan time"; the other 118
+  were scored on less code than was extracted. **Run-1 known-bad recall was therefore biased downward** (7.1% strict,
+  40.3% lenient, n = 310). **Fix:** `extract_datadog.py --restore-missing` re-extracted only those files from the same
+  ZIPs (ZIP and file sha256 checked against the manifests, which stayed unchanged); the samples folder got a Defender
+  exclusion for exactly that folder; `verify_samples.py` then found 0 problems, before and after run 2
+  (`samples_missing_after_restore.csv`, `samples_missing_after_run2.csv`). **Run 2** rescanned with the same frozen
+  ruleset and no rule change (test set not contaminated): every hit it gained is in an item that had files removed, no
+  hit was lost, and false-positive rates are identical. **Both runs are reported** (`benchmark/RESULTS.md`, section
+  "Runs"; run 1 unchanged in `benchmark/RESULTS_run1.md` and `benchmark/results/`). Anyone re-running the benchmark on
+  Windows should run `verify_samples.py` before scanning.
 - **Dormant libraries:** 0/12 got a finding or a threat label in artifact mode.
 
 ## Detector coverage gaps
 
 - **History-based detectors** (publisher_change, revival_takeover, dependency_injection, release_delta) need the
-  previous release. DataDog samples have none, so they cannot be measured there: **307 scored items had no release
-  history**, and dependency_injection ran on **132 of 457** scored items. They are validated only on replay incidents:
+  previous release. DataDog samples have none, so they cannot be measured there: **311 scored items had no release
+  history**, and dependency_injection ran on **132 of 461** scored items. They are validated only on replay incidents:
   **2 of the 3 obtainable replay incidents** were flagged (event-stream, node-ipc; faker was not). They also cause
   **7 of the 17 lenient false positives** on random known-good packages (new publisher plus revival, young new
   dependency, new prebuilt binary; `benchmark/ERROR_ANALYSIS.md`). This is a known issue for the next ruleset version;
@@ -65,23 +68,17 @@ files next to it (`benchmark/results/`, `benchmark/manifests/`); each limit name
 - **Scoped npm packages** are stored by DataDog as one folder `@scope@name`, while OSV and the candidates use
   `@scope/name`; they do not match, so a scoped candidate is never paired with its sample (at least one candidate,
   `@isv-occ-payment/occ-payment-service` 77.77.79, is in the dataset). Not fixed, to keep the pre-declared selection.
-- **Install-time scripts without a finding:** `benchmark/ERROR_ANALYSIS.md` lists every known-bad item with no finding
-  at any tier that has a setup.py (bucket "setup.py present (normal for source packages), no hook pattern matched":
-  pip runs setup.py for every source package, so this alone is not a sign of anything) and every npm item whose
-  package.json declares an install hook (bucket "install hook declared (preinstall/postinstall), no finding:
-  detector-gap candidate, cause not established"). Neither bucket is human-verified.
+- **Install-time scripts without a finding:** `benchmark/ERROR_ANALYSIS.md` (run 2) lists every known-bad item with no
+  finding at any tier that has a setup.py (bucket "setup.py present (normal for source packages), no hook pattern
+  matched", **38 PyPI items**: pip runs setup.py for every source package, so this alone is not a sign of anything) and
+  every npm item whose package.json declares an install hook (bucket "install hook declared (preinstall/postinstall),
+  no finding: detector-gap candidate, cause not established", **38 npm items**). In run 1 the setup.py bucket had 42
+  items; the run-1 npm count cannot be given from committed files (no run-1 npm facts file was committed, so all 122
+  no-finding npm items were "not determinable"). The 38 npm items are **not an antivirus artifact**: every extracted
+  file was verified present with the manifest sha256 before and after run 2, so the detectors saw the whole extracted
+  sample. They are detector-gap candidates (an install hook ran code the content detectors did not match); the cause is
+  not established per item and no row is human-verified.
 
-## Threat model (short)
+## Threat model
 
-- **In scope:** a package or repository whose published code contains install-time execution, decoded / obfuscated
-  payloads, credential collection sent to a remote host, destructive or geo-gated code, committed executables, exposed
-  secrets, risky CI workflows, or release metadata that changed in suspicious ways (new publisher, revival after
-  silence, young new dependency, files not in the repository). Known-malicious packages listed by OSV.
-- **Out of scope / not detected:** behaviour that appears only at run time (downloaded later, built from network
-  input), payloads in binaries (only hashes are looked up, and only with a VirusTotal key), logic sabotage without a
-  pattern (faker 6.6.6 had no finding), malicious code that matches a git tag, compromised maintainers who publish
-  ordinary-looking code, and anything in archives over 5 MB.
-- **Adversary assumption:** an attacker who knows these rules can avoid them (for example by keeping a single indicator
-  in a test or docs path, which is downgraded to info). The score is a first filter for a human reviewer, not a gate.
-- **Trust in the tool itself:** nothing scanned is executed, imported or installed; the AI layer is advisory, off in the
-  benchmark, and cannot change a score.
+See [THREAT_MODEL.md](THREAT_MODEL.md).

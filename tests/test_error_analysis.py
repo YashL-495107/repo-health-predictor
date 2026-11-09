@@ -83,27 +83,26 @@ def test_real_results_consistent_with_results_md_and_deterministic():
     assert EA.render(res) == EA.render(EA.analyse(None))
 
 
-def test_committed_document_is_current_in_either_state():
-    """CSV absent: the committed document equals the render without npm facts. CSV present (committed after a
-    --samples-dir run): it equals the render from the CSV, and no "not determinable" rows remain."""
+def test_committed_document_is_run2_and_current():
+    """The committed document is rendered from run 2 (--results-dir benchmark/results/run2, npm facts from that
+    folder): identical to a fresh render, no "not determinable" rows (the run-2 facts CSV has no unknowns) and every
+    row human-verified: no."""
     committed = (ROOT / "benchmark" / "ERROR_ANALYSIS.md").read_text(encoding="utf-8")
-    facts = EA.load_npm_facts()
-    if facts is None:
-        assert committed == EA.render(EA.analyse(None))
-        assert "there is no `results/npm_install_facts.csv`" in committed
-    else:
-        res = EA.analyse(None, facts)
+    old = (EA.RESULTS, EA.NPM_FACTS)
+    try:
+        EA.set_results_dir(EA.BENCH / "results" / "run2")
+        facts = EA.load_npm_facts()
+        assert facts is not None and len(facts) == 98 and not [i for i, k in facts.items() if k is None]
+        res = EA.analyse(None, facts, EA.NPM_FACTS)
         assert committed == EA.render(res)
-        assert "npm install-script facts come from `results/npm_install_facts.csv`" in committed
-        # "not determinable" rows are allowed, but exactly the items the CSV marks "unknown", each listed with the reason
-        unknown = sorted(i for i, keys in facts.items() if keys is None)
-        nd = sorted(r["item"] for r in res["misses"] if r["bucket"] == "install-script fact not determinable here")
-        assert nd == unknown
-        section = committed[committed.index("### install-script fact not determinable here (every item)"):]
-        section = section[:section.index("\n## ")]
-        assert f"{len(unknown)} item(s): no package.json found in the extracted sample" in section
-        for item in unknown:
-            assert item in section and "no package.json found in the extracted sample" in section
+    finally:
+        EA.RESULTS, EA.NPM_FACTS = old
+    assert "`results/run2/items.csv`" in committed
+    assert "npm install-script facts come from `results/run2/npm_install_facts.csv`" in committed
+    buckets = [r["bucket"] for r in res["misses"]]
+    assert buckets.count(EA.BUCKET_NPM_HOOK) == 38 and buckets.count(EA.BUCKET_SETUP_PY) == 38
+    assert buckets.count("install-script fact not determinable here") == 0
+    assert all(r["human_verified"] == "no" for r in res["misses"] + res["fps"])
 
 
 def test_no_intent_claims_and_sqlmap_status():
