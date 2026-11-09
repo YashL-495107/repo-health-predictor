@@ -1,0 +1,762 @@
+id,category,split,status,label,trust_score,n_known_malicious,n_high_risk,n_review,n_info,strict_hit,lenient_hit,elapsed_s,ruleset_version
+DD-PyPI-a1rn-0.1.4-4b176738,known_bad,test,scored,High-risk patterns: review before use (Partial assessment),49.0,0,1,1,0,True,True,0.68,2026.11.08-12
+DD-PyPI-advpruebitaa-1.0.0-212ca566,known_bad,test,scored,Review recommended (Partial assessment),84.0,0,0,2,0,False,True,0.3,2026.11.08-12
+DD-PyPI-aet-test-1.0.1-7505ec1b,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.32,2026.11.08-12
+DD-PyPI-ai-labs-snippets-sdk-2.0.0-d5ae2a53,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.36,2026.11.08-12
+DD-PyPI-ai-labs-snippets-sdk-3.0.0-5503beca,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.36,2026.11.08-12
+DD-PyPI-ai-solver-py-1.0-4ae7e43d,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.7,2026.11.08-12
+DD-PyPI-aiogram-types-v3-3.3.1-df2d128a,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,19.86,2026.11.08-12
+DD-PyPI-aiogram-types-v3-3.9.7-1385196e,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,41.43,2026.11.08-12
+DD-PyPI-aiopbotocore-0.4.0-b73414af,known_bad,test,scored,Review recommended (Partial assessment),76.0,0,0,3,0,False,True,0.38,2026.11.08-12
+DD-PyPI-airio-9.9.9-afa46017,known_bad,test,scored,Review recommended (Partial assessment),84.0,0,0,3,0,False,True,0.31,2026.11.08-12
+DD-PyPI-antibyfron-0.0.1-31174383,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.32,2026.11.08-12
+DD-PyPI-artifact-lab-3-package-b55680cd-0.1.1-34692ac0,known_bad,test,scored,High-risk patterns: review before use (Partial assessment),41.0,0,1,4,1,True,True,0.38,2026.11.08-12
+DD-PyPI-artifact-lab-3-package-e46d5661-0.1.1-89d304f1,known_bad,test,scored,High-risk patterns: review before use (Partial assessment),20.0,0,2,5,1,True,True,0.29,2026.11.08-12
+DD-PyPI-atlasctf-21-prod-01-99.99.99-b56507a8,known_bad,test,scored,Review recommended (Partial assessment),76.0,0,0,4,0,False,True,0.33,2026.11.08-12
+DD-PyPI-atlasctf-21-prod-03-99.99.99-53a8ad19,known_bad,test,scored,Review recommended (Partial assessment),76.0,0,0,4,0,False,True,0.63,2026.11.08-12
+DD-PyPI-atlasctf-21-prod-20-99.99.99-5c907a28,known_bad,test,scored,Review recommended (Partial assessment),76.0,0,0,4,0,False,True,0.34,2026.11.08-12
+DD-PyPI-atlasctf-21-prod-21-99.99.99.1-90ed8064,known_bad,test,scored,Review recommended (Partial assessment),76.0,0,0,4,0,False,True,0.75,2026.11.08-12
+DD-PyPI-blazeted-1.0-5b624364,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.66,2026.11.08-12
+DD-PyPI-boostbot-0.0.1-c01ffe94,known_bad,test,scored,High-risk patterns: review before use (Partial assessment),22.0,0,2,1,0,True,True,0.3,2026.11.08-12
+DD-PyPI-bruts-1.0-35d01131,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.6,2026.11.08-12
+DD-PyPI-builderknower-0.1.12-85f08e4f,known_bad,test,scored,High-risk patterns: review before use (Partial assessment),20.0,0,2,2,0,True,True,0.32,2026.11.08-12
+DD-PyPI-builderknower-0.1.5-b19f9477,known_bad,test,scored,Review recommended (Partial assessment),84.0,0,0,2,0,False,True,0.67,2026.11.08-12
+DD-PyPI-builderknower-0.1.9-cbcbd564,known_bad,test,scored,High-risk patterns: review before use (Partial assessment),20.0,0,2,3,0,True,True,0.3,2026.11.08-12
+DD-PyPI-bytebs-912.6-606597d5,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.32,2026.11.08-12
+DD-PyPI-byted-df-99.1.1-2ce21b82,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.31,2026.11.08-12
+DD-PyPI-bytedtrace-0.1.19-8f364a69,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.35,2026.11.08-12
+DD-PyPI-bytedtrace-0.1.5-49ffc033,known_bad,test,scored,Review recommended (Partial assessment),84.0,0,0,2,0,False,True,0.53,2026.11.08-12
+DD-PyPI-bytedtrace-0.2.6-a192d8f7,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.27,2026.11.08-12
+DD-PyPI-bytedtrace-0.2.8-3b617e89,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.72,2026.11.08-12
+DD-PyPI-bytemlperf-912.6-1654bd2c,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.72,2026.11.08-12
+DD-PyPI-cascadev-99.6-83e1e771,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.31,2026.11.08-12
+DD-PyPI-convocations-0.19-128793e8,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,2.07,2026.11.08-12
+DD-PyPI-cryptograohy-0.6.2-b7aa07e3,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.34,2026.11.08-12
+DD-PyPI-cryptograohy-0.6.4-72155a5b,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.3,2026.11.08-12
+DD-PyPI-ctftestsowwy-0.1.4-cb3b5bee,known_bad,test,scored,High-risk patterns: review before use (Partial assessment),49.0,0,1,2,0,True,True,0.31,2026.11.08-12
+DD-PyPI-dasdsajdjsaasddsad-2.0.0-98874d1c,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.25,2026.11.08-12
+DD-PyPI-dbt-bytedhouse-99.7-a096dea6,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.69,2026.11.08-12
+DD-PyPI-detecron2-94.6-5177caaa,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.72,2026.11.08-12
+DD-PyPI-easygetflag-1.5-b483093c,known_bad,test,scored,High-risk patterns: review before use (Partial assessment),22.0,0,2,1,0,True,True,0.67,2026.11.08-12
+DD-PyPI-embeds-0.0.1-d54ae804,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.63,2026.11.08-12
+DD-PyPI-esqcandysplitpep-8.82-d5c24534,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.78,2026.11.08-12
+DD-PyPI-esqcvvermask-10.54-f1bad374,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.72,2026.11.08-12
+DD-PyPI-esqgetlibpyw-9.39-d9a9c7e5,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.32,2026.11.08-12
+DD-PyPI-esqnvidiamaskvirtual-7.87-6622ce3d,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.69,2026.11.08-12
+DD-PyPI-esqrandompullad-5.98-4ef0554d,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.31,2026.11.08-12
+DD-PyPI-esqrandpippush-6.67-d25b5f8e,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.34,2026.11.08-12
+DD-PyPI-esqsplitpushpush-7.71-8384417c,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.41,2026.11.08-12
+DD-PyPI-esqvisaverload-3.62-69109065,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.79,2026.11.08-12
+DD-PyPI-example-package-sthnck-0.0.1.dev4-3ce72069,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.44,2026.11.08-12
+DD-PyPI-fedlearnerr-912.6-82363bab,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.31,2026.11.08-12
+DD-PyPI-fedlearnre-912.6-70ac0bd0,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.63,2026.11.08-12
+DD-PyPI-ferned-1.0-cd20980f,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.31,2026.11.08-12
+DD-PyPI-forgyps-2.0.0-cad54794,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.68,2026.11.08-12
+DD-PyPI-hackerone-app-sdk-0.17.0-8bee170a,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.34,2026.11.08-12
+DD-PyPI-henter-1.0.0-c3649e54,known_bad,test,scored,Review recommended (Partial assessment),84.0,0,0,2,0,False,True,0.68,2026.11.08-12
+DD-PyPI-hmac2-0.0.2-853bb44c,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.47,2026.11.08-12
+DD-PyPI-inject-rem-0.0.1-7a14e6e0,known_bad,test,scored,High-risk patterns: review before use (Partial assessment),22.0,0,2,1,0,True,True,0.35,2026.11.08-12
+DD-PyPI-irasim-99.6-4296e760,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.66,2026.11.08-12
+DD-PyPI-just4testlm-0.1.0-438f3ef4,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.71,2026.11.08-12
+DD-PyPI-jwrincident-1.0.0-e8791674,known_bad,test,scored,Review recommended (Partial assessment),84.0,0,0,2,0,False,True,0.63,2026.11.08-12
+DD-PyPI-kazer12-2-748f0ad9,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.91,2026.11.08-12
+DD-PyPI-kube-health-tools-1.0.0-cd1d43f9,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.73,2026.11.08-12
+DD-PyPI-kube-health-tools-1.0.14-c495fc1d,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.32,2026.11.08-12
+DD-PyPI-kube-health-tools-2.0.0-d322daad,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.31,2026.11.08-12
+DD-PyPI-libcontrolultravm-2.33-bed35bfa,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.32,2026.11.08-12
+DD-PyPI-libfwupdplugin1-9.0.0-8589a28f,known_bad,test,scored,Review recommended (Partial assessment),84.0,0,0,2,0,False,True,0.28,2026.11.08-12
+DD-PyPI-libguicraftcandy-10.87-523f3030,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.26,2026.11.08-12
+DD-PyPI-libhackedstrreplace-3.20-de67bca0,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.4,2026.11.08-12
+DD-PyPI-libidos-0.1-580e6c58,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.26,2026.11.08-12
+DD-PyPI-libig-0.1-34842250,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.28,2026.11.08-12
+DD-PyPI-libintelkillvm-8.47-5af46390,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.74,2026.11.08-12
+DD-PyPI-libnvidiasplitpep-7.70-85cd6380,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.34,2026.11.08-12
+DD-PyPI-libpingreintel-5.74-ca253215,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.65,2026.11.08-12
+DD-PyPI-librandomintelkill-5.64-80c7efe8,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.26,2026.11.08-12
+DD-PyPI-license-utils-kit-0.1a1-85e32458,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,1.06,2026.11.08-12
+DD-PyPI-license-utils-kit-0.1rc3-e419c64a,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,3,0,False,True,2.11,2026.11.08-12
+DD-PyPI-lightgboost-1.1.4-2f89c36e,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.24,2026.11.08-12
+DD-PyPI-ligitgays-1.0-cf07dbcc,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.29,2026.11.08-12
+DD-PyPI-lindze-0.1-2e915929,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.58,2026.11.08-12
+DD-PyPI-litellm-1.82.8-49cb25fb,known_bad,test,scored,Review recommended (Partial assessment),70.0,0,0,8,3,False,True,83.59,2026.11.08-12
+DD-PyPI-lowui-0.0.1-a2d1e117,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.66,2026.11.08-12
+DD-PyPI-midi-melody-extractions-94.6-e3035050,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.34,2026.11.08-12
+DD-PyPI-mirrorbot-0.2-01f14174,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,2,False,False,1.22,2026.11.08-12
+DD-PyPI-multitools-0.3-8d3c2e13,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.33,2026.11.08-12
+DD-PyPI-mumuziyyds-1.5-5ad7c4f4,known_bad,test,scored,High-risk patterns: review before use (Partial assessment),22.0,0,2,1,0,True,True,0.66,2026.11.08-12
+DD-PyPI-my-package-jiecub3-1.6.0-3f7467b5,known_bad,test,scored,High-risk patterns: review before use (Partial assessment),49.0,0,1,1,0,True,True,0.3,2026.11.08-12
+DD-PyPI-networkx-match-0.1.0-a3a922eb,known_bad,test,scored,High-risk patterns: review before use (Partial assessment),20.0,0,2,4,0,True,True,0.37,2026.11.08-12
+DD-PyPI-neursts-92.6-412670c4,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.67,2026.11.08-12
+DD-PyPI-num2words-0.5.15-d9b676fa,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,9.36,2026.11.08-12
+DD-PyPI-oclip-92.6-08bdbbec,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.34,2026.11.08-12
+DD-PyPI-oe-extract-ids-1.5.0-70437b07,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,2,0,False,True,0.35,2026.11.08-12
+DD-PyPI-oz-merkle-tree-0.1.8-3b0534df,known_bad,test,scored,Review recommended (Partial assessment),76.0,0,0,3,0,False,True,0.87,2026.11.08-12
+DD-PyPI-parseweb-3-a9b4effa,known_bad,test,scored,High-risk patterns: review before use (Partial assessment),30.0,0,2,0,0,True,True,0.76,2026.11.08-12
+DD-PyPI-partpyth-0.1-da218fc5,known_bad,test,scored,Review recommended (Partial assessment),84.0,0,0,3,0,False,True,0.3,2026.11.08-12
+DD-PyPI-physisyphus-912.6-8e549671,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.32,2026.11.08-12
+DD-PyPI-pip-cache-dir-1.0.0-89af8754,known_bad,test,scored,Review recommended (Partial assessment),84.0,0,0,2,0,False,True,0.65,2026.11.08-12
+DD-PyPI-pip-doom-0.1.8-92ffb7bc,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,1.01,2026.11.08-12
+DD-PyPI-pohekar-everyday-1.0.0-c0c3ffa1,known_bad,test,scored,Review recommended (Partial assessment),84.0,0,0,2,0,False,True,0.31,2026.11.08-12
+DD-PyPI-poppo213-1.0-2034c92e,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.34,2026.11.08-12
+DD-PyPI-pubsub2inbox-9.9.9-f879dd98,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,6.3,2026.11.08-12
+DD-PyPI-py-edpushinfo-2.82-42b52000,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.34,2026.11.08-12
+DD-PyPI-py-intverpyw-8.14-ac654655,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.71,2026.11.08-12
+DD-PyPI-py-maskverstring-7.31-b0711840,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.33,2026.11.08-12
+DD-PyPI-py-pingvisarandom-8.90-db56300c,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.35,2026.11.08-12
+DD-PyPI-py-ultraproofintel-6.86-683565e1,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.32,2026.11.08-12
+DD-PyPI-py-visatoolstring-2.91-41504b1a,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.33,2026.11.08-12
+DD-PyPI-pyaacv-0.1-03af7e45,known_bad,test,scored,Review recommended (Partial assessment),84.0,0,0,3,0,False,True,0.36,2026.11.08-12
+DD-PyPI-pycaptchapass-1.0-a2155a00,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.29,2026.11.08-12
+DD-PyPI-pycblines-0.0.1-aaa4b4c3,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.31,2026.11.08-12
+DD-PyPI-pycrypterexe-1.1.1-2fc902ca,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.76,2026.11.08-12
+DD-PyPI-pymatematics-1.0.0-165d4276,known_bad,test,scored,High-risk patterns: review before use (Partial assessment),30.0,0,2,0,0,True,True,0.65,2026.11.08-12
+DD-PyPI-pypiion-0.1.1-2af02504,known_bad,test,scored,Review recommended (Partial assessment),84.0,0,0,3,0,False,True,0.71,2026.11.08-12
+DD-PyPI-pysubprocess-1.0.0-f484a9a5,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,2,0,False,True,0.37,2026.11.08-12
+DD-PyPI-python-aickerso-99.0.0-f8cdb350,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.35,2026.11.08-12
+DD-PyPI-pythonhttpx-1.0-afa4afa6,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.63,2026.11.08-12
+DD-PyPI-pytorch-pygame-0.6.19-c19d6376,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,3,0,False,True,0.67,2026.11.08-12
+DD-PyPI-qsteemp-0.2-c77662d9,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.3,2026.11.08-12
+DD-PyPI-quicly-1.0.99-abd49230,known_bad,test,scored,Review recommended (Partial assessment),84.0,0,0,3,0,False,True,1.66,2026.11.08-12
+DD-PyPI-rawrequest-2.19-ecb1c176,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.32,2026.11.08-12
+DD-PyPI-requests-darwin-lite-2.27.1-f57e2af9,known_bad,test,scored,Review recommended (Partial assessment),84.0,0,0,6,2,False,True,1.18,2026.11.08-12
+DD-PyPI-requesxt-1.0.0-f1c48cc2,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.28,2026.11.08-12
+DD-PyPI-res-adapter-912.6-f90b02fa,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.32,2026.11.08-12
+DD-PyPI-rlask-3.1.6-3fac4364,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.74,2026.11.08-12
+DD-PyPI-s4transfer-0.3-801d22ec,known_bad,test,scored,Review recommended (Partial assessment),84.0,0,0,4,0,False,True,0.71,2026.11.08-12
+DD-PyPI-safecheckit-2.0.0-418edb53,known_bad,test,scored,High-risk patterns: review before use (Partial assessment),49.0,0,1,4,0,True,True,0.63,2026.11.08-12
+DD-PyPI-secretinspector-0.1.0-32c8577a,known_bad,test,scored,Review recommended (Partial assessment),84.0,0,0,2,0,False,True,0.32,2026.11.08-12
+DD-PyPI-selfadpullint-8.49-7efee6e9,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.33,2026.11.08-12
+DD-PyPI-selfedgamestudy-5.59-cab05014,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.74,2026.11.08-12
+DD-PyPI-selfednvidiatool-6.63-bd244112,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.35,2026.11.08-12
+DD-PyPI-selfguiurlpush-4.72-7016ab70,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.33,2026.11.08-12
+DD-PyPI-selfhydrastudycc-2.15-cad7c5f4,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.69,2026.11.08-12
+DD-PyPI-selfinfopaypalad-6.60-11eed231,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.32,2026.11.08-12
+DD-PyPI-selfpostponghydra-8.31-4cd440df,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.32,2026.11.08-12
+DD-PyPI-selframstudyget-8.9-d2aea45e,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.34,2026.11.08-12
+DD-PyPI-selfsupergameencode-1.83-2abcd80f,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.31,2026.11.08-12
+DD-PyPI-selfultraintelvisa-8.88-2a4731d2,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.69,2026.11.08-12
+DD-PyPI-selfvirtualloadrand-6.69-d4a8c9a4,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.71,2026.11.08-12
+DD-PyPI-shellapp-0.1.0-ffbfe5c3,known_bad,test,scored,High-risk patterns: review before use (Partial assessment),49.0,0,1,3,0,True,True,0.33,2026.11.08-12
+DD-PyPI-socksproxies-1.0-cb73077a,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.31,2026.11.08-12
+DD-PyPI-some-random-package-33-2.3.100-19586e77,known_bad,test,scored,Review recommended (Partial assessment),84.0,0,0,2,0,False,True,0.29,2026.11.08-12
+DD-PyPI-spl-types-1.0.4-79b85ba9,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.71,2026.11.08-12
+DD-PyPI-synthetictest1-0.0.1-aaa47b46,known_bad,test,scored,High-risk patterns: review before use (Partial assessment),22.0,0,2,1,0,True,True,0.31,2026.11.08-12
+DD-PyPI-sys-scikit-learn-17.8.18-405df013,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,3,0,False,True,0.69,2026.11.08-12
+DD-PyPI-test-23234231-10-73f57e5c,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,2,False,False,0.29,2026.11.08-12
+DD-PyPI-tiny423-1.0.0-f53dc537,known_bad,test,scored,Review recommended (Partial assessment),84.0,0,0,2,0,False,True,0.74,2026.11.08-12
+DD-PyPI-tplibvirtualram-7.77-46f81714,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.69,2026.11.08-12
+DD-PyPI-tpmaskvisacontrol-4.97-cac68111,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.34,2026.11.08-12
+DD-PyPI-tppeppushpyw-3.5-e6e3c8b2,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.31,2026.11.08-12
+DD-PyPI-tppingcpuget-6.36-9a34210f,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.74,2026.11.08-12
+DD-PyPI-tppongvisapip-5.75-0155b192,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.74,2026.11.08-12
+DD-PyPI-tpproofgameed-5.95-83e92248,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.74,2026.11.08-12
+DD-PyPI-tppyhttprand-6.97-a358f42e,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.89,2026.11.08-12
+DD-PyPI-tpstrmcint-6.38-3ff30a26,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.32,2026.11.08-12
+DD-PyPI-tpverencodeinfo-3.55-a30a0f7f,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.25,2026.11.08-12
+DD-PyPI-trove4j-0.1.1-554eb8f5,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.26,2026.11.08-12
+DD-PyPI-ttensorflow-gpu-2.5.0-b9661f33,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,3,0,False,True,0.67,2026.11.08-12
+DD-PyPI-vision-service-python-client-0.3.61-969f6dbd,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.34,2026.11.08-12
+DD-PyPI-voto3-0.2.0-9a3c9a1e,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.66,2026.11.08-12
+DD-PyPI-voto3-0.3.0-18a93857,known_bad,test,scored,Review recommended (Partial assessment),76.0,0,0,4,0,False,True,0.73,2026.11.08-12
+DD-PyPI-xologrekjlqzxj-0.0.0-e0b61ec9,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,2,0,False,True,0.77,2026.11.08-12
+DD-npm-@0xobelisk@sui-cli-1.2.0-pre.16-f9597ff2,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,2,0,False,True,1.53,2026.11.08-12
+DD-npm-@42ailab@42plugin-0.4.20-db024463,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.76,2026.11.08-12
+DD-npm-@activation_code@activate-99.0.2-320ad35f,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.28,2026.11.08-12
+DD-npm-@alexandrsarioglo@npm-ghost-htb-1.0.10-0c0b4567,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.28,2026.11.08-12
+DD-npm-@angular_devkit@architect-99.1.1-d4fadeb8,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.61,2026.11.08-12
+DD-npm-@art-ws@fastify-http-server-2.0.24-c8e50926,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.32,2026.11.08-12
+DD-npm-@asyncapi@specs-6.10.1-1ea0fb51,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,12.12,2026.11.08-12
+DD-npm-@bottino@baileys-1.0.12-38a06925,known_bad,test,scored,Review recommended (Partial assessment),49.0,0,0,1,0,False,True,2.73,2026.11.08-12
+DD-npm-@bytedanc-ad@market-ui-vue2-89.3.5-4ceedf9b,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.65,2026.11.08-12
+DD-npm-@clearpool@streaming-9.9.9-9b898b95,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.64,2026.11.08-12
+DD-npm-@cloudplatform-single-spa@dataplatform-metastore-99.99.100-2ebfae97,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.76,2026.11.08-12
+DD-npm-@dbtw@mfe-gateway-99.9.0-bf9870b2,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.25,2026.11.08-12
+DD-npm-@emilgroup@tenant-sdk-1.34.2-2c209ef7,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.3,2026.11.08-12
+DD-npm-@ensdomains@blacklist-1.0.1-e382dff1,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.75,2026.11.08-12
+DD-npm-@ikarem@telemetry-100.1.7-da139fa8,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.59,2026.11.08-12
+DD-npm-@indigo-mobile@material-4.1.1-e04015da,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.34,2026.11.08-12
+DD-npm-@kvytech@medusa-plugin-announcement-0.0.8-a0f47dd0,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.57,2026.11.08-12
+DD-npm-@lanyer640@mcp-runcommand-server-1.0.7-ce4f9d16,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.64,2026.11.08-12
+DD-npm-@mastra@mongodb-1.9.3-0b4aad00,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.3,2026.11.08-12
+DD-npm-@pilllesss@yorn-1.0.117-8d836fcb,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,1.13,2026.11.08-12
+DD-npm-@rashidazarang@airtable-mcp-3.2.8-0d05ec88,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,2.1,2026.11.08-12
+DD-npm-@react-native-aria@overlays-0.3.16-67b88fb3,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,4.75,2026.11.08-12
+DD-npm-@rrvis@epaas-99.99.2-246b6c15,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.28,2026.11.08-12
+DD-npm-@seo-frontend-components@blog-schema-1.999.0-5f38491d,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.26,2026.11.08-12
+DD-npm-@seznam-diskuze@web-991.9.9-e1506441,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.68,2026.11.08-12
+DD-npm-@tanstack@start-plugin-core-1.169.23-fe934c55,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,6.53,2026.11.08-12
+DD-npm-@toptal@picasso-image-100.0.1-bca7fa43,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,1.04,2026.11.08-12
+DD-npm-@toptal@picasso-logo-2.0.17-a8207783,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,1.03,2026.11.08-12
+DD-npm-@transsion@privacy-policy-dialog-55.5.6-f17e83d6,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.27,2026.11.08-12
+DD-npm-@vyzensockets@baileys-0.2.4-ed5b0c5d,known_bad,test,scored,Review recommended (Partial assessment),49.0,0,0,1,0,False,True,2.27,2026.11.08-12
+DD-npm-aave-improvement-process-99.99.99-fd8d553b,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.61,2026.11.08-12
+DD-npm-admin10001-1.0.102-e266d48c,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.26,2026.11.08-12
+DD-npm-admin1001-4.4.28-2e573223,known_bad,test,not_assessed,,,,,,,,,0.24,2026.11.08-12
+DD-npm-agus-lutis73-sluey-2.3.1-c631f50c,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.33,2026.11.08-12
+DD-npm-ansi-universal-ui-1.0.0-123012a5,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.29,2026.11.08-12
+DD-npm-api-demo-sample-lib1-1.0.0-1a77c537,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.27,2026.11.08-12
+DD-npm-arif-esdoger38-breki-3.2.2-3366d82d,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.29,2026.11.08-12
+DD-npm-arm-package-deploymentscripts-2019-10-preview-8.0.1-98880ad9,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.66,2026.11.08-12
+DD-npm-atlas-websocket-23.9.11-cf07f92e,known_bad,test,scored,High-risk patterns: review before use (Partial assessment),49.0,0,1,1,0,True,True,0.29,2026.11.08-12
+DD-npm-autonomous-header-package-test-1.0.0-ac89ae2f,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.25,2026.11.08-12
+DD-npm-bambang-botok47-breki-1.1.1-3df8219c,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.29,2026.11.08-12
+DD-npm-base_parts_ai-1.0.55-858581d0,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.75,2026.11.08-12
+DD-npm-bayu-kue29-sluey-3.2.2-f2c74542,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.87,2026.11.08-12
+DD-npm-bgrc-9000.0.1-fbf47247,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.32,2026.11.08-12
+DD-npm-bingo-abstract-transport-0.5.0-56455f1d,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.86,2026.11.08-12
+DD-npm-blocks-nextjs-9999.9999.10132-f62c6884,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.59,2026.11.08-12
+DD-npm-blocks-nextjs-9999.9999.10349-93c7cb84,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.28,2026.11.08-12
+DD-npm-build-scripts-utils-1.0.1-5d51a71b,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.26,2026.11.08-12
+DD-npm-calypso-analytics-1003.0.0-56d2a760,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.31,2026.11.08-12
+DD-npm-capacitor-plugin-ihealth-1.1.8-8a5a69db,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,4.03,2026.11.08-12
+DD-npm-captcha-paypal-1.0.0-0fbf79ce,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.3,2026.11.08-12
+DD-npm-cmr-graphql-90.99.99-753370d5,known_bad,test,scored,High-risk patterns: review before use (Partial assessment),20.0,0,2,3,0,True,True,0.33,2026.11.08-12
+DD-npm-codex-attention-2.0.0-41f65a99,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.44,2026.11.08-12
+DD-npm-com.unity.2d.common-9.0.6-bf3441af,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.6,2026.11.08-12
+DD-npm-commonweb-flow-10.12.0-dcff2da4,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.27,2026.11.08-12
+DD-npm-crediteligibilityserv-1.0.0-bceb9f16,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.35,2026.11.08-12
+DD-npm-cschalk-next-6.1.5-51096e3b,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.31,2026.11.08-12
+DD-npm-darknet-dispatches-internal-2.5.0-3e8a917c,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.28,2026.11.08-12
+DD-npm-db-query-log-1.0.1-3368c9af,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.28,2026.11.08-12
+DD-npm-ddok-escapes-4.3.3-b1f79610,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.29,2026.11.08-12
+DD-npm-discord-utils-enhanced-1.0.12-4a110428,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.64,2026.11.08-12
+DD-npm-dpais-chat-template-pwa-11.2.1-ae7b2e07,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.29,2026.11.08-12
+DD-npm-elf-stats-aurora-sleigh-694-1.0.0-9d39a493,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.25,2026.11.08-12
+DD-npm-elf-stats-cranberry-wishlist-933-1.0.1-fb785402,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.73,2026.11.08-12
+DD-npm-elf-stats-evergreen-muffin-867-1.0.2-190e7915,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.31,2026.11.08-12
+DD-npm-elf-stats-starlit-mitten-980-1.0.4-8ee01331,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.68,2026.11.08-12
+DD-npm-eshops-components-library-7.7.8-a665904a,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.28,2026.11.08-12
+DD-npm-esoftplay-0.0.141-t-e0fcf8d9,known_bad,test,scored,Review recommended (Partial assessment),84.0,0,0,4,0,False,True,3.57,2026.11.08-12
+DD-npm-filter-engine-ui-10.1.10-806d41b2,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.28,2026.11.08-12
+DD-npm-frontend-js-state-web-2.2.2-dc793d67,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.64,2026.11.08-12
+DD-npm-github-badge-bot-1.1.0-177992b6,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,1.18,2026.11.08-12
+DD-npm-github-badge-bot-1.10.1-bf411176,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,2,0,False,True,0.71,2026.11.08-12
+DD-npm-google-build-slack-9.9.9-55beaaab,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.32,2026.11.08-12
+DD-npm-google-cloud-secret-manager-config-poc-99.9.24-9852af93,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.27,2026.11.08-12
+DD-npm-graphql-commons-1.0.0-a94c1d69,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.53,2026.11.08-12
+DD-npm-grepleaks-1.0.2-940a948f,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.3,2026.11.08-12
+DD-npm-heft-storybook-v6-react-tutorial-storykit-1000.0.16-926a7212,known_bad,test,not_assessed,,,,,,,,,0.25,2026.11.08-12
+DD-npm-hendra-rojak93-sukiwir-3.4.3-bb7d9220,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.29,2026.11.08-12
+DD-npm-https-agen-chii-1.0.1-137449f0,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,2,0,False,True,11.32,2026.11.08-12
+DD-npm-hyatt-album-999.999.999-64967840,known_bad,test,scored,High-risk patterns: review before use (Partial assessment),49.0,0,3,2,0,True,True,0.3,2026.11.08-12
+DD-npm-infra-metrics-33.12.10-b29c8372,known_bad,test,scored,High-risk patterns: review before use (Partial assessment),49.0,0,1,1,0,True,True,0.59,2026.11.08-12
+DD-npm-invalid-polyfill-missing-11.0.1-665be411,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.25,2026.11.08-12
+DD-npm-isood-1.64.653-23634955,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.29,2026.11.08-12
+DD-npm-jio-payment-sdk-1.4.1-ff2707ee,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,1.62,2026.11.08-12
+DD-npm-laila-rojak19-sukiwir-2.3.3-d998cdcc,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.28,2026.11.08-12
+DD-npm-media-recorder-polyfill-1.0.0-c3aa6a48,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.63,2026.11.08-12
+DD-npm-mender-binary-delta-1.6.2-19fcb799,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.28,2026.11.08-12
+DD-npm-mender-binary-delta-2.1.3-a5a81364,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.28,2026.11.08-12
+DD-npm-metrics-pipeline-d8k2-1.0.1-69dd84a8,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.32,2026.11.08-12
+DD-npm-mgzfakee-1.0.0-395be2df,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.26,2026.11.08-12
+DD-npm-monosize-bundler-rsbuild-0.0.1-46c40019,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.62,2026.11.08-12
+DD-npm-natel-plotly-panel-2.0.0-4d75d15e,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.28,2026.11.08-12
+DD-npm-ngx-satoris-99.0.1-3f152a5e,known_bad,test,scored,Review recommended (Partial assessment),84.0,0,0,4,0,False,True,0.61,2026.11.08-12
+DD-npm-node-mongo-orm-3.4.2-65ccbc70,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.39,2026.11.08-12
+DD-npm-node-setup-helpers-1.3.0-8d199d0c,known_bad,test,scored,Review recommended (Partial assessment),84.0,0,0,2,0,False,True,0.29,2026.11.08-12
+DD-npm-node-telegram-bots-api-0.66.0-c8ccc468,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,2,0,False,True,1.53,2026.11.08-12
+DD-npm-npm-doc-builder-1.0.5-ab882224,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.76,2026.11.08-12
+DD-npm-npm-security-testing-1.0.1-a77be636,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.67,2026.11.08-12
+DD-npm-old-header-parser-90.99.99-a0da6a31,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.28,2026.11.08-12
+DD-npm-overstock-logger-3.11.3-46407663,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.27,2026.11.08-12
+DD-npm-path-addon-1.0.5-aaa6d456,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.3,2026.11.08-12
+DD-npm-pathfix-3.0.10-08f8a41f,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.28,2026.11.08-12
+DD-npm-penny-core-99.0.2-34ef012d,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.35,2026.11.08-12
+DD-npm-pleasant_stoat_z3n-2.2.3-665ba5a0,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.26,2026.11.08-12
+DD-npm-postcss-minify-selector-0.1.6-81435bab,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.38,2026.11.08-12
+DD-npm-precompiled-wasabi100-1.2.0-84e3549d,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.27,2026.11.08-12
+DD-npm-prettier-utils-1.0.6-2f64d44f,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.69,2026.11.08-12
+DD-npm-prettlog-4.1.0-59946f2d,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.28,2026.11.08-12
+DD-npm-puppeteer-html2pd-1.0.0-02cf6b17,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.27,2026.11.08-12
+DD-npm-putri-pecel8-sluey-3.4.2-6109a0d0,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.35,2026.11.08-12
+DD-npm-qassam22-1.1.1-2251958e,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.27,2026.11.08-12
+DD-npm-quixotic-plum-lion-2.3.6-6b1c35ec,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.54,2026.11.08-12
+DD-npm-redirect-uc8xfg-1.0.0-e1d48692,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.77,2026.11.08-12
+DD-npm-refreshrewards-13.3.0-4c01182b,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.66,2026.11.08-12
+DD-npm-repo-typescript-config-99.0.36-43f6a86f,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.25,2026.11.08-12
+DD-npm-request-ip-check-3.4.4-0ae5bcb4,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.76,2026.11.08-12
+DD-npm-rifqi-kue54-sluey-1.4.4-53fc7027,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.56,2026.11.08-12
+DD-npm-rush-plugins-999.0.0-8433a8e6,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.27,2026.11.08-12
+DD-npm-search-newfrontier-podlet-3.1.5-5620eabb,known_bad,test,not_assessed,,,,,,,,,0.23,2026.11.08-12
+DD-npm-server-github-0.0.1-36b10b55,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.29,2026.11.08-12
+DD-npm-siren-lament-2.14.802-878646bc,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,0.52,2026.11.08-12
+DD-npm-siska-empal77-breki-3.2.2-bfcf2b93,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.62,2026.11.08-12
+DD-npm-skyscanner-with-prettier-1.0.0-7371f009,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.27,2026.11.08-12
+DD-npm-sreadmin-base-2.1.1-585cf8ff,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.63,2026.11.08-12
+DD-npm-ssc-upload-react-5.1.9-0948a1de,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.29,2026.11.08-12
+DD-npm-string-easy-assistant-1.0.0-10ee3a6b,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.31,2026.11.08-12
+DD-npm-string-setup-helper-1.0.1-9191e266,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.82,2026.11.08-12
+DD-npm-strutils-pro-2.0.1-92b1aa00,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.3,2026.11.08-12
+DD-npm-superhero-turnip-9.9.9-0f024fa1,known_bad,test,not_assessed,,,,,,,,,0.24,2026.11.08-12
+DD-npm-tailwindcss-animation-helper-1.1.9-6b664e76,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.25,2026.11.08-12
+DD-npm-tasteless-purple-hippopotamus-0.2.5-2580f95a,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.27,2026.11.08-12
+DD-npm-testing-package-xdsfdsfsc-1.0.20-656bdf18,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.29,2026.11.08-12
+DD-npm-themeone-event-71.71.84-121b9660,known_bad,test,scored,High-risk patterns: review before use (Partial assessment),49.0,0,1,2,0,True,True,0.65,2026.11.08-12
+DD-npm-tombac-icons-1.1.1-04083a0b,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.6,2026.11.08-12
+DD-npm-traceviz-client-core-19.9.9-6625f8c0,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.57,2026.11.08-12
+DD-npm-ts-ecro-0.0.6-6b0c684d,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.28,2026.11.08-12
+DD-npm-tuti-lepet19-riris-3.2.3-b21b26be,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.31,2026.11.08-12
+DD-npm-upgrade-solara-3.0.0-f6d11b39,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.26,2026.11.08-12
+DD-npm-upm-template-utils-1.0.1-776df29b,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.28,2026.11.08-12
+DD-npm-utils-mf-11.2.2-15d8c92d,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.35,2026.11.08-12
+DD-npm-uuu8lgd-1.0.7-389e854f,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,2,0,False,True,0.27,2026.11.08-12
+DD-npm-ve.zz-1.7.5-25b0cb1d,known_bad,test,scored,Review recommended (Partial assessment),49.0,0,0,1,0,False,True,0.58,2026.11.08-12
+DD-npm-vvvv4234-1.0.2-47b8fb21,known_bad,test,scored,Review recommended (Partial assessment),92.0,0,0,2,0,False,True,0.27,2026.11.08-12
+DD-npm-web3-austt-4.1.2-551f35fa,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.29,2026.11.08-12
+DD-npm-winston-prisma-1.1.3-fd9d77d0,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.35,2026.11.08-12
+DD-npm-yanti-mangga7-sukiwir-2.3.1-330d09de,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.62,2026.11.08-12
+DD-npm-yelp-react-component-badge-99.0.11-47abcbc7,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.28,2026.11.08-12
+DD-npm-yui2-animation-2.2.0-dbdf5c6e,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.27,2026.11.08-12
+DD-npm-yxt-fe-center-10.10.11-e1841b6f,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.26,2026.11.08-12
+DD-npm-zdachboost-1.1.8-b64b0800,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.29,2026.11.08-12
+DD-npm-zul-martabak26-miaww-3.4.3-26100a14,known_bad,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.31,2026.11.08-12
+MAL-2022-2027,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2022-6745,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-1297,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-1375,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-1397,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-1613,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-1615,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-1635,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-1670,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-1690,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-1700,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-1850,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-1915,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-2041,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-2051,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-2262,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-2268,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-2501,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-2524,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-2541,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-2557,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-2652,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-2674,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-2712,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-2720,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-2796,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-3135,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-3143,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-3226,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-3427,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-3601,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-3622,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-3677,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-3707,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-3938,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-3947,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-3986,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-4123,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-4225,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-4340,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-4545,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-4619,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-4822,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-4858,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-4976,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-4990,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-5047,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-5105,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-5226,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-5264,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-5286,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-5347,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-5370,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-5478,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-5560,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-5703,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-5726,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-5757,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-5793,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-61,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-6116,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-6148,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-6207,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-6274,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-6448,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-6520,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-6525,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-6585,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-6600,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-6639,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-6660,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-6678,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-6909,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-6982,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-7202,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-7209,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-7372,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-7600,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-7713,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2023-859,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2024-10076,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2024-10413,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2024-11513,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2024-11568,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2024-11571,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2024-11629,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2024-11634,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2024-11709,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2024-11714,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2024-12280,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2024-12310,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2024-1397,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2024-1527,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2024-1537,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2024-2576,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2024-2737,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2024-4730,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2024-4823,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2024-4933,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2024-4966,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2024-5042,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2024-5336,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2024-5549,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2024-5830,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2024-5864,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2024-5870,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2024-5898,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2024-5911,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2024-6061,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2024-6080,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2024-8194,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2024-8482,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2024-9170,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2024-9611,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-100191,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-100236,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-103435,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-104115,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-104293,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-105404,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-105591,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-10560,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-106809,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-107284,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-107644,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-108220,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-109845,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-113965,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-114377,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-121317,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-121421,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-121527,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-122050,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-122052,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-12231,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-123644,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-125409,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-126593,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-126934,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-128154,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-129250,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-129748,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-130304,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-130929,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-131849,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-132585,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-133095,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-135508,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-138544,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-13904,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-139134,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-140301,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-140498,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-141982,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-143004,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-14438,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-144831,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-144882,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-149078,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-149794,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-150038,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-151296,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-152376,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-15833,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-164829,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-165273,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-16767,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-169443,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-170468,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-171041,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-172306,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-174051,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-175048,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-17587,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-178590,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-179363,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-181130,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-182985,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-184304,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-186228,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-189277,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-191652,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-19175,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-191764,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-191886,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-191912,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-191921,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-192470,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-192928,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-192953,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-1946,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-1969,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-19866,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-19974,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-20742,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-20832,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-20962,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-23541,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-25085,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-27496,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-27925,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-2987,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-30827,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-31822,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-31943,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-32767,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-34561,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-35337,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-35498,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-39189,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-39332,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-39380,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-4038,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-41654,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-41750,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-41762,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-41807,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-4235,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-44841,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-47795,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-47796,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-49351,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-49855,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-5121,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-5139,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-5241,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-52922,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-52985,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-53639,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-56862,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-58316,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-58405,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-61719,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-62048,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-62049,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-63346,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-63689,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-6429,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-6438,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-6440,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-6468,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-6501,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-65484,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-6578,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-6615,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-67010,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-68507,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-68930,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-73193,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-73209,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-75063,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-76805,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-77184,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-79320,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-79600,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-80634,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-83120,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-84255,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-84772,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-84926,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-87061,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-87423,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-905,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-91442,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-92314,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-928,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-94693,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-97462,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-97861,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-9795,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2025-99599,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2026-10117,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2026-1220,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2026-12788,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2026-14141,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2026-14308,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2026-14556,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2026-15577,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2026-15828,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2026-16131,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2026-17314,known_bad,test,scored,No findings,100.0,0,0,0,0,False,False,0.6,2026.11.08-12
+MAL-2026-17877,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2026-18328,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2026-2029,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2026-2171,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2026-2269,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2026-2702,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2026-2840,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2026-2963,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2026-3245,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2026-3405,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2026-3413,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2026-449,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2026-4625,known_bad,test,scored,Review recommended,92.0,0,0,1,0,False,True,0.54,2026.11.08-12
+MAL-2026-469,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2026-4775,known_bad,test,scored,No findings,100.0,0,0,0,0,False,False,0.68,2026.11.08-12
+MAL-2026-505,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2026-5824,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2026-6280,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+MAL-2026-904,known_bad,test,unobtainable,,,,,,,,,0.0,2026.11.08-12
+dormant:PyPI:isoduration@20.11.0,dormant,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.31,2026.11.08-12
+dormant:PyPI:jsonlines@4.0.0,dormant,test,scored,No findings,100.0,0,0,0,0,False,False,0.38,2026.11.08-12
+dormant:PyPI:mergedeep@1.3.4,dormant,test,scored,No findings,100.0,0,0,0,0,False,False,0.71,2026.11.08-12
+dormant:PyPI:py-cpuinfo@9.0.0,dormant,test,scored,No findings,100.0,0,0,0,0,False,False,0.71,2026.11.08-12
+dormant:PyPI:python-http-client@3.3.7,dormant,test,scored,No findings,100.0,0,0,0,0,False,False,0.36,2026.11.08-12
+dormant:PyPI:uri-template@1.3.0,dormant,test,scored,No findings,100.0,0,0,0,0,False,False,0.39,2026.11.08-12
+dormant:npm:assertion-error@2.0.1,dormant,test,scored,No findings,100.0,0,0,0,0,False,False,0.64,2026.11.08-12
+dormant:npm:etag@1.8.1,dormant,test,scored,No findings,100.0,0,0,0,0,False,False,0.28,2026.11.08-12
+dormant:npm:event-target-shim@6.0.2,dormant,test,scored,No findings,100.0,0,0,0,0,False,False,0.82,2026.11.08-12
+dormant:npm:symbol-tree@3.2.4,dormant,test,scored,No findings,100.0,0,0,0,0,False,False,0.3,2026.11.08-12
+dormant:npm:through@2.3.8,dormant,test,scored,No findings,100.0,0,0,0,0,False,False,0.29,2026.11.08-12
+dormant:npm:type-check@0.4.0,dormant,test,scored,No findings,100.0,0,0,0,0,False,False,0.28,2026.11.08-12
+known_good:PyPI:aiofile@3.12.3,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.9,2026.11.08-12
+known_good:PyPI:aiohappyeyeballs@2.7.1,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.94,2026.11.08-12
+known_good:PyPI:amqp@5.4.2,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,1.98,2026.11.08-12
+known_good:PyPI:asyncpg@0.32.0,known_good,test,scored,Review recommended,92.0,0,0,1,0,False,True,1.2,2026.11.08-12
+known_good:PyPI:av@19.0.2,known_good,test,scored,Review recommended,92.0,0,0,1,0,False,True,1.7,2026.11.08-12
+known_good:PyPI:aws-lambda-powertools@3.39.0,known_good,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,2.83,2026.11.08-12
+known_good:PyPI:azure-keyvault-keys@4.11.3,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,2.15,2026.11.08-12
+known_good:PyPI:azure-storage-file-datalake@12.26.1,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,2.51,2026.11.08-12
+known_good:PyPI:comm@0.2.3,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.65,2026.11.08-12
+known_good:PyPI:coverage@7.17.2,known_good,test,scored,Review recommended,84.0,0,0,3,1,False,True,5.95,2026.11.08-12
+known_good:PyPI:datasets@5.1.0,known_good,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,4.03,2026.11.08-12
+known_good:PyPI:deepdiff@9.1.0,known_good,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,3.87,2026.11.08-12
+known_good:PyPI:execnet@2.1.2,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.64,2026.11.08-12
+known_good:PyPI:face@26.0.1,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,1.21,2026.11.08-12
+known_good:PyPI:fastcore@2.2.39,known_good,test,scored,No findings,100.0,0,0,0,1,False,False,1.36,2026.11.08-12
+known_good:PyPI:fonttools@4.68.0,known_good,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,12.41,2026.11.08-12
+known_good:PyPI:google-cloud-kms@3.18.0,known_good,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,3.17,2026.11.08-12
+known_good:PyPI:google-cloud-logging@3.17.0,known_good,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,6.45,2026.11.08-12
+known_good:PyPI:google-cloud-storage@3.17.1,known_good,test,not_assessed,,,,,,,,,0.29,2026.11.08-12
+known_good:PyPI:graphene@3.4.3,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.57,2026.11.08-12
+known_good:PyPI:groq@1.7.0,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,1.26,2026.11.08-12
+known_good:PyPI:import-linter@2.16,known_good,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.82,2026.11.08-12
+known_good:PyPI:jeepney@0.9.0,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.57,2026.11.08-12
+known_good:PyPI:jinja2@3.1.6,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,1.4,2026.11.08-12
+known_good:PyPI:jmespath@1.1.0,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.98,2026.11.08-12
+known_good:PyPI:jsonconversion@2.0.0,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.69,2026.11.08-12
+known_good:PyPI:langchain-openai@1.7.4,known_good,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,1.39,2026.11.08-12
+known_good:PyPI:lupa@2.8,known_good,test,not_assessed,,,,,,,,,0.61,2026.11.08-12
+known_good:PyPI:mlflow-tracing@3.18.0,known_good,test,scored,Review recommended (Partial assessment),92.0,0,0,1,7,False,True,39.17,2026.11.08-12
+known_good:PyPI:mpmath@1.4.1,known_good,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,4.11,2026.11.08-12
+known_good:PyPI:nbclient@0.11.0,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.53,2026.11.08-12
+known_good:PyPI:opentelemetry-distro@0.66b2,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.65,2026.11.08-12
+known_good:PyPI:opentelemetry-instrumentation-logging@0.66b2,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.8,2026.11.08-12
+known_good:PyPI:opentelemetry-instrumentation-psycopg2@0.66b2,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.35,2026.11.08-12
+known_good:PyPI:opentelemetry-instrumentation-redis@0.66b2,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.45,2026.11.08-12
+known_good:PyPI:orjson@3.13.0,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,1.58,2026.11.08-12
+known_good:PyPI:pathvalidate@3.3.1,known_good,test,scored,Review recommended,84.0,0,0,2,0,False,True,1.12,2026.11.08-12
+known_good:PyPI:patsy@1.0.3,known_good,test,scored,Review recommended,92.0,0,0,1,0,False,True,2.2,2026.11.08-12
+known_good:PyPI:posthog@7.86.0,known_good,test,scored,No findings (Partial assessment),100.0,0,0,0,2,False,False,5.03,2026.11.08-12
+known_good:PyPI:py-serializable@2.2.0,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.54,2026.11.08-12
+known_good:PyPI:pycodestyle@2.15.0,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,1.14,2026.11.08-12
+known_good:PyPI:pymysql@1.2.3,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.59,2026.11.08-12
+known_good:PyPI:pypdfium2@5.15.1,known_good,test,scored,No findings,100.0,0,0,0,1,False,False,1.91,2026.11.08-12
+known_good:PyPI:pyproject-hooks@1.3.3,known_good,test,scored,No findings,100.0,0,0,0,1,False,False,0.4,2026.11.08-12
+known_good:PyPI:python-jose@3.5.0,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.55,2026.11.08-12
+known_good:PyPI:requirements-parser@0.13.1,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.38,2026.11.08-12
+known_good:PyPI:rfc3987-syntax@1.1.0,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.37,2026.11.08-12
+known_good:PyPI:s3fs@2026.9.0,known_good,test,scored,No findings,100.0,0,0,0,1,False,False,0.81,2026.11.08-12
+known_good:PyPI:sentencepiece@0.2.3,known_good,test,scored,Review recommended (Partial assessment),84.0,0,0,5,0,False,True,0.5,2026.11.08-12
+known_good:PyPI:tabulate@0.10.0,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,1.32,2026.11.08-12
+known_good:PyPI:temporalio@1.35.0,known_good,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,11.43,2026.11.08-12
+known_good:PyPI:texttable@1.7.2,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.4,2026.11.08-12
+known_good:PyPI:textual@8.2.8,known_good,test,scored,No findings,100.0,0,0,0,1,False,False,6.26,2026.11.08-12
+known_good:PyPI:thinc@10.0.0,known_good,test,scored,Review recommended,84.0,0,0,2,0,False,True,1.65,2026.11.08-12
+known_good:PyPI:typer@0.28.0,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,1.86,2026.11.08-12
+known_good:PyPI:types-protobuf@7.35.1.20260906,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.76,2026.11.08-12
+known_good:PyPI:types-python-dateutil@2.9.0.20261104,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.36,2026.11.08-12
+known_good:PyPI:types-setuptools@84.2.0.20261104,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.35,2026.11.08-12
+known_good:PyPI:xlrd@2.0.2,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,2.21,2026.11.08-12
+known_good:PyPI:zstandard@0.25.0,known_good,test,scored,No findings,100.0,0,0,0,2,False,False,1.62,2026.11.08-12
+known_good:npm:@babel/helper-annotate-as-pure@8.0.0,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.28,2026.11.08-12
+known_good:npm:@babel/helper-globals@8.0.6,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.62,2026.11.08-12
+known_good:npm:@babel/parser@8.1.0,known_good,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.42,2026.11.08-12
+known_good:npm:@babel/plugin-syntax-import-attributes@7.29.7,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.78,2026.11.08-12
+known_good:npm:@floating-ui/dom@1.8.0,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.68,2026.11.08-12
+known_good:npm:@img/sharp-linux-x64@0.35.5,known_good,test,scored,Review recommended,92.0,0,0,2,0,False,True,0.28,2026.11.08-12
+known_good:npm:@jest/schemas@30.5.0,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.32,2026.11.08-12
+known_good:npm:@jridgewell/gen-mapping@0.3.13,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.67,2026.11.08-12
+known_good:npm:@octokit/types@18.0.0,known_good,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.75,2026.11.08-12
+known_good:npm:@radix-ui/react-use-escape-keydown@1.1.6,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.67,2026.11.08-12
+known_good:npm:@sinclair/typebox@0.34.52,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,2.22,2026.11.08-12
+known_good:npm:@smithy/config-resolver@4.7.2,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.28,2026.11.08-12
+known_good:npm:@smithy/middleware-endpoint@4.7.2,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.3,2026.11.08-12
+known_good:npm:@smithy/service-error-classification@4.6.2,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.56,2026.11.08-12
+known_good:npm:@smithy/util-body-length-browser@4.5.2,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.57,2026.11.08-12
+known_good:npm:@smithy/util-hex-encoding@4.5.2,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.27,2026.11.08-12
+known_good:npm:@tailwindcss/oxide@4.3.5,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.32,2026.11.08-12
+known_good:npm:@typescript-eslint/type-utils@8.72.1,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.44,2026.11.08-12
+known_good:npm:@typescript-eslint/utils@8.72.1,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.5,2026.11.08-12
+known_good:npm:@vitest/mocker@5.1.0,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.39,2026.11.08-12
+known_good:npm:ansi-styles@7.0.0,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.63,2026.11.08-12
+known_good:npm:babel-preset-jest@30.5.0,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.27,2026.11.08-12
+known_good:npm:balanced-match@5.0.0,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.66,2026.11.08-12
+known_good:npm:cacache@21.0.1,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.68,2026.11.08-12
+known_good:npm:call-bind@1.0.9,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.57,2026.11.08-12
+known_good:npm:char-regex@2.0.2,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.61,2026.11.08-12
+known_good:npm:ci-info@4.4.0,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.29,2026.11.08-12
+known_good:npm:cli-truncate@6.2.0,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.29,2026.11.08-12
+known_good:npm:core-js@3.51.0,known_good,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.8,2026.11.08-12
+known_good:npm:cors@2.8.6,known_good,test,scored,Review recommended,84.0,0,0,2,0,False,True,0.61,2026.11.08-12
+known_good:npm:cosmiconfig@10.0.1,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.31,2026.11.08-12
+known_good:npm:d3-scale@4.0.3,known_good,test,scored,Review recommended,84.0,0,0,2,0,False,True,0.3,2026.11.08-12
+known_good:npm:data-view-buffer@1.0.2,known_good,test,scored,Review recommended,92.0,0,0,1,0,False,True,1.24,2026.11.08-12
+known_good:npm:domutils@4.0.2,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.69,2026.11.08-12
+known_good:npm:entities@9.0.0,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,1.02,2026.11.08-12
+known_good:npm:error-ex@1.3.4,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.27,2026.11.08-12
+known_good:npm:es-set-tostringtag@2.1.0,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.72,2026.11.08-12
+known_good:npm:eslint-config-prettier@10.1.8,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.3,2026.11.08-12
+known_good:npm:fastq@1.20.3,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.6,2026.11.08-12
+known_good:npm:is-finalizationregistry@1.1.1,known_good,test,scored,Review recommended,92.0,0,0,1,0,False,True,0.62,2026.11.08-12
+known_good:npm:isobject@4.1.1,known_good,test,scored,Review recommended,84.0,0,0,2,0,False,True,0.63,2026.11.08-12
+known_good:npm:jest-circus@30.5.2,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.43,2026.11.08-12
+known_good:npm:jest-cli@30.5.2,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.32,2026.11.08-12
+known_good:npm:json-parse-even-better-errors@6.0.0,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.28,2026.11.08-12
+known_good:npm:log-symbols@7.0.1,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.66,2026.11.08-12
+known_good:npm:magic-string@1.4.5,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.59,2026.11.08-12
+known_good:npm:mime@4.1.2,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.38,2026.11.08-12
+known_good:npm:object-inspect@1.13.4,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.3,2026.11.08-12
+known_good:npm:pathe@2.0.3,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.3,2026.11.08-12
+known_good:npm:picomatch@4.0.7,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.68,2026.11.08-12
+known_good:npm:regjsparser@0.14.1,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.33,2026.11.08-12
+known_good:npm:safe-array-concat@1.1.4,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.6,2026.11.08-12
+known_good:npm:safe-push-apply@1.0.0,known_good,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.56,2026.11.08-12
+known_good:npm:socks-proxy-agent@10.1.0,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.62,2026.11.08-12
+known_good:npm:tinybench@6.2.3,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.34,2026.11.08-12
+known_good:npm:tldts-core@7.4.20,known_good,test,scored,Review recommended,92.0,0,0,1,0,False,True,0.95,2026.11.08-12
+known_good:npm:unique-filename@6.0.0,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.62,2026.11.08-12
+known_good:npm:unist-util-visit@5.2.0,known_good,test,scored,No findings,100.0,0,0,0,0,False,False,0.3,2026.11.08-12
+known_good:npm:why-is-node-running@3.2.3,known_good,test,scored,Review recommended,84.0,0,0,2,0,False,True,0.61,2026.11.08-12
+scary:PyPI:bandit@1.9.4,scary,test,scored,No findings,100.0,0,0,0,0,False,False,2.32,2026.11.08-12
+scary:PyPI:frida@17.26.2,scary,test,scored,Review recommended (Partial assessment),84.0,0,0,2,26,False,True,10.48,2026.11.08-12
+scary:PyPI:mitmproxy@12.3.1,scary,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,11.69,2026.11.08-12
+scary:PyPI:scapy@2.8.0,scary,test,scored,Review recommended (Partial assessment),92.0,0,0,1,0,False,True,15.51,2026.11.08-12
+scary:PyPI:volatility3@2.28.2,scary,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,17.21,2026.11.08-12
+scary:PyPI:yara-python@4.5.4,scary,test,scored,Review recommended,84.0,0,0,3,0,False,True,0.83,2026.11.08-12
+scary:npm:@swc/core@1.16.22,scary,test,scored,No findings,100.0,0,0,0,0,False,False,0.39,2026.11.08-12
+scary:npm:bcrypt@6.0.0,scary,test,scored,Review recommended,92.0,0,0,11,0,False,True,0.73,2026.11.08-12
+scary:npm:core-js@3.51.0,scary,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.84,2026.11.08-12
+scary:npm:cypress@16.2.1,scary,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,4.97,2026.11.08-12
+scary:npm:electron@45.2.3,scary,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.32,2026.11.08-12
+scary:npm:esbuild@0.28.2,scary,test,scored,No findings,100.0,0,0,0,0,False,False,0.35,2026.11.08-12
+scary:npm:javascript-obfuscator@5.10.0,scary,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,1.7,2026.11.08-12
+scary:npm:pdfjs-dist@6.5.438,scary,test,not_assessed,,,,,,,,,1.35,2026.11.08-12
+scary:npm:playwright@1.65.0,scary,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,0.91,2026.11.08-12
+scary:npm:protobufjs@8.8.1,scary,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,2.03,2026.11.08-12
+scary:npm:puppeteer@25.16.0,scary,test,scored,No findings,100.0,0,0,0,0,False,False,0.76,2026.11.08-12
+scary:npm:sharp@0.35.5,scary,test,scored,No findings,100.0,0,0,0,0,False,False,0.43,2026.11.08-12
+scary:npm:tinymce@8.10.1,scary,test,scored,No findings (Partial assessment),100.0,0,0,0,0,False,False,2.32,2026.11.08-12

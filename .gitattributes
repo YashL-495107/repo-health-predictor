@@ -1,0 +1,3 @@
+# Recorded registry responses and inert fixtures are compared byte-for-byte: no line-ending conversion on checkout.
+tests/fixtures/** -text
+benchmark_fixtures/** -text

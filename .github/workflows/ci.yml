@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [trust-engine]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: ${{ matrix.os }} / Python ${{ matrix.python }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ["3.11", "3.13"]     # README: Python 3.11 or newer
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    env:
+      PYTHONIOENCODING: utf-8         # console output only; file encodings stay the platform default on purpose
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+      - name: Install
+        run: python -m pip install -r requirements.txt -r requirements-dev.txt
+      - name: Tests (pytest)
+        run: python -m pytest -q tests
+      - name: Forbidden-word test
+        run: python -m pytest -q tests/test_wording.py
+      - name: verify_phase4_reality.py
+        run: python verify_phase4_reality.py
+      - name: benchmark_fixtures.py
+        run: python benchmark_fixtures.py

@@ -11,6 +11,7 @@ import base64
 import json
 import re
 import requests
+from pathlib import PurePosixPath
 from urllib.parse import quote
 from github_client import GitHubClient, GitHubError
 from malware_proof import _detect_package_identity
@@ -30,7 +31,7 @@ def parse_requirements(text: str) -> tuple[list[dict], int]:
         if not line or line.startswith(("-", "git+", "http")): continue
         m = re.match(r"^([A-Za-z0-9_.\-]+)(?:\[[^\]]*\])?\s*(==)\s*([A-Za-z0-9_.+!\-]+)$", line)
         if m and "*" not in m.group(3):
-            pinned.append({"name": m.group(1), "version": m.group(3), "ecosystem": "PyPI"})
+            pinned.append({"name": m.group(1), "version": m.group(3), "ecosystem": "PyPI", "scope": "runtime"})
         elif re.match(r"^[A-Za-z0-9_.\-]+", line):
             unpinned += 1
     return pinned, unpinned
@@ -40,10 +41,35 @@ def parse_package_json(text: str) -> tuple[list[dict], int]:
     pinned, unpinned = [], 0
     for name, spec in (data.get("dependencies") or {}).items():
         if re.fullmatch(r"\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.\-+]+)?", str(spec).strip()):
-            pinned.append({"name": name, "version": spec.strip(), "ecosystem": "npm"})
+            pinned.append({"name": name, "version": spec.strip(), "ecosystem": "npm", "scope": "runtime"})
         else:
             unpinned += 1
     return pinned, unpinned
+
+DEV_REQ_FILE = re.compile(r"(?:^|[-_./])(?:dev|develop|development|test|tests|testing|doc|docs|lint|ci|typing)(?:[-_./]|$)", re.I)
+DEV_EXTRAS = {"dev", "develop", "development", "test", "tests", "testing", "doc", "docs", "lint", "typing"}
+
+
+def dependency_scope(source_file: str, *, npm_dev: bool = False, extra: str | None = None,
+                     package_manifest: bool = False) -> str:
+    """'runtime' or 'dev' (since 2026.11.08-11). dev: npm devDependencies or lockfile entries marked dev, requirements
+    files named for dev/test/docs (requirements-dev.txt, docs/requirements.txt, test-requirements.txt, ...), and
+    extras named dev/test/docs. Since 2026.11.08-12: when the project declares its own Python package
+    (package_manifest=True: pyproject.toml / setup.py / setup.cfg), EVERY requirements*.txt file (root, docs/, test/,
+    dev) is dev pins; without a package manifest (an application) the root requirements.txt stays runtime.
+    Only runtime dependencies count toward Exposure review findings and the security caps; dev-scope advisories are
+    reported as Info."""
+    if npm_dev:
+        return "dev"
+    if extra and extra.strip().lower() in DEV_EXTRAS:
+        return "dev"
+    name = source_file.replace("\\", "/").lower()
+    if name.endswith((".txt", ".in")) and PurePosixPath(name).name.startswith("requirements") and package_manifest:
+        return "dev"
+    if name.endswith((".txt", ".in")) and DEV_REQ_FILE.search(name.rsplit(".", 1)[0]):
+        return "dev"
+    return "runtime"
+
 
 def parse_package_lock(text: str) -> list[dict]:
     data = json.loads(text)
@@ -52,7 +78,9 @@ def parse_package_lock(text: str) -> list[dict]:
         if not path or "node_modules/" not in path: continue
         name = path.split("node_modules/")[-1]
         if info.get("version") and not info.get("link"):
-            out.append({"name": name, "version": info["version"], "ecosystem": "npm"})
+            # lockfile v2/v3 marks packages needed only for development ("dev"; "devOptional" is also optional/peer)
+            out.append({"name": name, "version": info["version"], "ecosystem": "npm",
+                        "scope": dependency_scope("package-lock.json", npm_dev=bool(info.get("dev")))})
     return out
 
 def _read_file(client: GitHubClient, owner: str, repo: str, path: str) -> str | None:
@@ -62,12 +90,34 @@ def _read_file(client: GitHubClient, owner: str, repo: str, path: str) -> str | 
     if not isinstance(data, dict) or data.get("encoding") != "base64" or not data.get("content"): return None
     return base64.b64decode(data["content"]).decode("utf-8", errors="replace")
 
+PY_PACKAGE_MANIFESTS = ("pyproject.toml", "setup.py", "setup.cfg")
+
+
+def declares_python_package(manifests: dict[str, str]) -> bool:
+    """True when the repository is a Python PACKAGE (it declares itself, and so its own runtime dependencies, in
+    pyproject.toml [project] / [tool.poetry], setup.py or setup.cfg [metadata] / [options]). Its requirements*.txt
+    files are then development pins (docs, tests, tooling), not what users install. Since 2026.11.08-12."""
+    py = manifests.get("pyproject.toml") or ""
+    cfg = manifests.get("setup.cfg") or ""
+    return bool(re.search(r"^\[(?:project|tool\.poetry)\]\s*$", py, re.M)
+                or manifests.get("setup.py") is not None
+                or re.search(r"^\[(?:metadata|options)\]\s*$", cfg, re.M))
+
+
 def collect_dependencies(client: GitHubClient, owner: str, repo: str) -> dict:
     deps, unpinned, files = [], 0, []
+    manifests: dict[str, str] = {}
     txt = _read_file(client, owner, repo, "requirements.txt")
     if txt is not None:
+        for fn in PY_PACKAGE_MANIFESTS:     # only needed to decide what requirements.txt is
+            m = _read_file(client, owner, repo, fn)
+            if m is not None:
+                manifests[fn] = m
+        is_package = declares_python_package(manifests)
         p, u = parse_requirements(txt)
-        deps += p; unpinned += u; files.append("requirements.txt")
+        scope = dependency_scope("requirements.txt", package_manifest=is_package)
+        deps += [{**d, "scope": scope} for d in p]; unpinned += u
+        files.append("requirements.txt" + (" (development pins: the project declares its own package)" if scope == "dev" else ""))
     lock = _read_file(client, owner, repo, "package-lock.json")
     if lock is not None:
         try:
@@ -82,11 +132,12 @@ def collect_dependencies(client: GitHubClient, owner: str, repo: str) -> dict:
                 deps += p; unpinned += u; files.append("package.json")
             except ValueError: pass
     seen, uniq = set(), []
-    for d in deps:
+    for d in sorted(deps, key=lambda d: d.get("scope") != "runtime"):   # runtime wins when both list a package
         k = (d["ecosystem"], d["name"].lower(), d["version"])
         if k not in seen:
             seen.add(k); uniq.append(d)
-    return {"deps": uniq[:MAX_DEPS], "unpinned": unpinned, "files": files, "truncated": len(uniq) > MAX_DEPS}
+    return {"deps": uniq[:MAX_DEPS], "unpinned": unpinned, "files": files, "truncated": len(uniq) > MAX_DEPS,
+            "manifests": manifests}
 
 def osv_scan(deps: list[dict]) -> list[dict]:
     if not deps: return []
@@ -186,9 +237,15 @@ def check_own_package_malware(pkg: dict) -> tuple[list[dict], str, bool]:
 
 def assess_security(client: GitHubClient, owner: str, repo: str) -> dict:
     findings, coverage, level, checked = [], [], 1, 0
+    # Structured per-source status for the detector adapters (additive; coverage text is unchanged).
+    # Values: "ran" | "not_applicable" | "not_assessed"; *_detail keys add counts.
+    checks = {"github_advisories": "not_assessed", "osv_dependencies": "not_assessed",
+              "own_package": "not_assessed", "scorecard": "not_assessed"}
+    package = None   # {"ecosystem", "name"} of the repo's own published package, from its manifest
     try:
         advs = repo_advisories(client, owner, repo)
         checked += 1
+        checks["github_advisories"] = "ran"
         coverage.append(f"GitHub security advisories: {len(advs)} published")
         unpatched = [a for a in advs if not a["patched"]]
         if unpatched:
@@ -203,9 +260,20 @@ def assess_security(client: GitHubClient, owner: str, repo: str) -> dict:
         dep = collect_dependencies(client, owner, repo)
         if not dep["files"]:
             coverage.append("Dependencies: no requirements.txt / package.json found, NOT checked")
+            checks["osv_dependencies"] = "not_applicable"
         else:
-            hits = osv_scan(dep["deps"])
+            all_hits = osv_scan(dep["deps"])
+            is_mal_hit = lambda h: h.get("is_mal") or any(vid.startswith("MAL-") for vid in h["ids"])
+            # since 2026.11.08-11: dev/test/docs dependencies do not count toward the level (caps) or review findings;
+            # MAL- (malicious package) hits are unchanged in every scope
+            hits = [h for h in all_hits if h.get("scope", "runtime") == "runtime" or is_mal_hit(h)]
+            dev_hits = [h for h in all_hits if h not in hits]
             checked += 1
+            checks["osv_dependencies"] = "ran"
+            checks["osv_dependencies_detail"] = {"scanned": len(dep["deps"]), "unpinned_not_scanned": dep["unpinned"],
+                                                 "truncated": dep["truncated"], "vulnerable": len(hits),
+                                                 "vulnerable_dev_only": len(dev_hits),
+                                                 "detailed": min(len(hits), MAX_DETAIL)}
             note = f"Dependencies: scanned {len(dep['deps'])} exact versions from {', '.join(dep['files'])}"
             if dep["unpinned"]: note += f"; {dep['unpinned']} more have no exact version and were NOT scanned"
             coverage.append(note)
@@ -222,6 +290,12 @@ def assess_security(client: GitHubClient, owner: str, repo: str) -> dict:
                 severity = "High" if is_mal else "Elevated"
                 source = "OSV (Confirmed Malware)" if is_mal else "OSV (dependency)"
                 findings.append({"severity": severity, "source": source, "item": f"{h['name']} {h['version']}", "detail": f"{len(h['ids'])} advisory(ies), e.g. {main_id}: {info.get('summary', '')}.{fix}"})
+            for h in dev_hits[:MAX_DETAIL]:
+                findings.append({"severity": "Info", "source": "OSV (dev dependency)", "item": f"{h['name']} {h['version']}",
+                                 "detail": f"{len(h['ids'])} advisory(ies), e.g. {h['ids'][0]}. Development/test/docs "
+                                           "dependency only: not installed for users, so it does not lower the score."})
+            if dev_hits:
+                coverage.append(f"Dependencies: {len(dev_hits)} vulnerable development-only dependency(ies) reported as Info")
     except (requests.RequestException, ValueError, GitHubError) as e: coverage.append(f"Dependencies: NOT checked ({type(e).__name__})")
 
     try:
@@ -230,11 +304,15 @@ def assess_security(client: GitHubClient, owner: str, repo: str) -> dict:
             t = _read_file(client, owner, repo, fn)
             if t is not None: files[fn] = t
         pkg = _detect_package_identity(files)
+        package = pkg
         if pkg:
             own_findings, own_cov, own_mal = check_own_package_malware(pkg)
             findings += own_findings
             coverage.append(own_cov)
+            checks["own_package"] = "not_assessed" if "NOT run" in own_cov else "ran"
             if own_mal: level = max(level, 3)
+        else:
+            checks["own_package"] = "not_applicable"
     except (requests.RequestException, ValueError, GitHubError) as e: coverage.append(f"Own package OSV check: NOT checked ({type(e).__name__})")
 
     sc = None
@@ -242,8 +320,10 @@ def assess_security(client: GitHubClient, owner: str, repo: str) -> dict:
         sc = scorecard(owner, repo)
         if sc is None:
             coverage.append("OpenSSF Scorecard: this repo has not been scanned")
+            checks["scorecard"] = "not_available"
         else:
             checked += 1
+            checks["scorecard"] = "ran"
             coverage.append(f"OpenSSF Scorecard: overall {sc['score']}/10")
             if isinstance(sc["score"], (int, float)) and sc["score"] < 4: level = max(level, 2)
             for c in sc["checks"][:3]:
@@ -252,7 +332,10 @@ def assess_security(client: GitHubClient, owner: str, repo: str) -> dict:
     except (requests.RequestException, ValueError) as e: coverage.append(f"OpenSSF Scorecard: NOT checked ({type(e).__name__})")
     
     if checked == 0: level = 0
-    return {"level": LEVELS[level], "findings": findings, "coverage": coverage, "scorecard": sc}
+    out = {"level": LEVELS[level], "findings": findings, "coverage": coverage, "scorecard": sc, "checks": checks}
+    if checks["own_package"] != "not_assessed" or package:
+        out["package"] = package   # only set when the manifest lookup ran (None = no published package)
+    return out
 
 
 def action_verdict(maintenance_label: str, risk_level: str, flagged: bool = False) -> tuple[str, str]:
@@ -264,9 +347,9 @@ def action_verdict(maintenance_label: str, risk_level: str, flagged: bool = Fals
     if flagged and not risky: return ("Use with caution", "Offensive-security or malware-related terms were found. Such repos can be legitimate research or defensive tools but are dual-use: review the code before running it.")
     if risky and slow: return ("Review urgently", "Known security problems and maintenance is slowing down. Check whether a fix exists.")
     if risky: return ("Upgrade or review", "Known security problems, but maintainers are active, so a fix may be available.")
-    if risk_level == "Not assessed": return ("Maintenance looks fine, security not assessed", "The security sources could not be checked. This is not a safety guarantee.")
+    if risk_level == "Not assessed": return ("Maintenance looks fine, security not assessed", "The security sources could not be checked. Not assessed does not mean no problems exist.")
     if slow: return ("Watch it", "No unpatched issues found, but activity is slowing down.")
-    return ("Actively maintained, no unpatched issues found", "No known vulnerabilities or malware indicators were found by our checks. This is NOT a safety guarantee: static analysis can miss things.")
+    return ("Actively maintained, no unpatched issues found", "No known vulnerabilities or malware indicators were found by our checks. No findings is not proof: static analysis can miss things.")
 
 OFFENSIVE_TERMS = {"malware", "ransomware", "trojan", "keylogger", "botnet", "backdoor", "rootkit", "spyware", "stealer", "infostealer", "virus", "exploit", "exploits", "payload", "payloads", "c2", "reverse-shell", "shellcode", "pentest", "pentesting", "penetration-testing", "red-team", "redteam", "hacking", "hacktool", "phishing", "ddos", "bruteforce", "brute-force", "credential-stuffing", "offensive-security"}
 
@@ -276,20 +359,37 @@ def content_flags(f: dict) -> list[str]:
     words |= {w for t in f.get("topics") or [] for w in (t.lower(), *t.lower().split("-"))}
     return sorted(w for w in words if w in OFFENSIVE_TERMS)
 
-def apply_gate(res: dict, sec: dict, flags: list[str], scan: dict | None = None) -> dict:
+def apply_gate(res: dict, sec: dict, flags: list[str], scan: dict | None = None, *,
+               bus_factor: dict | None = None, features: dict | None = None, as_of=None,
+               releases: dict | None = None) -> dict:
+    """Combine the maintenance result with security/content evidence into the headline Trust score.
+
+    Keeps the existing evidence caps (known malicious 15; high-risk pattern 49; strong secret/CI 49; unpatched
+    advisory or 3+ vulnerable deps 49; vulnerable deps 69; offensive terms 59) and applies them to EVERY repo:
+    the earlier exception that skipped caps for "Likely abandoned" / archived repos was removed on purpose.
+    On top of them, pillars.compute_trust() turns detector results into four pillars and the weakest-link
+    headline. res["score"] / res["label"] now carry the trust score / label; res["maintenance_score"] /
+    res["maintenance_label"] keep the maintenance values. New keys: trust_score, pillars, limiting_pillar,
+    limiting_kind, limiting_reason, detectors, fragility, partial, partial_reasons, ruleset_version.
+    """
+    from detectors import RULESET_VERSION, run_detectors
+    from detectors.context import DetectorContext
+    from fragility import compute_fragility
+    from pillars import compute_trust
+
     out = dict(res)
     out["maintenance_score"], out["maintenance_label"] = res["score"], res["label"]
-    reasons, caps = [], []
-    
+    reasons, caps = [], []   # caps: (value, short name for "capped by evidence rule: <name>", tier it stands for)
+
     if sec["level"] == "High":
-        caps.append(49)
+        caps.append((49, "unpatched advisory or 3+ vulnerable dependencies", "review"))
         reasons.append("Known security problems (unpatched advisory or 3+ vulnerable dependencies): score capped at 49.")
     elif sec["level"] == "Elevated":
-        caps.append(69)
+        caps.append((69, "vulnerable dependencies", "review"))
         reasons.append("Known security problems found: score capped at 69.")
-        
+
     if flags:
-        caps.append(59)
+        caps.append((59, "offensive-security terms in name/description/topics", "review"))
         reasons.append(f"Offensive-security or malware-related terms in name/description/topics ({', '.join(flags)}): score capped at 59. This is a dual-use warning, not proof of harm.")
 
     scan = scan or {}
@@ -298,22 +398,41 @@ def apply_gate(res: dict, sec: dict, flags: list[str], scan: dict | None = None)
     high_risk_count = scan.get("high_risk_pattern_count", 0)
 
     if known_mal_count > 0 or mal_osv:
-        caps.append(15)
-        out["label"] = "At risk"
+        caps.append((15, "known malicious indicator", "known_malicious"))
         reasons.append("Known-malicious indicator found (OSV malicious-package advisory and/or >=5 antivirus engines).")
     elif high_risk_count > 0:
-        caps.append(49)
-        if res["label"] not in ("Likely abandoned", "Archived (read-only)"):
-            out["label"] = "At risk"
+        caps.append((49, "high-risk pattern", "high_risk"))
         reasons.append("High-risk code pattern(s) found. These are indicators, not proof of malware. Review manually before use.")
     elif scan.get("strong"):
-        caps.append(49)
+        name = ("strong secret" if scan.get("secrets_strong") else
+                "strong CI finding" if scan.get("ci_high") else "strong finding")
+        caps.append((49, name, "review"))
         reasons.append(f"Content scan found {scan['strong']} strong finding(s) (possible exposed secrets or high-risk CI patterns): score capped at 49. Static analysis can be wrong, so review each one.")
 
     out["gate_reasons"] = reasons
-    dead = res["label"] in ("Likely abandoned", "Archived (read-only)")
-    if caps and not dead:
-        capped = min([res["score"], *caps])
-        if capped < res["score"]:
-            out["score"], out["label"] = capped, "At risk"
+    archived = res.get("label") == "Archived (read-only)" or bool((features or {}).get("archived"))
+    # fragility describes the project today: dormancy and maintainer count are measured at scan time, not at as_of
+    maintainers = ((releases or {}).get("history") or {}).get("maintainers")
+    fragility = compute_fragility(res["score"], bus_factor, features, archived=archived, maintainers=maintainers)
+    as_of_source = "scan time"
+    latest = (((releases or {}).get("history") or {}).get("releases") or [None])[0]
+    if as_of is None and latest and latest.get("upload_time"):
+        from releases import _dt
+        as_of, as_of_source = _dt(latest["upload_time"]), f"upload time of {latest['version']}"
+    ctx = DetectorContext.build(as_of=as_of, as_of_source=as_of_source, scan=scan or None, security=sec,
+                                features=features, bus_factor=bus_factor, health=res, fragility=fragility,
+                                releases=releases)
+    detector_results = run_detectors(ctx)
+    trust = compute_trust(detector_results, {"score": res["score"], "label": res["label"]}, archived=archived,
+                          evidence_caps=caps, security_level=sec.get("level"), content_flags=flags)
+
+    out.update({
+        "score": trust["trust_score"], "label": trust["label"], "trust_score": trust["trust_score"],
+        "trust_label_base": trust["label_base"], "pillars": trust["pillars"],
+        "limiting_pillar": trust["limiting_pillar"], "limiting_kind": trust["limiting_kind"],
+        "limiting_reason": trust["limiting_reason"], "partial": trust["partial"],
+        "partial_reasons": trust["partial_reasons"], "detectors": detector_results, "fragility": fragility,
+        "evidence_caps": [{"value": v, "rule": n, "tier": t} for v, n, t in caps], "ruleset_version": RULESET_VERSION,
+        "as_of": ctx.as_of.isoformat() if ctx.as_of else None, "as_of_source": as_of_source,
+    })
     return out

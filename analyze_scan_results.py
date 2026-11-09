@@ -1,6 +1,6 @@
 """Summarise a scan_batch.py CSV: flag rates, every flagged repo with its reasons, not-scanned repos, timing and errors.
 
-"Not scanned" (ran=False) is always reported separately from "scanned and clean".
+"Not scanned" (ran=False) is always reported separately from "scanned, no findings".
 Works with older CSVs that lack some columns (missing counts are treated as 0 / unknown).
 """
 from __future__ import annotations
@@ -49,6 +49,15 @@ def normalise_reason(reason: str, error: str = "") -> str:
     return f"other: {r[:60]}" if r else "other: unknown"
 
 
+def _trust_summary(df: pd.DataFrame) -> dict:
+    if "trust_score" not in df.columns:
+        return {}
+    t = pd.to_numeric(df["trust_score"], errors="coerce").dropna()
+    m = pd.to_numeric(df.get("maintenance_score"), errors="coerce").dropna() if "maintenance_score" in df.columns else pd.Series(dtype=float)
+    return {"trust_n": len(t), "trust_median": float(t.median()) if len(t) else 0.0,
+            "maint_median": float(m.median()) if len(m) else 0.0}
+
+
 def summary(df: pd.DataFrame) -> dict:
     ran = df[df["ran"]]
     secs = ran["seconds"] if len(ran) else df["seconds"]
@@ -64,6 +73,7 @@ def summary(df: pd.DataFrame) -> dict:
         "flagged": int(df["is_flagged"].sum()),
         "scanned_clean": int((df["ran"] & ~df["is_flagged"]).sum()),
         "median_s": float(secs.median()) if len(secs) else 0.0,
+        **_trust_summary(df),
         "p95_s": float(secs.quantile(0.95)) if len(secs) else 0.0,
     }
 
@@ -79,7 +89,9 @@ def _print_summary(title: str, s: dict):
     print(f"OSV MAL- match:           {s['osv_mal']}")
     print(f"strong finding (secrets/CI/other): {s['strong_finding']} ({pct(s['strong_finding'])} of scanned)")
     print(f"Flagged (any of above):   {s['flagged']}")
-    print(f"Scanned and clean:        {s['scanned_clean']}")
+    print(f"Scanned, no findings:     {s['scanned_clean']}")
+    if s.get("trust_n"):
+        print(f"Trust score (n={s['trust_n']}):   median {s['trust_median']:.0f}; maintenance median {s['maint_median']:.0f}")
     print(f"Scan time (scanned repos): median {s['median_s']:.1f}s, p95 {s['p95_s']:.1f}s")
 
 
@@ -90,7 +102,7 @@ def main(argv=None) -> int:
     df = load(args.input)
     if df.attrs["missing"]:
         print(f"WARNING: {args.input} has no column(s) {', '.join(df.attrs['missing'])} (written by an older scan_batch.py). "
-              "Flag counts below treat them as 0, so 'scanned and clean' is NOT measured for those repos. "
+              "Flag counts below treat them as 0, so 'scanned, no findings' is NOT measured for those repos. "
               "Rescan with the current scan_batch.py into a new --output file.")
 
     _print_summary(f"All repos ({args.input})", summary(df))
@@ -98,6 +110,12 @@ def main(argv=None) -> int:
     for g in groups:
         _print_summary(f"Group {g}", summary(df[df["group"] == g]))
 
+    stage_cols = [c for c in df.columns if c.startswith("t_")]
+    if stage_cols:
+        print("\n== Per-stage seconds (median / p95 over repos that ran the stage) ==")
+        for c in stage_cols:
+            v = pd.to_numeric(df[c], errors="coerce").dropna()
+            print(f"  {c[2:]:<16} " + (f"median {v.median():6.1f}s   p95 {v.quantile(0.95):6.1f}s   (n={len(v)})" if len(v) else "not run"))
     pd.set_option("display.max_colwidth", None, "display.width", 250)
     flagged = df[df["is_flagged"]]
     print(f"\n== Flagged repos ({len(flagged)}): review each by hand ==")
@@ -111,7 +129,7 @@ def main(argv=None) -> int:
         print("none")
 
     skipped = df[~df["ran"]]
-    print(f"\n== Not scanned ({len(skipped)}): NOT the same as clean ==")
+    print(f"\n== Not scanned ({len(skipped)}): NOT the same as 'no findings' ==")
     if len(skipped):
         reason = skipped["skipped_reason"].where(skipped["skipped_reason"] != "", skipped.get("note", pd.Series("", index=skipped.index)).fillna("").astype(str))
         out = pd.DataFrame({"repo": skipped["repo"], "error": skipped["error"], "skipped_reason": [normalise_reason(r, e) for r, e in zip(reason, skipped["error"])]})

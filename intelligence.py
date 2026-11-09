@@ -78,19 +78,13 @@ def resolve_gemini_key(sidebar_value, secrets_value=_MISSING, env_value=None) ->
 
 
 def describe_gemini_key(key: str, source: str, notes: list[str] | None = None) -> str:
-    """Safe one-line diagnostic: source, cleaned length and at most the last 4 characters."""
+    """One-line diagnostic for logs: where the key came from and whether it is usable. It never includes any part
+    of the key (no length, no characters). The app does not display it."""
     if source == "none" or not key:
-        text = "Gemini key from: none"
+        text = "Gemini key: none"
     else:
         cleaned, err = clean_api_key(key)
-        if err:
-            text = f"Gemini key from: {source} (unusable: {err})"
-        else:
-            # Only reveal an ending when the key is long enough that 4 characters are a small fraction of it.
-            ending = f", ends …{cleaned[-4:]}" if len(cleaned) >= 12 else ", too short to show its ending"
-            text = f"Gemini key from: {source} ({len(cleaned)} chars{ending})"
-            if len(cleaned) != len(key):
-                text += "; whitespace/quotes/hidden characters were stripped"
+        text = f"Gemini key from: {source} (unusable: {err})" if err else f"Gemini key from: {source} (set)"
     for n in notes or []:
         text += f". Note: {n}"
     return text
@@ -606,7 +600,7 @@ def _fallback_intelligence(features: dict, health_res: dict, issue_triage: dict,
     if forks:
         summary += f"Found {len(forks)} active community fork(s) led by {forks[0]['Fork']}."
     else:
-        summary += "No active community takeover forks were detected."
+        summary += "No forks with newer commits than upstream were detected."
 
     return {
         "source": "Heuristic Engine (Add GEMINI_API_KEY for AI Deep Synthesis)",
@@ -617,7 +611,7 @@ def _fallback_intelligence(features: dict, health_res: dict, issue_triage: dict,
 
 
 def gather_repo_intel(client: GitHubClient, owner: str, repo: str, features: dict) -> dict:
-    """GitHub-only part of the intelligence layer (forks + issue triage). Safe to cache for a long time."""
+    """GitHub-only part of the intelligence layer (forks + issue triage). Can be cached for a long time."""
     idle_days = features.get("days_since_last_commit", 0)
     return {"forks": find_active_forks(client, owner, repo, idle_days), "issue_triage": triage_open_issues(client, owner, repo)}
 
@@ -654,7 +648,7 @@ Return ONLY valid JSON with this exact structure:
       "name": "exact package name as published on its registry (PyPI or npm), for a modern, actively maintained alternative",
       "ecosystem": "e.g. PyPI / npm / Go / Rust",
       "effort": "Low (Drop-in) | Medium (Adapter needed) | High (Rewrite)",
-      "why": "1-sentence explanation of why this alternative is safer and better maintained.",
+      "why": "1-sentence explanation of why this alternative has fewer known problems and is better maintained.",
       "snippet": "Short 4-6 line code example showing how to migrate or import the replacement."
     }}
   ]

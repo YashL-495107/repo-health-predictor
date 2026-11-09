@@ -1,0 +1,13 @@
+detectors,hits
+setup_py_hook,44
+behavior_patterns + setup_py_hook,38
+behavior_patterns,20
+credential_exfiltration,4
+lookalike_name,4
+behavior_patterns + protestware_destructive,3
+behavior_patterns + credential_exfiltration,3
+repo_secrets,3
+behavior_patterns + decoded_payload + setup_py_hook,2
+behavior_patterns + credential_exfiltration + setup_py_hook,2
+behavior_patterns + lookalike_name + setup_py_hook,1
+protestware_destructive,1

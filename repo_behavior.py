@@ -5,6 +5,7 @@ Design rules to limit false positives:
   - an intent pattern needs 2+ categories in the SAME file (or a hook that runs a suspicious file)
   - files that hit 5+ different rules are treated as detection rulesets/samples and downgraded
   - test/docs/examples folders are skipped
+  - only code/script files are scanned by the regex rules (since 2026.11.08-11); data/config text is not
 """
 from __future__ import annotations
 
@@ -33,7 +34,7 @@ RULES = [
                 r"|\.onion\b|ngrok(?:-free)?\.(?:io|app)|webhook\.site|requestbin|pipedream\.net"),
      "Medium", "Webhook, bot, paste or tunnel endpoint: a typical place to send stolen data or fetch a payload."),
     ("Credential access", "reads credential files",
-     re.compile(r"\.ssh/(?:id_|authorized_keys)|\.aws/credentials|\.git-credentials|\.docker/config\.json|\.kube/config"
+     re.compile(r"\.ssh/(?:id_|[\w.-]+(?:\.pem|_rsa|_ed25519|_ecdsa|_dsa)\b)|\.aws/credentials|\.git-credentials|\.docker/config\.json|\.kube/config"
                 r"|\.config/gcloud|wallet\.dat|Login Data|/etc/shadow|\.netrc\b"),
      "Medium", "References files that hold keys, tokens or browser/wallet secrets."),
     ("Credential access", "dumps all environment variables",
@@ -72,9 +73,27 @@ POPULAR = {"requests", "urllib3", "numpy", "pandas", "flask", "django", "fastapi
            "tensorflow", "torch", "matplotlib", "selenium", "moment", "chalk", "webpack", "discord.py"}
 
 
-def _scannable(path: str) -> bool:
+# Since 2026.11.08-11 the legacy regex rules run on CODE / SCRIPT files only. Data and config text (yml, yaml, txt, md,
+# json, toml, ini, cfg, xml, rule files, wordlists) is not code: indicator strings there are lists, docs or detection
+# rules. CI workflows keep their dedicated detector (ci_workflow). Extension-less files count as code only with a
+# "#!" interpreter line.
+CODE_EXT = {".py", ".pyw", ".pth", ".js", ".mjs", ".cjs", ".jsx", ".ts", ".tsx", ".mts", ".cts", ".coffee",
+            ".sh", ".bash", ".zsh", ".ksh", ".fish", ".ps1", ".psm1", ".bat", ".cmd", ".vbs", ".rb", ".php", ".go",
+            ".java", ".kt", ".scala", ".cs", ".rs", ".pl", ".pm", ".lua", ".swift", ".c", ".cc", ".cpp", ".h", ".hpp",
+            ".m", ".r"}
+
+
+def is_code_file(path: str, content: str | None = None) -> bool:
+    suffix = PurePosixPath(path).suffix.lower()
+    if suffix:
+        return suffix in CODE_EXT
+    return bool(content) and content.startswith("#!")
+
+
+def _scannable(path: str, content: str | None = None) -> bool:
     p = PurePosixPath(path)
-    return (p.suffix.lower() not in SKIP_EXT and not any(x.lower() in SKIP_PARTS for x in p.parts[:-1]))
+    return (p.suffix.lower() not in SKIP_EXT and not any(x.lower() in SKIP_PARTS for x in p.parts[:-1])
+            and is_code_file(path, content))
 
 
 def _entropy(s: str) -> float:
@@ -114,7 +133,7 @@ def _lev1(a: str, b: str) -> bool:
 
 
 def scan_behavior(data: dict, repo: str, url) -> dict:
-    text = {p: c for p, c in data["text"].items() if _scannable(p)}
+    text = {p: c for p, c in data["text"].items() if _scannable(p, c)}
     first: dict = {}
     per_file: dict = defaultdict(dict)  # path -> {category: first line}
 
@@ -220,7 +239,7 @@ def scan_behavior(data: dict, repo: str, url) -> dict:
     cats = Counter(f["cat"]
                    for f in findings if f["cat"] not in ("Pattern", "Name"))
     strong = [f["rule"] for f in findings if f["strong"]]
-    cov = (f"Behavior scan: {len(text)} source/config files checked for malware-like indicators "
+    cov = (f"Behavior scan: {len(text)} code/script files checked for malware-like indicators "
            f"({len(rulesets)} ruleset-like files downgraded); {len(strong)} intent-shaped pattern(s), "
            f"{sum(cats.values())} indicator(s), {len(data.get('binaries', []))} committed executable(s). Indicators only, not proof of intent.")
     return {"findings": findings, "profile": {"categories": dict(cats), "patterns": strong}, "coverage": cov}

@@ -1,0 +1,115 @@
+{
+ "info": {
+  "name": "idna",
+  "version": "3.20",
+  "requires_dist": [
+   "ruff>=0.16.0; extra == \"all\"",
+   "mypy>=1.11.2; extra == \"all\"",
+   "ty>=0.0.37; extra == \"all\"",
+   "pytest>=8.3.2; extra == \"all\"",
+   "hypothesis>=6.141.1; extra == \"all\"",
+   "coverage>=7.10.0; extra == \"all\""
+  ]
+ },
+ "ownership": {
+  "organization": null,
+  "roles": [
+   {
+    "role": "Owner",
+    "user": "kjd"
+   }
+  ]
+ },
+ "releases": {
+  "3.20": [
+   {
+    "filename": "idna-3.20-py3-none-any.whl",
+    "url": "https://files.pythonhosted.org/packages/58/a2/bb081bab032533a855d44de1d56f8e8426114ff1ba5d1f07a438a0a654f8/idna-3.20-py3-none-any.whl",
+    "size": 69583,
+    "packagetype": "bdist_wheel",
+    "upload_time_iso_8601": "2026-09-17T14:11:03.168153Z",
+    "yanked": false
+   },
+   {
+    "filename": "idna-3.20.tar.gz",
+    "url": "https://files.pythonhosted.org/packages/f5/08/8eea9d4b8302028f3abb2c0813953f7aec26d33b7a8960ed760e65ff29fa/idna-3.20.tar.gz",
+    "size": 216463,
+    "packagetype": "sdist",
+    "upload_time_iso_8601": "2026-09-17T14:11:04.752193Z",
+    "yanked": false
+   }
+  ],
+  "3.19": [
+   {
+    "filename": "idna-3.19-py3-none-any.whl",
+    "url": "https://files.pythonhosted.org/packages/57/b0/0e52c878c53f245edd3a11020f20979b3f490f245af532c7cae3027754b5/idna-3.19-py3-none-any.whl",
+    "size": 68550,
+    "packagetype": "bdist_wheel",
+    "upload_time_iso_8601": "2026-08-18T05:14:22.343598Z",
+    "yanked": false
+   },
+   {
+    "filename": "idna-3.19.tar.gz",
+    "url": "https://files.pythonhosted.org/packages/5f/f7/abb373e5757eaec4b922b92f97ec8d6d7e057cf06778247604fbc4e7c3f3/idna-3.19.tar.gz",
+    "size": 215237,
+    "packagetype": "sdist",
+    "upload_time_iso_8601": "2026-08-18T05:14:24.270231Z",
+    "yanked": false
+   }
+  ],
+  "3.18": [
+   {
+    "filename": "idna-3.18-py3-none-any.whl",
+    "url": "https://files.pythonhosted.org/packages/1e/5e/d4e9f1a599fb8e573b7b87160658329fbf28d19eac2718f51fc3def3aa5a/idna-3.18-py3-none-any.whl",
+    "size": 65455,
+    "packagetype": "bdist_wheel",
+    "upload_time_iso_8601": "2026-06-02T14:34:06.319954Z",
+    "yanked": false
+   },
+   {
+    "filename": "idna-3.18.tar.gz",
+    "url": "https://files.pythonhosted.org/packages/cd/63/9496c57188a2ee585e0f1db071d75089a11e98aa86eb99d9d7618fc1edce/idna-3.18.tar.gz",
+    "size": 196711,
+    "packagetype": "sdist",
+    "upload_time_iso_8601": "2026-06-02T14:34:07.794523Z",
+    "yanked": false
+   }
+  ],
+  "3.17": [
+   {
+    "filename": "idna-3.17-py3-none-any.whl",
+    "url": "https://files.pythonhosted.org/packages/de/a7/f76514cc40ad6234098ecdebda08732d75964776c51a42845b7da10649e2/idna-3.17-py3-none-any.whl",
+    "size": 65316,
+    "packagetype": "bdist_wheel",
+    "upload_time_iso_8601": "2026-05-28T14:32:37.035135Z",
+    "yanked": false
+   },
+   {
+    "filename": "idna-3.17.tar.gz",
+    "url": "https://files.pythonhosted.org/packages/b9/28/99c51f664567218d824af024c0251650fb27e4ca066df188dab0769c5b91/idna-3.17.tar.gz",
+    "size": 196048,
+    "packagetype": "sdist",
+    "upload_time_iso_8601": "2026-05-28T14:32:38.550900Z",
+    "yanked": false
+   }
+  ],
+  "3.16": [
+   {
+    "filename": "idna-3.16-py3-none-any.whl",
+    "url": "https://files.pythonhosted.org/packages/94/16/70255075a9859a0e3adb789b68ceb0e210dec03934245fd98d248226572f/idna-3.16-py3-none-any.whl",
+    "size": 74165,
+    "packagetype": "bdist_wheel",
+    "upload_time_iso_8601": "2026-05-22T00:16:16.698141Z",
+    "yanked": false
+   },
+   {
+    "filename": "idna-3.16.tar.gz",
+    "url": "https://files.pythonhosted.org/packages/1a/88/bcf9709822fe69d02c2a6a77956c98ce6ea8ca8767a9aadcedc7eb6a2390/idna-3.16.tar.gz",
+    "size": 203770,
+    "packagetype": "sdist",
+    "upload_time_iso_8601": "2026-05-22T00:16:18.781598Z",
+    "yanked": false
+   }
+  ]
+ }
+}

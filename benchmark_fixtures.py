@@ -1,4 +1,7 @@
-"""Offline detection benchmark over labelled, inert fixtures in benchmark_fixtures/.
+"""Offline REGRESSION check over labelled, inert fixtures in benchmark_fixtures/.
+
+The fixtures were written alongside the rules, so passing them shows the rules still do what they were written to
+do; it is NOT an accuracy measure (see the Phase 5 benchmark for that).
 
 Fixtures are stored as *.sample files so the repo reader (repo_scan.read_repo) never treats them as real code,
 and they are never imported or executed. Each one is read as text and handed to the detectors in an in-memory
@@ -40,6 +43,13 @@ def scan_fixture(fixture_name: str, content: str) -> list[dict]:
     findings += scan_ast_deobfuscation(files, _url)["findings"]
     findings += scan_static_setup_py(files, _url)["findings"]
     findings += scan_behavior({"text": files, "binaries": []}, "benchmark", _url)["findings"]
+    # Phase 4 data-flow detectors (Python: ast; JS/shell: pattern match, review at most)
+    from detectors import credential_exfiltration as CE, protestware_destructive as PD
+    for path, text in files.items():
+        if path.endswith(".py"):
+            findings += CE.analyse_python(path, text, set())[0] + PD.analyse_python(path, text)[0]
+        elif path.endswith((".js", ".mjs", ".cjs", ".ts", ".sh", ".bash")):
+            findings += CE.analyse_pattern(path, text) + PD.analyse_pattern(path, text)
     return findings
 
 
@@ -80,8 +90,9 @@ def main() -> int:
     for r in res["rows"]:
         print(f"{r['file']:<{w}}  {r['expected']:<9}  {str(r['detected']):<8}  {str(r['strong']):<6}  {'; '.join(r['rules']) or '-'}")
     print()
-    print(f"Recall on malicious set: {res['recall']:.0%} ({round(res['recall'] * res['malicious'])}/{res['malicious']})")
-    print(f"False positives on benign set: {res['benign_detected']}/{res['benign']} flagged, {res['benign_strong']} strong")
+    hits = round(res['recall'] * res['malicious'])
+    print(f"Regression fixtures: {hits}/{res['malicious']} detected (written alongside the rules; not an accuracy measure)")
+    print(f"Benign look-alike fixtures: {res['benign_detected']}/{res['benign']} flagged, {res['benign_strong']} strong")
     print("PASS" if res["passed"] else "FAIL")
     return 0 if res["passed"] else 1
 

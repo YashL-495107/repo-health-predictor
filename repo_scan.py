@@ -68,7 +68,7 @@ DOWNLOAD_BACKOFF = (3, 8)             # seconds before attempt 2 and attempt 3
 DOWNLOAD_RETRY_STATUS = {502, 503, 504}
 _sleep = time.sleep                   # patched in tests
 
-FIX = {"B102": "Avoid exec(); use a parser or a dispatch table instead.", "B307": "Avoid eval(); use ast.literal_eval for literals or a real parser.", "B602": "Pass an argument list with shell=False and never build commands from user input.", "B605": "Avoid shell commands built from strings; use subprocess with an argument list.", "B506": "Use yaml.safe_load().", "B301": "Do not unpickle untrusted data; use JSON or another safe format.", "B501": "Do not disable TLS certificate verification (verify=False).", "B324": "Use SHA-256 or stronger for anything security related.", "B608": "Use parameterised queries instead of building SQL from strings.", "B201": "Never run Flask with debug=True outside local development.", "B104": "Bind to a specific interface unless public exposure is intended."}
+FIX = {"B102": "Avoid exec(); use a parser or a dispatch table instead.", "B307": "Avoid eval(); use ast.literal_eval for literals or a real parser.", "B602": "Pass an argument list with shell=False and never build commands from user input.", "B605": "Avoid shell commands built from strings; use subprocess with an argument list.", "B506": "Use yaml.safe_load().", "B301": "Do not unpickle untrusted data; use JSON or another data-only format.", "B501": "Do not disable TLS certificate verification (verify=False).", "B324": "Use SHA-256 or stronger for anything security related.", "B608": "Use parameterised queries instead of building SQL from strings.", "B201": "Never run Flask with debug=True outside local development.", "B104": "Bind to a specific interface unless public exposure is intended."}
 SECRET_PATTERNS = {"AWS access key id": re.compile(r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b"), "GitHub token": re.compile(r"\b(?:gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{50,})\b"), "Slack token": re.compile(r"\bxox[baprs]-[A-Za-z0-9-]{10,}\b"), "Private key block": re.compile(r"-----BEGIN (?:RSA |EC |DSA |OPENSSH |PGP )?PRIVATE KEY-----"), "Google API key": re.compile(r"\bAIza[0-9A-Za-z\-_]{35}\b"), "Stripe live secret key": re.compile(r"\bsk_live_[0-9a-zA-Z]{24,}\b")}
 INJECT = re.compile(r"\$\{\{\s*(?:github\.event\.(?:issue|pull_request|comment|review|review_comment|discussion|head_commit)\.(?:title|body|message|label|ref)|github\.event\.pull_request\.head\.(?:ref|label)|github\.head_ref)\b")
 RISKY_TRIGGERS = ("pull_request_target", "issue_comment", "issues", "workflow_run")
@@ -123,7 +123,11 @@ def _is_test(parts: tuple[str, ...]) -> bool:
     return (any(p.lower() in TEST_DIRS for p in parts[:-1]) or name.startswith("test_") or name.endswith("_test.py") or name == "conftest.py")
 
 def read_repo(buf: io.BytesIO) -> dict:
-    out = {"sha": "", "py": {}, "text": {}, "workflows": {}, "binaries": [], "all_py_paths": set(), "skipped": {"tests": 0, "too_big_or_limit": 0}}
+    out = {"sha": "", "py": {}, "text": {}, "workflows": {}, "binaries": [], "all_py_paths": set(), "skipped": {"tests": 0, "too_big_or_limit": 0},
+           # file counts for partial-scan reporting (additive): candidates seen vs read, per kind
+           "counts": {"text_candidates": 0, "text_not_read": 0, "py_candidates": 0, "py_not_read": 0,
+                      "workflow_candidates": 0, "workflows_not_read": 0}}
+    cnt = out["counts"]
     with zipfile.ZipFile(buf) as z:
         infos = [i for i in z.infolist() if not i.is_dir()]
         if sum(i.file_size for i in infos) > MAX_UNCOMPRESSED: raise ScanTooLarge(f"more than {MAX_UNCOMPRESSED // 2**20} MB uncompressed")
@@ -137,15 +141,24 @@ def read_repo(buf: io.BytesIO) -> dict:
             if any(p in SKIP_DIRS for p in rel[:-1]) or name in SKIP_NAMES or name.endswith(".min.js"): continue
             is_wf = path.startswith(".github/workflows/") and name.lower().endswith((".yml", ".yaml"))
             if is_wf:
+                cnt["workflow_candidates"] += 1
                 if i.file_size <= MAX_TEXT_BYTES and len(out["workflows"]) < MAX_WORKFLOWS: out["workflows"][path] = z.read(i).decode("utf-8", "ignore")
+                else: cnt["workflows_not_read"] += 1
                 continue
             ext = os.path.splitext(name)[1].lower()
             if ext == ".py":
                 if _is_test(rel): out["skipped"]["tests"] += 1
-                elif i.file_size > MAX_PY_BYTES or len(out["py"]) >= MAX_PY_FILES: out["skipped"]["too_big_or_limit"] += 1
-                else: out["py"][path] = z.read(i)
+                elif i.file_size > MAX_PY_BYTES or len(out["py"]) >= MAX_PY_FILES:
+                    out["skipped"]["too_big_or_limit"] += 1
+                    cnt["py_candidates"] += 1; cnt["py_not_read"] += 1
+                else:
+                    out["py"][path] = z.read(i)
+                    cnt["py_candidates"] += 1
             is_text_cand = (ext in TEXT_EXT or name.lower().startswith(".env"))
             data = None
+            if is_text_cand:
+                cnt["text_candidates"] += 1
+                if not (i.file_size <= MAX_TEXT_BYTES and len(out["text"]) < MAX_TEXT_FILES): cnt["text_not_read"] += 1
             if is_text_cand and i.file_size <= MAX_TEXT_BYTES and len(out["text"]) < MAX_TEXT_FILES:
                 data = z.read(i)
                 if b"\x00" not in data[:2000]:
@@ -177,6 +190,24 @@ def run_bandit(py: dict[str, bytes]) -> list[dict] | None:
 
 def _mask(s: str) -> str: return s[:4] + "…" + s[-2:] if len(s) > 8 else "…"
 
+SECRET_REVIEW_TOKENS = {"test", "tests", "testdata", "testing", "fixture", "fixtures", "asset", "assets", "sample", "samples",
+                        "example", "examples", "doc", "docs", "rules", "signatures", "yara", "sigma", "detections"}
+SAMPLE_LOOKING = re.compile(r"example|sample|dummy|fake|test|xxxx|changeme|placeholder|not[_-]?a[_-]?real", re.I)
+
+
+def secret_review_reason(path: str, kind: str, line: str) -> str | None:
+    """Why a secret is info rather than strong: its path is non-shipping (detectors/paths.py: tests, fixtures,
+    assets, samples, examples, docs, _static, _build, tools, scripts, .agents, tasks.py, noxfile.py, rule
+    directories; matched on name tokens, so 'certbot_integration_tests' and 'sample-config' count). None means
+    keep the normal rules. Applies to every secret kind since 2026.11.07-9."""
+    from detectors.paths import non_shipping
+    where = non_shipping(path)
+    if not where:
+        return None
+    return (f"Downgraded from strong to info: the path is non-shipping ({where}), where test keys and sample "
+            "credentials are normal. The same key in shipped code would be strong.")
+
+
 def scan_secrets(text: dict[str, str], limit: int = 20) -> list[dict]:
     found = []
     for path, content in text.items():
@@ -185,7 +216,9 @@ def scan_secrets(text: dict[str, str], limit: int = 20) -> list[dict]:
             for kind, rx in SECRET_PATTERNS.items():
                 m = rx.search(line)
                 if m and not m.group(0).upper().endswith("EXAMPLE"):
-                    found.append({"kind": kind, "file": path, "line": n, "masked": _mask(m.group(0)), "fixture": _is_fixture(path) or (kind == "Private key block" and os.path.splitext(path)[1].lower() in SOURCE_EXT)})
+                    fixture = _is_fixture(path) or (kind == "Private key block" and os.path.splitext(path)[1].lower() in SOURCE_EXT)
+                    found.append({"kind": kind, "file": path, "line": n, "masked": _mask(m.group(0)), "fixture": fixture,
+                                  "review_reason": None if fixture else secret_review_reason(path, kind, line)})
                     if len(found) >= limit: return found
     return found
 
@@ -221,26 +254,87 @@ def scan_workflow(path: str, text: str) -> list[dict]:
 
 def scan_repo(client: GitHubClient, owner: str, repo: str) -> dict:
     res = {"ran": False, "findings": [], "coverage": [], "strong": 0, "review": 0, "code_high": 0, "secrets_strong": 0, "ci_high": 0, "code_scan": "not_run", "malware_proof": None, "known_malicious_count": 0, "high_risk_pattern_count": 0}
-    try: data = read_repo(download_zip(client, owner, repo))
+    t0 = time.monotonic()
+    res["timings"] = {}
+    try:
+        buf = download_zip(client, owner, repo)
+        res["timings"]["zip_download"] = round(time.monotonic() - t0, 2)
+        data = read_repo(buf)
+        res["timings"]["read_zip"] = round(time.monotonic() - t0 - res["timings"]["zip_download"], 2)
     except ScanTooLarge as e:
+        res["timings"].setdefault("zip_download", round(time.monotonic() - t0, 2))
         res["coverage"].append(f"Content scan: NOT run, repository is {e}")
         res["skip_reason"] = skip_reason(e)
+        _attach_detectors(res)
         return res
     except (GitHubError, zipfile.BadZipFile, OSError) as e:
+        res["timings"].setdefault("zip_download", round(time.monotonic() - t0, 2))
         res["coverage"].append(f"Content scan: NOT run ({e})")
         res["skip_reason"] = skip_reason(e)
+        _attach_detectors(res)
         return res
-    res["ran"] = True
-    sha, findings = data["sha"], []
+    sha = data["sha"]
     def url(f, ln): return f"https://github.com/{owner}/{repo}/blob/{sha}/{f}#L{ln}" if sha else None
+    return scan_data(res, data, owner, repo, url, identity=repo_identity(owner, repo, data))
+
+
+def repo_identity(owner: str, repo: str, data: dict) -> dict:
+    """The names the content-time detectors may use: the repository and the package its root manifest declares
+    (the same function assess_security uses, so repo mode sees the same package name at both stages)."""
+    from malware_proof import _detect_package_identity
+    try:
+        pkg = _detect_package_identity(data.get("text") or {})
+    except Exception:
+        pkg = None
+    return {"repo": f"{owner}/{repo}", "package": pkg, "source": "repository + root manifest"}
+
+
+MAX_LINE_CHARS = None   # None (the app): lines are not capped. The benchmark harness sets a cap (resource limit).
+
+
+def cap_long_lines(data: dict, max_chars: int) -> list[str]:
+    """Truncate every line longer than max_chars in data["text"] and data["py"] (in place), so one huge minified
+    line cannot stall the regex-based checks. Returns the paths that were changed (reported as a limit hit)."""
+    changed = []
+    for key, is_bytes in (("text", False), ("py", True)):
+        for path, body in list((data.get(key) or {}).items()):
+            s = body.decode("utf-8", "ignore") if is_bytes else body
+            if not any(len(line) > max_chars for line in s.split("\n")):
+                continue
+            s = "\n".join(line[:max_chars] for line in s.split("\n"))
+            data[key][path] = s.encode("utf-8") if is_bytes else s
+            if path not in changed:
+                changed.append(path)
+    return changed
+
+
+def scan_data(res: dict, data: dict, owner: str, repo: str, url, bandit_enabled: bool = True,
+              identity: dict | None = None) -> dict:
+    """The content scan on contents already in memory (data has read_repo's shape). scan_repo calls it after the
+    download; the benchmark's artifact mode calls it on a release artifact. bandit_enabled=False skips Bandit (it is
+    the only scanner that writes files to a temporary directory, and no detector reads its findings).
+    MAX_LINE_CHARS (module setting, None in the app) caps line length first; capped files go to res["limits_hit"].
+    identity ({"repo", "package"}) is handed to the content-time detectors for their name-relatedness checks."""
+    res["ran"] = True
+    res.setdefault("timings", {})
+    if MAX_LINE_CHARS:
+        capped = cap_long_lines(data, MAX_LINE_CHARS)
+        if capped:
+            res.setdefault("limits_hit", []).append(
+                f"long lines truncated to {MAX_LINE_CHARS} characters in {len(capped)} file(s): {', '.join(capped[:5])}")
+    t_scan = time.monotonic()
+    findings = []
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-        f_bandit = executor.submit(run_bandit, data["py"])
+        f_bandit = executor.submit(run_bandit, data["py"]) if bandit_enabled else None
         f_proof = executor.submit(_safe_proof, data, owner, repo, url)
-        bandit = f_bandit.result()
+        bandit = f_bandit.result() if f_bandit else None
         proof = f_proof.result()
 
-    if bandit is None:
+    if not bandit_enabled:
+        res["code_scan"] = "not_run"
+        res["coverage"].append("Python code scan: NOT run (Bandit disabled for this scan)")
+    elif bandit is None:
         res["code_scan"] = "unavailable"
         res["coverage"].append("Python code scan: NOT run (Bandit unavailable)")
     else:
@@ -255,6 +349,7 @@ def scan_repo(client: GitHubClient, owner: str, repo: str) -> dict:
     secrets = scan_secrets(data["text"])
     for s in secrets:
         if s["fixture"]: findings.append({"sev": "Low", "source": "Secrets", "rule": f"Key-like text in a test/example/doc/source file ({s['kind']})", "file": s["file"], "line": s["line"], "detail": f"Matches a {s['kind']} pattern: {s['masked']}", "fix": "Usually intentional test data; confirm it is not a real credential.", "url": url(s["file"], s["line"]), "strong": False})
+        elif s.get("review_reason"): findings.append({"sev": "Low", "source": "Secrets", "rule": f"Key-like text in a test/sample/asset path ({s['kind']})", "file": s["file"], "line": s["line"], "detail": f"Matches a {s['kind']} pattern: {s['masked']}. {s['review_reason']}", "fix": "Usually test or sample material; confirm it is not a real key.", "url": url(s["file"], s["line"]), "strong": False, "info_reason": s["review_reason"]})
         else: findings.append({"sev": "High", "source": "Secrets", "rule": f"Possible exposed {s['kind']}", "file": s["file"], "line": s["line"], "detail": f"Matches a {s['kind']} pattern: {s['masked']}", "fix": "Verify it is real; if so, revoke it and remove it from history.", "url": url(s["file"], s["line"]), "strong": True})
     res["coverage"].append(f"Secret scan: {len(data['text'])} text files checked for provider key patterns; {len(secrets)} matches ({sum(1 for s in secrets if s['fixture'])} in test/example/doc/source files, not counted as strong)")
 
@@ -271,10 +366,53 @@ def scan_repo(client: GitHubClient, owner: str, repo: str) -> dict:
     res["high_risk_pattern_count"] = proof.get("high_risk_pattern_count", 0)
 
     findings.sort(key=lambda f: (SEV_ORDER.get(f["sev"], 9), f["file"], f["line"]))
+    res["findings_all"] = list(findings)   # additive: untruncated, for the detector adapters
     res["findings"] = findings[:60]
     res["strong"] = sum(1 for f in findings if f.get("strong"))
     res["code_high"] = sum(1 for f in findings if f.get("code_high"))
     res["secrets_strong"] = sum(1 for f in findings if f.get("strong") and f["source"] == "Secrets")
     res["ci_high"] = sum(1 for f in findings if f.get("strong") and f["source"] == "CI workflow")
     res["review"] = sum(1 for f in findings if not f.get("strong") and f["sev"] in ("High", "Medium"))
+    res["scan_coverage"] = scan_coverage(data)
+    res["timings"]["scanners"] = round(time.monotonic() - t_scan, 2)
+    t_det = time.monotonic()
+    try:   # Python files the data-flow detectors analyse with ast (behavior_patterns defers to them for these)
+        from detectors.pyast import parse_ok
+        res["ast_analysed_py"] = sorted(p for p, t in data["text"].items() if parse_ok(p, t))
+    except Exception:
+        res["ast_analysed_py"] = []
+    res["identity"] = identity
+    _attach_detectors(res, data, identity)
+    res["timings"]["content_detectors"] = round(time.monotonic() - t_det, 2)
     return res
+
+
+def scan_coverage(data: dict) -> dict:
+    """What share of the repository's files was actually read (file-count and size caps in read_repo)."""
+    c = data.get("counts") or {}
+    tc, tn = c.get("text_candidates", 0), c.get("text_not_read", 0)
+    pc, pn = c.get("py_candidates", 0), c.get("py_not_read", 0)
+    wc, wn = c.get("workflow_candidates", 0), c.get("workflows_not_read", 0)
+    out = {"text_read": tc - tn, "text_total": tc, "py_read": pc - pn, "py_total": pc,
+           "workflows_read": wc - wn, "workflows_total": wc,
+           "text_partial": tn > 0, "py_partial": pn > 0, "workflows_partial": wn > 0}
+    out["partial"] = out["text_partial"] or out["py_partial"] or out["workflows_partial"]
+    parts = []
+    if tn: parts.append(f"{tc - tn} of {tc} text files")
+    if pn: parts.append(f"{pc - pn} of {pc} Python files")
+    if wn: parts.append(f"{wc - wn} of {wc} workflow files")
+    out["detail"] = ("partial scan: " + ", ".join(parts)) if parts else None
+    return out
+
+
+def _attach_detectors(res: dict, data: dict | None = None, identity: dict | None = None) -> None:
+    """Content-only detector view (security sources are added later by apply_gate). The repository contents are only
+    in memory here, so detectors that need them (NEEDS_DATA) run now; apply_gate reuses their results. Never raises."""
+    try:
+        from detectors import RULESET_VERSION, run_detectors
+        from detectors.context import DetectorContext
+        res["ruleset_version"] = RULESET_VERSION
+        res["detectors"] = run_detectors(DetectorContext.build(scan=res, data=data, identity=identity))
+    except Exception as e:  # the scan result must never be lost because of the detector layer
+        res["detectors"] = []
+        res["detectors_error"] = type(e).__name__

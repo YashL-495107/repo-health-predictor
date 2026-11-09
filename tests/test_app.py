@@ -13,15 +13,25 @@ def fake_fetch(client, owner, repo):
     return real_fetch(client, owner, repo)
 
 
+# The app now gives each parallel stage its own GitHubClient (requests.Session is not shared across threads), so
+# patching one client's session is not enough: every client must use the fake transport, keeping the test offline.
+_orig_init = GitHubClient.__init__
+
+
+def _fake_init(self, token=None):
+    _orig_init(self, token)
+    self.session.get = m.fake_get
+
+
 def test_app_renders_result():
-    with patch("github_client.fetch_features", fake_fetch):
+    with patch("github_client.fetch_features", fake_fetch), patch.object(GitHubClient, "__init__", _fake_init):
         at = AppTest.from_file(os.path.join(os.path.dirname(__file__), "..", "app.py"), default_timeout=30).run()
         assert not at.exception
         at.text_input(key="repo_input").set_value("https://github.com/o/r")
         at.button[0].click().run()   # Analyze
         assert not at.exception, at.exception
         assert not at.error, [e.value for e in at.error]
-        assert any("Health score" in md.value for md in at.markdown)
+        assert any("Trust score" in md.value for md in at.markdown)  # headline relabelled in Phase 1 (trust engine)
         print("rendered OK")
 
 
@@ -35,11 +45,11 @@ def test_app_bad_input():
 
 
 def test_sample_button_autoruns():
-    with patch("github_client.fetch_features", fake_fetch):
+    with patch("github_client.fetch_features", fake_fetch), patch.object(GitHubClient, "__init__", _fake_init):
         at = AppTest.from_file(os.path.join(os.path.dirname(__file__), "..", "app.py"), default_timeout=30).run()
         next(b for b in at.button if b.label == "pallets/flask").click().run()
         assert not at.exception and not at.error
-        assert any("Health score" in md.value for md in at.markdown)
+        assert any("Trust score" in md.value for md in at.markdown)  # headline relabelled in Phase 1 (trust engine)
         print("sample button OK")
 
 

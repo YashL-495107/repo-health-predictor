@@ -1,0 +1,23 @@
+# Scary-but-legitimate: hand-picked judgement sample (not random) | seed=20261107 | generated=2026-11-07T19:32:00Z | snapshot=2026-11-07
+ecosystem,package,why_scary,exists,version,latest_upload,repo,install_scripts,sha256,npm_integrity
+PyPI,impacket,security tool (network protocol attacks),yes,0.13.1,2026-05-19T15:30:38.956076Z,,,ed91c802b6beff6546afd2262942bc1a188b4671fb91ec751d46a1d66d28c2cf,
+PyPI,scapy,security tool (packet crafting),yes,2.8.0,2026-10-02T16:25:18.874628Z,secdev/scapy,,0eacd1f940d115611c1b8a4696f315b4b80caf2951e546893a3d0cd7f6bfd6fd,
+PyPI,pwntools,security tool (exploit development),yes,4.15.0,2025-10-12T15:25:28.931174Z,gallopsled/pwntools,,d99a917298c1ca7241b51bba9ad2212f2af441ef66488059b2426508e9a2a776,
+PyPI,mitmproxy,security tool (intercepting proxy),yes,12.3.1,2026-10-25T23:32:31.970429Z,mitmproxy/mitmproxy,,87afb808ac8d55383dbe6aa30eadeb0fedaeffd26210e7e23c25c9cd43bdb36a,
+PyPI,yara-python,security tool (malware signatures),yes,4.5.4,2025-05-27T14:15:49.035707Z,virustotal/yara-python,,4c682170f3d5cb3a73aa1bd0dc9ab1c0957437b937b7a83ff6d7ffd366415b9c,
+PyPI,bandit,security tool (static analysis rules),yes,1.9.4,2026-02-25T06:44:15.503849Z,pycqa/bandit,,b589e5de2afe70bd4d53fa0c1da6199f4085af666fde00e8a034f152a52cd628,
+PyPI,volatility3,security tool (memory forensics),yes,2.28.2,2026-09-17T19:48:15.443297Z,volatilityfoundation/volatility3,,3c54d44100e4a0f222f2e47e4fb2266669d354a55782844ddbfd3f5d9856706e,
+PyPI,frida,security tool (instrumentation),yes,17.26.2,2026-11-07T17:19:42.504197Z,,,6347d42a8d1ff8ac329e4c4d06cb6e3ca7507875165cfdf01313d2a60055f843,
+npm,esbuild,build tool with an install script (downloads a native binary),yes,0.28.2,2026-08-08T20:00:55.454Z,evanw/esbuild,postinstall,,sha512-HKVLS8dvII+xoKW9kmqxbRKrnWEXfJJr/FZhhJmiqIB0e053QNYFqOBouTMO/k5sID4MvCiUCvv8b9M4h32wIA==
+npm,puppeteer,install script downloads a browser,yes,25.16.0,2026-10-22T11:53:03.649Z,puppeteer/puppeteer,postinstall,,sha512-LOr3reYnxAYYfQkpopz1fQnL0LdvqhpR5U2Fu+QnwzTX2gpVTHsn91UETo5NNC1md2/oC54Zu1ChBXgZDNSP1A==
+npm,sharp,install script (native build),yes,0.35.5,2026-09-27T13:46:24.509Z,lovell/sharp,,,sha512-Ywn4OnzGukp7CDMrp08RQ50YKmuwG47brZgIVPTvBaaAfQlRlygrRqSrxdCiL9M+LlzLBiJ68IR1QqvzHyjC7g==
+npm,bcrypt,install script (node-pre-gyp native build),yes,6.0.0,2025-05-11T18:06:24.247Z,kelektiv/node.bcrypt.js,install,,sha512-cU8v/EGSrnH+HnxV2z0J7/blxH8gq7Xh2JFT6Aroax7UohdmiJJlxApMxtKfuI7z68NvvVcmR78k2LbT6efhRg==
+npm,core-js,postinstall script,yes,3.51.0,2026-10-19T11:00:41.243Z,zloirock/core-js,postinstall,,sha512-7bDKx/5jm5MxzsXxc93g6Z2+4ZsuT/MddrfRmTDJNAkWsYWHU8EVNEsBiIEWnMAMCHMmRfUEjkuo3jeNBOIHRw==
+npm,electron,postinstall downloads a binary,yes,45.2.3,2026-11-04T21:39:17.032Z,electron/electron,,,sha512-Vurzu5UOA5nTGT4LqIwXD16QFGrOZdiXxF+1UP4KNsAOo/YtDcT3/u0jhP4WSwNJ0iLrLDi85hzBJ0arnGDhyw==
+npm,playwright,install-time browser download,yes,1.65.0,2026-11-05T18:28:14.786Z,microsoft/playwright,,,sha512-F3AMWcR44qMBt4kq+6Kb6mX7bjGXshktKFOPULd7reED6ZJWevjbNRqysP7q+AATE9kdPEZBibex1BYsvpVoeA==
+npm,@swc/core,postinstall (native binary),yes,1.16.22,2026-11-05T10:42:45.752Z,swc-project/swc,postinstall,,sha512-kFqhtSmmNSZqJXIK0l9rF+oNg2efaZoeNbN/4qwbNTWfMRKApc6n7rKx827bw8K+4kmu7iH0LZ144QJTQzulHw==
+npm,protobufjs,postinstall script,yes,8.8.1,2026-10-11T17:12:37.434Z,protobufjs/protobuf.js,,,sha512-d9e9179bjXSJdpJ3+R9fP8hzXsnKLyxTjHLG1dUzje8a27pPyXCe6PrcRtgx2rjoM3IZzHd2vAs+6J/BsO1k7Q==
+npm,cypress,postinstall downloads a binary,yes,16.2.1,2026-10-28T14:20:32.633Z,cypress-io/cypress,postinstall,,sha512-3Vqf1Krr92hKww/Owob9JrDO7TgBCR2ct+OQrvBOFGSnoGsikL4YF5arqDrJb+SM8Fzi7xXIeVmCeaOqJKPhRA==
+npm,javascript-obfuscator,obfuscation tool,yes,5.10.0,2026-11-04T06:11:51.060Z,javascript-obfuscator/javascript-obfuscator,,,sha512-oQHt9Dx75PXwpuCAOJ3Rug03JWcG5svthyj000chUws8qyQVf71xwmnFmoc4yn1WcXXqrGZbpholWGtYdIkJOA==
+npm,pdfjs-dist,ships minified/vendored JS,yes,6.5.438,2026-11-01T18:22:21.690Z,mozilla/pdf.js,,,sha512-vg8Pw1x+AFKy4AMDvhuWl5cOYV8d698UoEANoFFhc79hqXDnZQqnOXoxw3HG907WHOg1JYOvLhP756boddFxpA==
+npm,tinymce,ships minified/vendored JS,yes,8.10.1,2026-10-28T04:08:46.767Z,tinymce/tinymce,,,sha512-Mgdnx8HuEPRlLqKTyHcy7+JJn9reXH7b7L/1ywPCzKAyjaq8fzEPE+CYBLW42GgBlaaoIOd0dTOcYHUlPZyV2A==
