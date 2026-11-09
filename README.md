@@ -7,6 +7,28 @@ A Streamlit app that pulls **live data from the GitHub REST API** for any public
 Paste a repo URL -> get the health score, a radar chart of the contributing factors, the evidence behind each factor,
 and a plain-English explanation.
 
+## Trust score and benchmark (frozen ruleset 2026.11.08-12)
+
+Next to the maintenance health score, the app shows a **Trust score (0-100, indicators, not proof;
+not a safety guarantee)**: the weakest of three evidence pillars (Integrity, Behavior, Exposure) from static detectors, then evidence
+caps. It was benchmarked once on a held-out test set with a frozen ruleset (git tag `ruleset-2026.11.08-12-frozen`).
+Headline (artifact mode, no OSV lookup), from `benchmark/RESULTS.md`:
+
+| measure | result |
+|---|---|
+| known-bad strict recall | 7.1% (22/310; 95% CI 4.7%-10.5%) |
+| known-bad lenient recall | 40.3% (125/310) |
+| random known-good strict / hard false positives | 0/117 (rule of three: at most 2.6%) |
+| random known-good lenient false positives | 14.5% (17/117) |
+| scary-but-legitimate lenient false positives | 4/18 |
+| dormant libraries flagged | 0/12 |
+
+304 items were not scored (297 known-bad without obtainable code). Precision holds only at the benchmark's class
+ratio (310 : 117), not real-world prevalence. Strict recall is low: use this as a triage aid beside OSV, not a
+replacement. Read [METHOD.md](METHOD.md), [LIMITS.md](LIMITS.md), `benchmark/RESULTS.md` and
+`benchmark/ERROR_ANALYSIS.md` before quoting any number. Reproduce with `scripts/reproduce.ps1 -Quick` (PowerShell)
+or `scripts/reproduce.sh --quick` (bash); see `benchmark/README.md` section 9.
+
 ## Run it
 
 ```bash

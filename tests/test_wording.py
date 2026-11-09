@@ -17,7 +17,7 @@ PY_FILES = ["app.py", "security.py", "pillars.py", "fragility.py", "scoring.py",
            [os.path.relpath(p, ROOT) for p in glob.glob(os.path.join(ROOT, "pages", "*.py"))] + \
            [os.path.relpath(p, ROOT) for p in glob.glob(os.path.join(ROOT, "detectors", "*.py"))] + \
            [os.path.relpath(p, ROOT) for p in glob.glob(os.path.join(ROOT, "benchmark", "*.py"))]
-DOC_FILES = ["README.md", "PROJECT_CAPABILITIES.md"] + \
+DOC_FILES = ["README.md", "PROJECT_CAPABILITIES.md", "METHOD.md", "LIMITS.md"] + \
             [os.path.relpath(p, ROOT) for p in glob.glob(os.path.join(ROOT, "docs", "*.md")) if not p.endswith("PLAN.md")] + \
             [os.path.relpath(p, ROOT) for p in glob.glob(os.path.join(ROOT, "skills", "*.md"))] + \
             [os.path.relpath(p, ROOT) for p in glob.glob(os.path.join(ROOT, "benchmark", "*.md"))]
