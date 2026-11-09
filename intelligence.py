@@ -600,7 +600,7 @@ def _fallback_intelligence(features: dict, health_res: dict, issue_triage: dict,
     if forks:
         summary += f"Found {len(forks)} active community fork(s) led by {forks[0]['Fork']}."
     else:
-        summary += "No active community takeover forks were detected."
+        summary += "No forks with newer commits than upstream were detected."
 
     return {
         "source": "Heuristic Engine (Add GEMINI_API_KEY for AI Deep Synthesis)",

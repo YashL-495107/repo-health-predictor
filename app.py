@@ -19,7 +19,7 @@ from repo_scan import scan_repo
 from bus_factor import run_bus_factor_analysis
 import hashlib
 from intelligence import build_ai_cards, SuccessCache, gather_repo_intel, run_ai_layer, _configured_model, resolve_gemini_key, _MISSING
-from ui_text import TRUST_DISCLAIMER, blast_display, headline_label, trust_drivers
+from ui_text import NEUTRAL_COLOR, TRUST_DISCLAIMER, assessment_gaps, blast_display, headline_label, trust_drivers
 from blast_radius import analyze_blast_radius
 from detectors import RULESET_VERSION, TIER_DISPLAY
 from releases import collect_release_context
@@ -296,6 +296,9 @@ if go_clicked or (target and st.session_state.get("analyzed") == target):
     f, res = data["features"], data["result"]
     color = COLORS.get(res["maintenance_label"], "#444")
     trust_color = TRUST_COLORS.get(res.get("trust_label_base"), "#444")
+    gaps = assessment_gaps(res, f.get("language"), data["scan"].get("code_scan"))
+    if (res.get("partial") or gaps) and trust_color == TRUST_COLORS[LABEL_NO_FINDINGS]:
+        trust_color = NEUTRAL_COLOR      # a partial assessment is not shown in confident green
     trust_val = "n/a" if res.get("trust_score") is None else f"{res['trust_score']:.0f}"
     shown_label = headline_label(res["label"], res.get("trust_label_base"), len(data["scan"].get("findings") or []))
     st.subheader(f["full_name"])
@@ -304,6 +307,7 @@ if go_clicked or (target and st.session_state.get("analyzed") == target):
     left, right = st.columns([1, 2])
     with left:
         st.markdown(f"<div style='border-left:8px solid {trust_color};padding:6px 16px'><div style='font-size:14px;color:#888'>Trust score <span style='font-size:12px'>(indicators, not proof)</span></div><div style='font-size:56px;font-weight:700;line-height:1.1'>{trust_val}<span style='font-size:20px;color:#888'> / 100</span> <span style='font-size:13px;color:#888;font-weight:400'>{TRUST_DISCLAIMER}</span></div><div style='font-size:20px;font-weight:600;color:{trust_color}'>{html.escape(shown_label)}</div></div>", unsafe_allow_html=True)
+        if gaps: st.caption(_md_escape("Partial: " + "; ".join(gaps) + "."))
         if res.get("limiting_reason"): st.caption(_md_escape(res["limiting_reason"]))
         st.write("")
         m1, m2, m3 = st.columns(3)
@@ -413,7 +417,7 @@ if go_clicked or (target and st.session_state.get("analyzed") == target):
             tc3.metric("Breaking / Compatibility", counts.get("Breaking / Compatibility", 0))
             tc4.metric("General Bug / Feature", counts.get("General Bug / Feature", 0))
         if forks:
-            with st.expander(f"Active Community Takeover Forks Ahead of Upstream ({len(forks)} found)"): st.dataframe(pd.DataFrame(forks), hide_index=True, width="stretch")
+            with st.expander(f"Forks with newer commits than upstream ({len(forks)} found)"): st.dataframe(pd.DataFrame(forks), hide_index=True, width="stretch")
 
     # Everything Gemini produces, in ONE collapsed section: advisory text, never part of the score or the benchmark.
     with st.expander("AI-generated, advisory, not part of the benchmark", expanded=False):
