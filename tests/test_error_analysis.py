@@ -175,3 +175,28 @@ def test_unknown_items_are_listed_with_the_reason_when_facts_are_present(tmp_pat
 def test_old_bucket_name_is_gone():
     for name in ("benchmark/error_analysis.py", "benchmark/ERROR_ANALYSIS.md", "LIMITS.md", "README.md"):
         assert "install-time script present but no detector fired" not in (ROOT / name).read_text(encoding="utf-8"), name
+
+
+def test_results_dir_option_reads_another_run(tmp_path):
+    """--results-dir (run 2) reads items/misses/false_positives from that folder and writes its npm facts CSV there by
+    default; the default folder is left as it was."""
+    import shutil
+    run = EA.BENCH / "results" / "_test_run_copy"
+    try:
+        run.mkdir()
+        for n in ("items.csv", "misses.csv", "false_positives.csv"):
+            shutil.copy(EA.BENCH / "results" / n, run / n)
+        if (EA.BENCH / "results" / "npm_install_facts.csv").is_file():
+            shutil.copy(EA.BENCH / "results" / "npm_install_facts.csv", run / "npm_install_facts.csv")
+        before = (ROOT / "benchmark" / "ERROR_ANALYSIS.md").read_bytes()
+        out = tmp_path / "EA.md"
+        old = (EA.RESULTS, EA.NPM_FACTS)
+        try:
+            assert EA.main(["--results-dir", str(run), "--out", str(out)]) == 0
+        finally:
+            EA.RESULTS, EA.NPM_FACTS = old
+        doc = out.read_text(encoding="utf-8")
+        assert "`results/_test_run_copy/items.csv`" in doc and "`results/items.csv`" not in doc
+        assert (ROOT / "benchmark" / "ERROR_ANALYSIS.md").read_bytes() == before
+    finally:
+        shutil.rmtree(run, ignore_errors=True)
