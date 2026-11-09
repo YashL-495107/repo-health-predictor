@@ -4,8 +4,11 @@
 
 Reads only existing files: results/items.csv, results/misses.csv, results/false_positives.csv,
 manifests/datadog_extracted.csv, manifests/datadog_members.csv, manifests/known_good_scary.csv,
-manifests/dev_credibility.csv and, when --samples-dir points at the extracted samples (*.sample text written by
-extract_datadog.py), the package.json of each npm sample. It runs no scan and changes no file but its output.
+manifests/dev_credibility.csv, and the npm install-script facts: with --samples-dir (the extracted *.sample text
+written by extract_datadog.py) it reads the package.json of each npm sample and records only the facts (item id,
+ecosystem, has-install-script yes/no/unknown, script keys; no contents, no local paths) in results/npm_install_facts.csv,
+then renders from that CSV; without --samples-dir it uses that CSV when it exists. It runs no scan and writes only its
+outputs.
 
 Rows: (a) every scored known-bad item that is not a strict hit, split into "review-tier only" and "no finding at any
 tier"; (b) every known-good / scary false positive (lenient). Each row states MEASURABLE FACTS (files and bytes in the
@@ -52,6 +55,8 @@ ROOT = Path(__file__).resolve().parent.parent
 BENCH = ROOT / "benchmark"
 RESULTS, MAN = BENCH / "results", BENCH / "manifests"
 OUT = BENCH / "ERROR_ANALYSIS.md"
+NPM_FACTS = RESULTS / "npm_install_facts.csv"      # written by a --samples-dir run; read when no samples dir is given
+NPM_FACT_FIELDS = ["id", "ecosystem", "has_install_script", "install_script_keys"]
 CODE_EXT = {".py", ".pyw", ".pth", ".js", ".mjs", ".cjs", ".jsx", ".ts", ".tsx", ".mts", ".cts", ".coffee", ".sh", ".bash",
             ".zsh", ".ps1", ".psm1", ".bat", ".cmd", ".vbs", ".rb", ".php", ".go", ".java", ".kt", ".cs", ".rs", ".pl",
             ".lua", ".c", ".cc", ".cpp", ".h", ".hpp"}
@@ -108,6 +113,42 @@ def npm_hooks(samples_dir: Path | None, sample_dir: str) -> list[str] | None:
     return [k for k in NPM_HOOKS if isinstance(scripts, dict) and isinstance(scripts.get(k), str)]
 
 
+def collect_npm_facts(samples_dir: Path, misses: list[dict], ext: dict) -> list[dict]:
+    """npm install-script facts read from the extracted samples: item id, ecosystem, yes/no/unknown and the hook keys.
+    No package contents and no local paths are recorded."""
+    out = []
+    for m in sorted(misses, key=lambda r: r["id"]):
+        if m["ecosystem"] != "npm" or m["id"] not in ext:
+            continue
+        hooks = npm_hooks(samples_dir, ext[m["id"]].get("sample_dir", ""))
+        out.append({"id": m["id"], "ecosystem": "npm",
+                    "has_install_script": "unknown" if hooks is None else ("yes" if hooks else "no"),
+                    "install_script_keys": ";".join(hooks or [])})
+    return out
+
+
+def write_npm_facts(facts: list[dict], path: Path = None) -> Path:
+    path = Path(path or NPM_FACTS)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", newline="", encoding="utf-8") as fh:
+        w = csv.DictWriter(fh, fieldnames=NPM_FACT_FIELDS, lineterminator="\n")
+        w.writeheader()
+        w.writerows(facts)
+    return path
+
+
+def load_npm_facts(path: Path = None) -> dict[str, list[str] | None] | None:
+    """{item id: hook keys ([] = none) or None (unknown)} from the facts CSV, or None when the CSV does not exist."""
+    path = Path(path or NPM_FACTS)
+    if not path.is_file():
+        return None
+    out = {}
+    for r in rows(path):
+        has = r.get("has_install_script")
+        out[r["id"]] = None if has not in ("yes", "no") else [k for k in (r.get("install_script_keys") or "").split(";") if k]
+    return out
+
+
 def parse_why(why: str) -> tuple[str, list[str]]:
     """misses.csv 'why' -> ('review'|'none', ['detector: rule', ...])."""
     head = why.split(" | ")[0]
@@ -161,7 +202,9 @@ def fp_bucket(findings: list[dict]) -> str:
 
 # ------------------------------------------------------------------ analysis
 
-def analyse(samples_dir: Path | None = None) -> dict:
+def analyse(samples_dir: Path | None = None, npm_facts: dict | None = None, npm_facts_path: Path | None = None) -> dict:
+    """samples_dir: read npm package.json scripts from the extracted samples. npm_facts: the same facts from the facts
+    CSV (load_npm_facts). With neither, npm install-script facts are unknown."""
     items = {r["id"]: r for r in rows(RESULTS / "items.csv")}
     misses = rows(RESULTS / "misses.csv")
     fps = rows(RESULTS / "false_positives.csv")
@@ -175,7 +218,12 @@ def analyse(samples_dir: Path | None = None) -> dict:
         kind, review = parse_why(m["why"])
         e = ext.get(m["id"])
         facts = member_facts(members[m["id"]]) if m["id"] in members else None
-        hooks = npm_hooks(samples_dir, (e or {}).get("sample_dir", "")) if m["ecosystem"] == "npm" else None
+        if m["ecosystem"] != "npm":
+            hooks = None
+        elif samples_dir is not None:
+            hooks = npm_hooks(samples_dir, (e or {}).get("sample_dir", ""))
+        else:
+            hooks = (npm_facts or {}).get(m["id"])
         partial = bool(e and (e.get("limits_hit") or (facts and facts["skipped"].get("larger than 1000000 bytes"))
                               or (facts and facts["skipped"].get("nested archive size limit"))))
         bucket = miss_bucket(kind, facts, m["ecosystem"], m["version"], hooks, partial)
@@ -210,7 +258,9 @@ def analyse(samples_dir: Path | None = None) -> dict:
                         "facts": "; ".join(f"{f['det']} [{f['tier']}] {f['rule']} @ {f['where'].strip()}" for f in found),
                         "bucket": fp_bucket(found), "history": bool(set(dets) & set(HISTORY_DETECTORS)),
                         "human_verified": "no"})
-    return {"misses": miss_rows, "fps": fp_rows, "samples_dir_used": bool(samples_dir)}
+    source = "samples" if samples_dir is not None else ("csv" if npm_facts is not None else None)
+    return {"misses": miss_rows, "fps": fp_rows, "npm_facts_source": source,
+            "npm_facts_path": Path(npm_facts_path or NPM_FACTS) if source == "csv" else None}
 
 
 def sqlmap_status() -> dict:
@@ -241,15 +291,25 @@ def render(res: dict) -> str:
     misses, fps = res["misses"], res["fps"]
     inputs = [RESULTS / "items.csv", RESULTS / "misses.csv", RESULTS / "false_positives.csv",
               MAN / "datadog_extracted.csv", MAN / "datadog_members.csv"]
+    src = res.get("npm_facts_source")
+    if src == "csv":
+        fp = res["npm_facts_path"]
+        npm_text = (f". npm install-script facts come from `results/{fp.name}` ({file_sha(fp)}), written by "
+                    "`error_analysis.py --samples-dir` from the package.json of each extracted sample (item id, "
+                    "has-install-script and the script keys only; no package contents, no local paths).")
+    elif src == "samples":
+        npm_text = (". npm install-script facts were read from the package.json of each extracted sample "
+                    "(--samples-dir) and not recorded in a facts CSV.")
+    else:
+        npm_text = (". The extracted samples were NOT available and there is no `results/npm_install_facts.csv`, so npm "
+                    "package.json scripts could not be read: those items are in the bucket \"install-script fact not "
+                    "determinable here\" (re-run with --samples-dir on the machine that holds the samples).")
     L = ["# Error analysis (frozen ruleset 2026.11.08-12)", "",
          "Generated by `benchmark/error_analysis.py` from existing result and manifest files; no scan was run and no "
          "number is typed by hand. Every row states measurable facts and a bucket chosen by the explicit rules in the "
          "script's docstring. Nothing here says what a package intends. **Human-verified: no** for every row.", "",
          "Inputs (sha256, first 12 hex): " + ", ".join(f"`{p.relative_to(BENCH).as_posix()}` {file_sha(p)}" for p in inputs)
-         + (". npm package.json text read from --samples-dir." if res["samples_dir_used"] else
-            ". The extracted samples were NOT available, so npm package.json scripts could not be read: those items "
-            "are in the bucket \"install-script fact not determinable here\" (re-run with --samples-dir on the machine "
-            "that holds the samples)."), ""]
+         + npm_text, ""]
     groups = Counter(r["group"] for r in misses)
     L += ["## Known-bad items that are not a strict hit", "",
           f"{len(misses)} scored known-bad items are not a strict hit: {groups.get('review-tier only', 0)} have a "
@@ -293,9 +353,19 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="Error analysis of the frozen-ruleset benchmark (read-only)")
     ap.add_argument("--samples-dir", default=None, help="extracted samples root (to read npm package.json scripts)")
     ap.add_argument("--out", default=str(OUT))
+    ap.add_argument("--npm-facts", default=str(NPM_FACTS), help="npm install-script facts CSV (written with --samples-dir)")
     a = ap.parse_args(argv)
-    sd = Path(a.samples_dir).resolve() if a.samples_dir else None
-    text = render(analyse(sd))
+    if a.samples_dir:
+        # read the facts from the samples, record them (no contents, no paths), then render FROM the recorded CSV, so a
+        # later run without the samples (CI) produces exactly the same document
+        sd = Path(a.samples_dir).resolve()
+        misses = rows(RESULTS / "misses.csv")
+        ext = {r["id"]: r for r in rows(MAN / "datadog_extracted.csv")}
+        facts = collect_npm_facts(sd, misses, ext)
+        path = write_npm_facts(facts, Path(a.npm_facts))
+        print(f"wrote {path} ({len(facts)} npm items; unknown: {sum(f['has_install_script'] == 'unknown' for f in facts)})")
+    npm = load_npm_facts(Path(a.npm_facts))
+    text = render(analyse(None, npm, Path(a.npm_facts)))
     Path(a.out).write_text(text, encoding="utf-8", newline="\n")
     print(f"wrote {a.out}")
     return 0

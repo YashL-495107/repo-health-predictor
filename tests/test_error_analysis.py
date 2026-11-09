@@ -76,8 +76,21 @@ def test_real_results_consistent_with_results_md_and_deterministic():
     assert all(r["human_verified"] == "no" for r in res["misses"] + res["fps"])
     assert all(r["bucket"] in EA.MISS_BUCKETS for r in res["misses"]) and all(r["bucket"] in EA.FP_BUCKETS for r in res["fps"])
     assert EA.render(res) == EA.render(EA.analyse(None))
+
+
+def test_committed_document_is_current_in_either_state():
+    """CSV absent: the committed document equals the render without npm facts. CSV present (committed after a
+    --samples-dir run): it equals the render from the CSV, and no "not determinable" rows remain."""
     committed = (ROOT / "benchmark" / "ERROR_ANALYSIS.md").read_text(encoding="utf-8")
-    assert committed == EA.render(res)                                  # the committed document is current
+    facts = EA.load_npm_facts()
+    if facts is None:
+        assert committed == EA.render(EA.analyse(None))
+        assert "there is no `results/npm_install_facts.csv`" in committed
+    else:
+        res = EA.analyse(None, facts)
+        assert committed == EA.render(res)
+        assert not [r for r in res["misses"] if r["bucket"] == "install-script fact not determinable here"]
+        assert "npm install-script facts come from `results/npm_install_facts.csv`" in committed
 
 
 def test_no_intent_claims_and_sqlmap_status():
@@ -88,3 +101,43 @@ def test_no_intent_claims_and_sqlmap_status():
     sq = EA.sqlmap_status()
     assert not sq["in_scary"] and sq["in_dev"] and sq["items"] == []
     assert "sqlmap is **not** in the benchmark scary set" in text
+
+
+
+def test_samples_run_writes_facts_csv_and_renders_identically_from_it(tmp_path, monkeypatch):
+    """--samples-dir: facts are read from the samples, written to the CSV (no contents, no paths), and the document is
+    rendered from the CSV, so a later run without samples gives the same bytes."""
+    misses = EA.rows(EA.RESULTS / "misses.csv")
+    ext = {r["id"]: r for r in EA.rows(EA.MAN / "datadog_extracted.csv")}
+    npm = [m for m in sorted(misses, key=lambda r: r["id"]) if m["ecosystem"] == "npm" and m["id"] in ext]
+    samples = tmp_path / "samples"
+    for i, m in enumerate(npm):                    # synthetic package.json for every npm miss (inert JSON)
+        d = samples / ext[m["id"]]["sample_dir"]
+        d.mkdir(parents=True, exist_ok=True)
+        scripts = {"preinstall": "node x.js"} if i % 3 == 0 else ({"postinstall": "y", "install": "z"} if i % 3 == 1 else {"test": "t"})
+        (d / "package.json.sample").write_text(json.dumps({"name": m["package"], "scripts": scripts}), encoding="utf-8")
+    facts_csv, out1, out2 = tmp_path / "npm_install_facts.csv", tmp_path / "a.md", tmp_path / "b.md"
+    assert EA.main(["--samples-dir", str(samples), "--npm-facts", str(facts_csv), "--out", str(out1)]) == 0
+    rows_ = EA.rows(facts_csv)
+    assert list(rows_[0].keys()) == EA.NPM_FACT_FIELDS and len(rows_) == len(npm)
+    text = facts_csv.read_text(encoding="utf-8")
+    assert str(tmp_path) not in text and "node x.js" not in text and "datadog/" not in text   # no paths, no contents
+    assert {r["has_install_script"] for r in rows_} == {"yes", "no"}
+    assert {r["install_script_keys"] for r in rows_} >= {"preinstall", "install;postinstall", ""}
+    assert EA.main(["--npm-facts", str(facts_csv), "--out", str(out2)]) == 0     # no samples: from the CSV
+    assert out1.read_text(encoding="utf-8") == out2.read_text(encoding="utf-8")
+    doc = out1.read_text(encoding="utf-8")
+    assert "install-script fact not determinable here | 0 |" in doc
+    assert "npm install-script facts come from `results/npm_install_facts.csv`" in doc
+    res = EA.analyse(None, EA.load_npm_facts(facts_csv), facts_csv)
+    gap = [r for r in res["misses"] if r["bucket"] == "install-time script present but no detector fired"]
+    assert any(r["ecosystem"] == "npm" and "npm install hooks: preinstall" in r["facts"] for r in gap)
+
+
+def test_unknown_when_the_sample_has_no_package_json(tmp_path):
+    misses = EA.rows(EA.RESULTS / "misses.csv")
+    ext = {r["id"]: r for r in EA.rows(EA.MAN / "datadog_extracted.csv")}
+    facts = EA.collect_npm_facts(tmp_path, misses, ext)                    # empty samples folder
+    assert facts and {f["has_install_script"] for f in facts} == {"unknown"}
+    path = EA.write_npm_facts(facts, tmp_path / "f.csv")
+    assert set(EA.load_npm_facts(path).values()) == {None}                 # unknown stays "not determinable"
