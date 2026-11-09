@@ -20,9 +20,11 @@ files next to it (`benchmark/results/`, `benchmark/manifests/`); each limit name
 ## What was measured, and how
 
 - **Recall was measured in ARTIFACT mode only** (release archives and DataDog samples given to the content detectors).
-  **Repository mode, which is what the app runs, was measured on known-good, scary and dormant items only**; RESULTS.md
-  reports its dormant-library labels (Fragile / unmaintained 1/11, threat label 0/11) and scan times. **Repo-mode
-  recall was not measured.**
+  **Repository mode, which is what the app runs, was measured on known-good, scary and dormant items only**: its
+  false-positive rates (strict, lenient, hard, soft, with 95% intervals and rule-of-three bounds, same definitions as the
+  artifact section) and its unscored items are in `benchmark/RESULTS.md`, section "Repo mode (what the app does)".
+  **Repo-mode known-bad recall is not measured**: the known-bad items are package versions and samples without a
+  repository.
 - **OSV numbers are circular.** The known-bad labels come from OSV MAL- records, so the with-OSV recall (74.5% strict)
   measures the label source, not the detectors. The headline excludes the OSV lookup.
 - **304 items were not scored** and are never imputed: **297 known-bad items have no obtainable code** (removed from the

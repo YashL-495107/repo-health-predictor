@@ -12,6 +12,8 @@ import tarfile
 import zipfile
 from pathlib import Path
 
+import re
+
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -703,3 +705,52 @@ def test_baseline_comparison_section():
     assert "circular and biased upward" in text and "NOT a fair comparison" in text
     md, tables = M.build_report(head, head, with_osv, {}, {})
     assert "## Baseline comparison" in md and tables["baseline"] == rows
+
+
+# ------------------------------------------------------------------ repo mode section (fixture run file)
+
+REPO_FIXTURE = Path(__file__).resolve().parent / "fixtures" / "repo_run_fixture.jsonl"
+
+
+def test_repo_mode_section_from_fixture_run():
+    repo = M.load_run(REPO_FIXTURE)
+    lines, tables = M.repo_mode_block(repo)
+    text = "\n".join(lines)
+    rates = {(r["set"], r["kind"]): r for r in tables["repo_mode_false_positives"]}
+    # known_good: 4 scored (1 review label, 1 high-risk label + finding, 1 none, 1 partial none), 1 not assessed
+    assert (rates[("known_good", "strict")]["fp"], rates[("known_good", "strict")]["n"]) == (1, 4)
+    assert rates[("known_good", "lenient")]["fp"] == 2 and rates[("known_good", "hard")]["fp"] == 1
+    assert rates[("known_good", "soft")]["fp"] == 1
+    lo, hi = M.wilson(2, 4)
+    assert rates[("known_good", "lenient")]["ci_low"] == pytest.approx(lo) and rates[("known_good", "lenient")]["ci_high"] == pytest.approx(hi)
+    assert rates[("scary", "lenient")]["fp"] == 1 and rates[("scary", "strict")]["rule_of_three"] == pytest.approx(1.5)
+    assert rates[("dormant", "hard")]["fp"] == 0 and rates[("dormant", "hard")]["rule_of_three"] == pytest.approx(1.5)
+    assert rates[("dormant", "soft")]["fp"] == 0                                  # Fragile is not a review label
+    assert "| Random known-good (maintained) | lenient | 50.0% (2/4; 95% CI" in text
+    assert "| Dormant / finished libraries | hard | 0.0% (0/2; 95% CI 0.0%-65.8%); rule of three: at most 150.0% |" in text
+    assert [r["id"] for r in tables["repo_mode_not_scored"]] == ["known_good:PyPI:epsilon@5.0"]
+    assert "Not scored in repo mode (listed, never imputed): 1 item(s)." in text and "RateLimitError" in text
+    assert "Repo-mode known-bad recall is NOT measured" in text and "OSV MAL- lookup off" in text
+    assert "known_bad:x" not in text
+
+
+def test_repo_mode_section_in_report_and_absent_run():
+    repo = M.load_run(REPO_FIXTURE)
+    md, tables = M.build_report({"b1": _rec("b1", "known_bad")}, {}, {}, repo, {})
+    assert "## Repo mode (what the app does)" in md and tables["repo_mode_not_scored"]
+    md2, _ = M.build_report({"b1": _rec("b1", "known_bad")}, {}, {}, {}, {})
+    assert "No repository-mode run given (--repo-run)" in md2 and "known-bad recall is not measured" in md2
+
+
+def test_limits_and_readme_point_to_the_repo_mode_section_without_numbers():
+    root = Path(__file__).resolve().parent.parent
+    for name in ("LIMITS.md", "README.md"):
+        text = (root / name).read_text(encoding="utf-8")
+        assert 'section "Repo mode (what the app does)"' in text, name
+        assert "repo-mode known-bad recall is not measured" in text.lower(), name
+        i = text.index('section "Repo mode (what the app does)"')
+        starts = [text.rfind(sep, 0, i) for sep in ("\n- ", "\n\n")]
+        ends = [e for e in (text.find("\n- ", i), text.find("\n\n", i)) if e != -1]
+        para = text[max(starts) + 1:min(ends) if ends else len(text)]
+        para = para.replace("95%", "")                     # "95% intervals" names the interval, it is not a result
+        assert not re.search(r"\d+(\.\d+)?%|\b\d+/\d+\b", para), f"{name}: no hand-typed repo-mode numbers: {para}"

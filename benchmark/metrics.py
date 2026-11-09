@@ -323,6 +323,52 @@ def baseline_block(head: dict, frag_on: dict, with_osv: dict, split: str = "test
     return L, out
 
 
+def repo_mode_block(repo: dict, split: str = "test") -> tuple[list[str], dict]:
+    """'Repo mode (what the app does)': false-positive rates of the repository-mode run (--repo-run) for the random
+    known-good, the hand-picked scary and the dormant sets, with the SAME definitions as the artifact section, and the
+    unscored items listed. Known-bad items have no repository, so repo-mode recall is not measured."""
+    L = ["## Repo mode (what the app does)", ""]
+    tables = {"repo_mode_false_positives": [], "repo_mode_not_scored": []}
+    if not repo:
+        L += ["No repository-mode run given (--repo-run), so no repo-mode numbers. Repo-mode known-bad recall is not "
+              "measured in any case (see below).", ""]
+        return L, tables
+    cfg = _cfg(repo)
+    L += [f"Run: mode {cfg.get('mode', '?')}, OSV MAL- lookup {'on' if cfg.get('osv') else 'off'}, fragility escalation "
+          f"{'on' if cfg.get('fragility_escalation') else 'off'}, ruleset {cfg.get('ruleset_version', '?')}, snapshot "
+          f"{cfg.get('snapshot', '?')}. Same definitions as the artifact section (strict / lenient: a finding at that "
+          "operating point; hard: high_risk / known_malicious finding or a DO NOT USE / High-risk label; soft: Review "
+          "recommended and not hard). Each set is reported separately; the scary set is a hand-picked judgement sample.", "",
+          "**Repo-mode known-bad recall is NOT measured**: the known-bad items are package versions and samples without a "
+          "repository, so recall comes from artifact mode only.", ""]
+    rows = []
+    for cat in GOOD_SETS:
+        rws = class_rows(repo, cat, split)
+        fb = fp_block(rws)
+        for kind in ("strict", "lenient", "hard", "soft"):
+            k, n = fb[kind]["fp"], fb[kind]["n"]
+            rows.append([SET_TITLES[cat], kind, rate_text(k, n, zero_rule=True)])
+            lo_hi = wilson(k, n) or (None, None)
+            tables["repo_mode_false_positives"].append(
+                {"set": cat, "kind": kind, "fp": k, "n": n, "rate": k / n if n else None, "ci_low": lo_hi[0],
+                 "ci_high": lo_hi[1], "rule_of_three": rule_of_three(n) if k == 0 else None})
+    L += _table(["set", "kind", "false-positive rate (repo mode)"], rows) + [""]
+    counts = []
+    for cat in GOOD_SETS:
+        c = status_counts(class_rows(repo, cat, split))
+        counts.append([cat, sum(c.values()), c.get("scored", 0), c.get("not_assessed", 0), c.get("not_applicable", 0)])
+    L += _table(["set", "in run", "scored", "not assessed", "not applicable"], counts) + [""]
+    excl = sorted((r for r in repo.values() if r.get("split") == split and r.get("category") in GOOD_SETS and not scored(r)),
+                  key=lambda r: (r.get("category", ""), r["id"]))
+    L += [f"Not scored in repo mode (listed, never imputed): {len(excl)} item(s).", ""]
+    if excl:
+        L += _table(["item", "set", "status", "reason"],
+                    [[r["id"], r.get("category"), r.get("status"), (r.get("not_assessed_reason") or "")[:140]] for r in excl]) + [""]
+    tables["repo_mode_not_scored"] = [{"id": r["id"], "category": r.get("category"), "status": r.get("status"),
+                                       "reason": r.get("not_assessed_reason") or ""} for r in excl]
+    return L, tables
+
+
 def build_report(head: dict, frag_on: dict, with_osv: dict, repo: dict, replay: dict,
                  split: str = "test") -> tuple[str, dict]:
     """head: the headline run; frag_on / with_osv: shown beside it. Returns (markdown, csv_tables)."""
@@ -405,6 +451,10 @@ def build_report(head: dict, frag_on: dict, with_osv: dict, repo: dict, replay: 
     if not repo:
         L += ["Dormant libraries in repository mode: no repo-mode run given (the Fragile / unmaintained label needs "
               "the maintenance pillar, which artifact mode does not have).", ""]
+
+    repo_lines, repo_tables = repo_mode_block(repo, split)
+    L += repo_lines
+    tables.update(repo_tables)
 
     # precision
     good_rand = class_rows(head, "known_good", split)

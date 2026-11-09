@@ -23,7 +23,7 @@ def test_docs_only_use_those_numbers():
         assert "7.1% (22/310; 95% CI 4.7%-10.5%)" in doc
     assert "310 : 117" in method and "not at real-world prevalence" in method
     for must in ("Indicators, not proof", "never means the package is harmless", "ARTIFACT mode only",
-                 "recall was not measured", "307 scored items had no release",
+                 "known-bad recall is not measured", "307 scored items had no release",
                  "2 of the 3 obtainable replay incidents", "7 of the 17 lenient false positives", "Python only",
                  "compromised_lib", "@scope@name", "297 known-bad items have no obtainable code",
                  "4 known-bad samples were missing", "circular", "triage aid", "Dual-use", "Threat model"):

@@ -23,7 +23,9 @@ Headline (artifact mode, no OSV lookup), from `benchmark/RESULTS.md`:
 | scary-but-legitimate lenient false positives | 4/18 |
 | dormant libraries flagged | 0/12 |
 
-304 items were not scored (297 known-bad without obtainable code). Precision holds only at the benchmark's class
+These are artifact-mode numbers. For what the app does (repository mode), see `benchmark/RESULTS.md`,
+section "Repo mode (what the app does)": false-positive rates on the known-good, scary and dormant sets.
+Repo-mode known-bad recall is not measured. 304 items were not scored (297 known-bad without obtainable code). Precision holds only at the benchmark's class
 ratio (310 : 117), not real-world prevalence. Strict recall is low: use this as a triage aid beside OSV, not a
 replacement. Read [METHOD.md](METHOD.md), [LIMITS.md](LIMITS.md), `benchmark/RESULTS.md` and
 `benchmark/ERROR_ANALYSIS.md` before quoting any number. Reproduce with `scripts/reproduce.ps1 -Quick` (PowerShell)
