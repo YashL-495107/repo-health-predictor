@@ -98,6 +98,11 @@ detector or the verdict, and none of it was measured: there is no recall or fals
 - **Network-dependent:** every lookup has a timeout and is cached for 15 minutes; a failed lookup is shown as "could
   not check", never as a pass. RDAP could not be reached from the environment where this was built, so the RDAP part
   is tested only with recorded registry answers and synthetic RDAP answers.
+- **Upgrade check page** (`upgrade_check.py`, `pages/1_Upgrade_check.py`): compares two published versions of one
+  package (install hooks, capability evidence, dependencies, publisher, release gap, provenance, size, minified files)
+  and the kill-chain strip lights stages from existing findings only. Post-freeze, unvalidated, no benchmark number,
+  no Trust score; it compares only what the artifacts' read limits let it read (5 MB per artifact), and the replay
+  selector is replay, not held-out evidence.
 - **Verdict meaning panel:** the numbers next to the verdict are read from `benchmark/results/run2/` (artifact-mode
   recall and false positives, repository-mode false positives); repository-mode known-bad recall is not measured.
 

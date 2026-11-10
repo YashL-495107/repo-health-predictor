@@ -174,11 +174,14 @@ def test_http_get_json_never_raises():
 
 
 def test_signals_never_feed_the_score():
-    """No scoring, cap, detector or verdict module imports the additional signals."""
+    """No scoring, cap, detector or verdict module imports the additional signals or the upgrade check (display-only
+    modules: the app, its pages, and upgrade_check itself, which shows signals and computes no score)."""
     for p in list(ROOT.glob("*.py")) + list((ROOT / "detectors").glob("*.py")):
-        if p.name in ("app.py", "additional_signals.py"):
+        if p.name in ("app.py", "additional_signals.py", "upgrade_check.py"):
             continue
-        assert "additional_signals" not in p.read_text(encoding="utf-8"), p.name
+        import re
+        text = p.read_text(encoding="utf-8")
+        assert not re.search(r"^\s*(?:import|from)\s+(?:additional_signals|upgrade_check)\b", text, re.M), p.name
 
 
 # ------------------------------------------------------------------ verdict meaning (numbers = CSV values)

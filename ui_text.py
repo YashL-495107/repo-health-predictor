@@ -234,3 +234,21 @@ def evidence_receipt(data: dict, ruleset_version: str, app_ver: dict, full_commi
             "scanned_commit": commit, "ruleset_version": ruleset_version, "app_version": app_ver,
             "metadata_fetched_at": f.get("fetched_at"), "receipt_generated_at_utc": now_utc,
             "note": "Trust score: indicators, not proof; not a safety guarantee."}
+
+
+# Light styling for the app and its pages: spacing, chip / badge shapes and the kill-chain strip. Colours come from the
+# theme (currentColor, translucent fills) or the existing tier colours, so light and dark themes both work.
+APP_CSS = """<style>
+.rh-card{border:1px solid rgba(128,128,128,.35);border-radius:12px;padding:14px 18px;margin-bottom:.5rem}
+.rh-muted{opacity:.7}
+.rh-chip{display:inline-block;padding:4px 12px;border-radius:10px;line-height:1.35;color:#fff;font-weight:600;font-size:15px;margin-top:6px}
+.rh-badge{display:inline-block;padding:2px 10px;border-radius:999px;border:1px dashed currentColor;font-size:13px;
+ font-weight:600;margin-left:8px;vertical-align:middle;cursor:help}
+div[data-testid="stTabs"] button p{font-size:15px}
+.rh-kc-row{display:flex;flex-wrap:wrap;align-items:stretch;gap:6px;margin:6px 0 2px}
+.rh-kc{flex:1 1 140px;border:1px solid rgba(128,128,128,.45);border-radius:10px;padding:8px 10px;font-size:13px;
+ opacity:.65;cursor:help}
+.rh-kc-on{opacity:1;border-color:#e66101;background:rgba(230,97,1,.18);font-weight:600}
+.rh-kc-mark{font-size:12px}
+.rh-kc-arrow{align-self:center;opacity:.6}
+</style>"""

@@ -20,9 +20,10 @@ from repo_scan import scan_repo
 from bus_factor import run_bus_factor_analysis
 import hashlib
 from intelligence import build_ai_cards, SuccessCache, gather_repo_intel, run_ai_layer, _configured_model, resolve_gemini_key, _MISSING
-from ui_text import (NEUTRAL_COLOR, TRUST_DISCLAIMER, app_version, assessment_gaps, blast_display, evidence_receipt,
+from ui_text import (APP_CSS, NEUTRAL_COLOR, TRUST_DISCLAIMER, app_version, assessment_gaps, blast_display, evidence_receipt,
                      filter_findings, headline_label, partial_badge, result_json, trust_drivers)
 import additional_signals as AS
+import killchain
 from verdict_meaning import verdict_meaning
 from blast_radius import analyze_blast_radius
 from detectors import RULESET_VERSION, TIER_DISPLAY
@@ -237,14 +238,7 @@ def _pillar_text(p: dict) -> tuple[str, str]:
 
 # Light styling only: spacing and chip/badge shapes. Colours come from the theme (text, borders) or the existing tier
 # colours, so light and dark themes both work.
-st.markdown("""<style>
-.rh-card{border:1px solid rgba(128,128,128,.35);border-radius:12px;padding:14px 18px;margin-bottom:.5rem}
-.rh-muted{opacity:.7}
-.rh-chip{display:inline-block;padding:4px 12px;border-radius:10px;line-height:1.35;color:#fff;font-weight:600;font-size:15px;margin-top:6px}
-.rh-badge{display:inline-block;padding:2px 10px;border-radius:999px;border:1px dashed currentColor;font-size:13px;
- font-weight:600;margin-left:8px;vertical-align:middle;cursor:help}
-div[data-testid="stTabs"] button p{font-size:15px}
-</style>""", unsafe_allow_html=True)
+st.markdown(APP_CSS, unsafe_allow_html=True)
 
 
 def hover_bar(fig: go.Figure, what: str):
@@ -286,6 +280,13 @@ def render_pillars(res: dict):
             st.caption(_md_escape(f"Fragility index {fr['score']:.0f}/100 ({', '.join(fr.get('factors') or [])}). "
                                   f"At {fr['threshold']} or more, review-tier Integrity signals are escalated to high-risk. "
                                   "Weights and threshold are unvalidated design choices."))
+
+
+def render_killchain(scan_findings: list[dict], res: dict):
+    """Visual only: which attack stages the existing findings point at (killchain.MAP)."""
+    det = [f for p in (res.get("pillars") or {}).values() for f in p.get("findings") or []]
+    st.markdown(killchain.strip_html(killchain.killchain(list(scan_findings) + det)), unsafe_allow_html=True)
+    st.caption(killchain.CAPTION)
 
 
 def render_checks(res: dict):
@@ -498,6 +499,7 @@ if go_clicked or (target and st.session_state.get("analyzed") == target):
             st.plotly_chart(fig, width="stretch")
 
         st.session_state["_release_summary"] = data.get("releases")
+        render_killchain(scan.get("findings") or [], res)
         render_pillars(res)
 
         st.markdown("#### What drives the Trust score")
