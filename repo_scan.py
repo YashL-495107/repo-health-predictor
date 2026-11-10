@@ -274,6 +274,7 @@ def scan_repo(client: GitHubClient, owner: str, repo: str) -> dict:
         _attach_detectors(res)
         return res
     sha = data["sha"]
+    res["commit_sha"] = sha      # commit named by the downloaded archive (evidence receipt only; no detector reads it)
     def url(f, ln): return f"https://github.com/{owner}/{repo}/blob/{sha}/{f}#L{ln}" if sha else None
     return scan_data(res, data, owner, repo, url, identity=repo_identity(owner, repo, data))
 

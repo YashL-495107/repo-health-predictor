@@ -1,0 +1,29 @@
+{
+ "_recorded": "registry.npmjs.org/sigstore, 2026-11-10, trimmed to the fields used; e-mail local parts redacted",
+ "dist-tags": {
+  "latest": "5.0.1"
+ },
+ "maintainers": [
+  {
+   "email": "redacted@dehamer.com",
+   "name": "bdehamer"
+  }
+ ],
+ "name": "sigstore",
+ "time": {
+  "5.0.1": "2026-11-05T00:20:42.798Z"
+ },
+ "versions": {
+  "5.0.1": {
+   "dist": {
+    "attestations": {
+     "provenance": {
+      "predicateType": "https://slsa.dev/provenance/v1"
+     },
+     "url": "https://registry.npmjs.org/-/npm/v1/attestations/sigstore@5.0.1"
+    },
+    "tarball": "https://registry.npmjs.org/sigstore/-/sigstore-5.0.1.tgz"
+   }
+  }
+ }
+}

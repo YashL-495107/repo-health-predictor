@@ -1,0 +1,21 @@
+{
+ "_recorded": "pypi.org/pypi/sampleproject/json, 2026-11-10, trimmed to the fields used",
+ "info": {
+  "name": "sampleproject",
+  "version": "4.0.0",
+  "author_email": "\"A. Random Developer\" <author@example.com>",
+  "maintainer_email": "\"A. Great Maintainer\" <maintainer@example.com>"
+ },
+ "urls": [
+  {
+   "filename": "sampleproject-4.0.0-py3-none-any.whl",
+   "packagetype": "bdist_wheel",
+   "upload_time_iso_8601": "2024-11-06T22:37:09.220617Z"
+  },
+  {
+   "filename": "sampleproject-4.0.0.tar.gz",
+   "packagetype": "sdist",
+   "upload_time_iso_8601": "2024-11-06T22:37:10.868088Z"
+  }
+ ]
+}

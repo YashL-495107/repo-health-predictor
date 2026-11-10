@@ -211,6 +211,7 @@ def fetch_features(client: GitHubClient, owner: str, repo: str) -> dict:
 
     return {
         "full_name": full,
+        "default_branch": meta.get("default_branch"),    # evidence receipt only; not used by the scores
         "description": meta.get("description"),
         "language": meta.get("language"),
         "stars": meta.get("stargazers_count", 0),
