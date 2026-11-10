@@ -62,6 +62,25 @@ with c2, st.container(border=True):
                "a human; buckets are explained in benchmark/ERROR_ANALYSIS.md).")
 
 with st.container(border=True):
+    import ml_results as M
+    st.markdown("#### Learned combiner (experimental)")
+    if M.available():
+        _ml = M.load()
+        _cmp = pd.DataFrame(M.comparison_table(_ml))
+        st.table(_cmp.set_index(_cmp.columns[0]))
+        st.caption(M.COMPARE_NOTE + " Frozen rules: " + "; ".join(M.headline(_ml)["rules"]) + ".")
+    st.caption(M.CAVEAT + " The frozen rules above remain the official result.")
+    st.page_link("app_pages/3_Learned_combiner.py", label="Learned combiner (experimental): details", icon="🧪")
+
+with st.container(border=True):
+    import guarddog_results as GD
+    st.markdown("#### Compared with GuardDog")
+    if GD.available():
+        st.markdown(GD.headline(GD.load()))
+    st.caption(GD.CAVEAT)
+    st.page_link("app_pages/4_Compared_with_GuardDog.py", label="Compared with GuardDog: details", icon="🐕")
+
+with st.container(border=True):
     st.markdown("#### How it was measured")
     for line in d["measured"]:
         st.markdown("- " + line)

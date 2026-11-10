@@ -1,0 +1,12 @@
+key,value,ci_low,ci_high,note
+auc,0.884629,0.853130,0.913385,"risk score, known-bad vs random known-good"
+known_bad_scored,313,,,of 314 known-bad items
+not_scored,1,,,DD-PyPI-license-utils-kit-0.1a1-85e32458 (error (PermissionError))
+ours_strict_on_guarddog_scored,39,0.092503,0.165801,12.5% (39/313; 95% CI 9.3%-16.6%): our detectors on the 313 known-bad items GuardDog scored
+ours_lenient_on_guarddog_scored,157,0.446523,0.556633,50.2% (157/313; 95% CI 44.7%-55.7%): our detectors on the 313 known-bad items GuardDog scored
+overlap_strict_both,36,,,caught by both (strict / GuardDog high_risk)
+overlap_strict_guarddog_only,187,,,caught by GuardDog only
+overlap_strict_ours_only,3,,,caught by our detectors only
+overlap_lenient_both,141,,,caught by both (lenient / GuardDog suspicious+)
+overlap_lenient_guarddog_only,101,,,caught by GuardDog only
+overlap_lenient_ours_only,16,,,caught by our detectors only

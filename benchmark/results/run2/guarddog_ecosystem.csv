@@ -1,0 +1,5 @@
+ecosystem,operating_point,recall_text,fp_known_good_text
+PyPI,default: high_risk,77.5% (124/160; 95% CI 70.4%-83.3%),5.2% (3/58; 95% CI 1.8%-14.1%)
+PyPI,default: suspicious or high_risk,77.5% (124/160; 95% CI 70.4%-83.3%),6.9% (4/58; 95% CI 2.7%-16.4%)
+npm,default: high_risk,64.7% (99/153; 95% CI 56.9%-71.8%),0.0% (0/59; 95% CI 0.0%-6.1%); rule of three: at most 5.1%
+npm,default: suspicious or high_risk,77.1% (118/153; 95% CI 69.9%-83.1%),0.0% (0/59; 95% CI 0.0%-6.1%); rule of three: at most 5.1%

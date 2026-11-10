@@ -1,0 +1,35 @@
+feature,source_indicator,reason,only_in_datadog,nonzero_datadog_known_bad,n_datadog_known_bad,nonzero_registry_known_bad,n_registry_known_bad,nonzero_registry_known_good,n_registry_known_good,nonzero_registry_scary_dormant,n_registry_scary_dormant
+cap_network,no,,no,153,311,2,3,30,117,11,30
+cap_credential_env,no,,no,14,311,0,3,9,117,1,30
+cap_process_spawn,no,,no,150,311,1,3,18,117,11,30
+cap_decoding_obfuscation,no,,yes,10,311,0,3,0,117,0,30
+det_behavior_patterns_high_risk,no,,yes,25,311,0,3,0,117,0,30
+det_behavior_patterns_review,no,,no,100,311,1,3,7,117,2,30
+det_behavior_patterns_info,no,,no,9,311,0,3,9,117,1,30
+det_behavior_patterns_findings,no,,no,100,311,1,3,7,117,2,30
+det_ci_workflow_review,yes,"non-zero only in registry archives, never in a DataDog sample",no,0,311,0,3,1,117,0,30
+det_ci_workflow_findings,yes,"non-zero only in registry archives, never in a DataDog sample",no,0,311,0,3,1,117,0,30
+det_committed_binary_review,yes,"non-zero only in registry archives, never in a DataDog sample",no,0,311,0,3,1,117,1,30
+det_committed_binary_findings,yes,"non-zero only in registry archives, never in a DataDog sample",no,0,311,0,3,1,117,1,30
+det_credential_exfiltration_high_risk,no,,yes,3,311,0,3,0,117,0,30
+det_credential_exfiltration_review,no,,no,12,311,0,3,1,117,0,30
+det_credential_exfiltration_findings,no,,no,13,311,0,3,1,117,0,30
+det_decoded_payload_review,no,,yes,2,311,0,3,0,117,0,30
+det_decoded_payload_findings,no,,yes,2,311,0,3,0,117,0,30
+det_dependency_injection_review,yes,needs release history (dependency_injection): not applicable to DataDog samples,no,0,311,0,3,2,117,0,30
+det_dependency_injection_findings,yes,needs release history (dependency_injection): not applicable to DataDog samples,no,0,311,0,3,2,117,0,30
+det_lookalike_name_review,no,,no,5,311,0,3,0,117,1,30
+det_lookalike_name_findings,no,,no,5,311,0,3,0,117,1,30
+det_protestware_destructive_review,no,,yes,6,311,0,3,0,117,0,30
+det_protestware_destructive_findings,no,,yes,6,311,0,3,0,117,0,30
+det_publisher_change_review,yes,needs release history (publisher_change): not applicable to DataDog samples,no,0,311,0,3,4,117,0,30
+det_publisher_change_findings,yes,needs release history (publisher_change): not applicable to DataDog samples,no,0,311,0,3,4,117,0,30
+det_release_delta_review,yes,needs release history (release_delta): not applicable to DataDog samples,no,0,311,0,3,1,117,1,30
+det_release_delta_findings,yes,needs release history (release_delta): not applicable to DataDog samples,no,0,311,0,3,1,117,1,30
+det_repo_secrets_review,no,,yes,3,311,0,3,0,117,0,30
+det_repo_secrets_findings,no,,yes,3,311,0,3,0,117,0,30
+det_revival_takeover_review,yes,needs release history (revival_takeover): not applicable to DataDog samples,no,0,311,0,3,4,117,0,30
+det_revival_takeover_findings,yes,needs release history (revival_takeover): not applicable to DataDog samples,no,0,311,0,3,4,117,0,30
+det_setup_py_hook_high_risk,no,,yes,15,311,0,3,0,117,0,30
+det_setup_py_hook_review,no,,no,84,311,0,3,6,117,2,30
+det_setup_py_hook_findings,no,,no,91,311,0,3,6,117,2,30

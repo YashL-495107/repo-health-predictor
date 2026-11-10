@@ -1,0 +1,17 @@
+feature_set,model,ecosystem,n_pos,n_neg,auc,recall_at_5pct_fp,realized_fp_at_5pct
+A_strict,logistic_regression,PyPI,161,58,0.762904,0.349068,0.079310
+A_strict,logistic_regression,npm,153,59,0.717403,0.232680,0.000000
+A_strict,random_forest,PyPI,161,58,0.835082,0.556522,0.048276
+A_strict,random_forest,npm,153,59,0.816107,0.291503,0.016949
+A,logistic_regression,PyPI,161,58,0.764189,0.330435,0.079310
+A,logistic_regression,npm,153,59,0.751412,0.233987,0.000000
+A,random_forest,PyPI,161,58,0.838188,0.559006,0.034483
+A,random_forest,npm,153,59,0.830121,0.299346,0.020339
+B,logistic_regression,PyPI,161,58,0.775541,0.289441,0.086207
+B,logistic_regression,npm,153,59,0.871607,0.304575,0.000000
+B,random_forest,PyPI,161,58,0.860141,0.655901,0.013793
+B,random_forest,npm,153,59,0.884901,0.535948,0.037288
+C,logistic_regression,PyPI,161,58,1.000000,1.000000,0.027586
+C,logistic_regression,npm,153,59,0.997120,0.994771,0.071186
+C,random_forest,PyPI,161,58,1.000000,1.000000,0.020690
+C,random_forest,npm,153,59,0.999114,0.993464,0.050847

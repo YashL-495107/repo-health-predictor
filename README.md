@@ -31,6 +31,10 @@ and `benchmark/results/run2/`:
 
 All numbers, with the repository-mode false-positive rates, are on the app's **How accurate is it?** page.
 
+**Learned combiner (experimental)** (research result, not the headline): Logistic regression, feature set A_strict: ROC AUC 0.746 (95% CI 0.693-0.795); recall 29.2% (95% CI 24.1%-34.0%) at a realized 3.9% false-positive rate (target 5%). Frozen rules: strict: 12.4% (39/314) at 0/117 false positives (0.0%); lenient: 50.0% (157/314) at 17/117 false positives (14.5%). Not used for the Trust score; post-freeze; cross-validated on the same data the rules were frozen against, not a fresh held-out test. Details: [benchmark/ML_COMBINER.md](benchmark/ML_COMBINER.md).
+
+**Compared with GuardDog** (external reference, not a fair contest): GuardDog 3.2.0 at its default high_risk label: recall 71.2% (223/313; 95% CI 66.0%-76.0%) with 3/117 random known-good packages flagged; at 0/117 false positives its recall is 1.6% (5/313; 95% CI 0.7%-3.7%), against our strict rules' 12.4% (39/314). Hard false positives on random known-good packages: GuardDog labelled 3 of 117 high_risk; 3 of them (aws-lambda-powertools 3.39.0 (PyPI), pypdfium2 5.15.1 (PyPI), typer 0.28.0 (PyPI)) got no high-risk finding from our detectors, whose strict false positives were 0/117. GuardDog's rules were developed and evaluated by DataDog on the same malicious-packages dataset our known-bad samples come from, so its recall here is likely inflated; this is a reference point, not a fair contest. Details: the app's "Compared with GuardDog" page and `benchmark/results/run2/guarddog_*.csv`.
+
 **Run 2 is the headline; run 1 is superseded.** In run 1, Windows Defender had removed extracted `.sample` files
 of known-bad DataDog items (136 files in 122 items, measured by `benchmark/verify_samples.py`), so run-1 known-bad recall
 was biased downward: 7.1% strict (22/310) and 40.3% lenient (125/310). Run 2 rescanned the same items with the same

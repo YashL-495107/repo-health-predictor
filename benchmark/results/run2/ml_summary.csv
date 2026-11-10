@@ -1,0 +1,9 @@
+feature_set,model,headline,trusted,note,n_features,n_pos,n_neg,auc,auc_ci_low,auc_ci_high,auc_repeat_min,auc_repeat_max,repeats,folds
+A_strict,logistic_regression,yes,yes,detector/capability features without source indicators (headline),22,314,117,0.745590,0.693148,0.794906,0.752082,0.766237,5,5
+A_strict,random_forest,no,yes,detector/capability features without source indicators (headline),22,314,117,0.823085,0.782454,0.862489,0.825698,0.839866,5,5
+A,logistic_regression,no,yes,detector/capability features,34,314,117,0.760725,0.710556,0.809416,0.765815,0.780745,5,5
+A,random_forest,no,yes,detector/capability features,34,314,117,0.829495,0.786756,0.869085,0.831442,0.848889,5,5
+B,logistic_regression,no,yes,A + install hook + inflated version,36,314,117,0.820309,0.773993,0.863681,0.822010,0.833116,5,5
+B,random_forest,no,yes,A + install hook + inflated version,36,314,117,0.874313,0.839238,0.908123,0.871740,0.891883,5,5
+C,logistic_regression,no,no: dataset bias,"B + size, file count, artifact kind, ecosystem: not trusted (dataset bias)",44,314,117,0.999156,0.997060,1.000000,0.999183,0.999292,5,5
+C,random_forest,no,no: dataset bias,"B + size, file count, artifact kind, ecosystem: not trusted (dataset bias)",44,314,117,0.999347,0.997754,1.000000,0.998911,0.999401,5,5
