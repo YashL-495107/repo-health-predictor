@@ -27,7 +27,7 @@ from pathlib import PurePosixPath
 
 import releases
 
-AREAS = ("Install hooks", "Credential/env access", "Network exfiltration", "Network use", "Process spawn",
+AREAS = ("Install hooks", "Credential/env access", "Network activity (possible exfiltration)", "Network use", "Process spawn",
          "Decoding/obfuscation", "Filesystem persistence", "Dependencies", "Minified / obfuscated files")
 RISK_AREAS = set(AREAS)            # an ADDED row in any of these areas is risk-relevant
 PAGE_LABEL = "Added after the freeze; not part of the benchmark; unvalidated."
@@ -113,7 +113,7 @@ def evidence(release: dict, name: str) -> dict:
     for p in caps["network"]:
         areas["Network use"][p] = f"{p}: imports or calls a network API"
     for k, v in caps["hook_network"].items():
-        areas["Network exfiltration"][k] = f"{k}: {v}"
+        areas["Network activity (possible exfiltration)"][k] = f"{k}: {v}"
     for p in caps["process"]:
         areas["Process spawn"][p] = f"{p}: starts processes"
     for k, v in caps["decoded"].items():
@@ -121,8 +121,8 @@ def evidence(release: dict, name: str) -> dict:
     data = _bench_data_from_contents()(contents)
     beh = scan_behavior(data, name, lambda f, ln: None)["findings"]
     out["behavior"] = beh
-    cat_area = {"Credential access": "Credential/env access", "Network": "Network exfiltration",
-                "Remote shell": "Network exfiltration", "Persistence": "Filesystem persistence",
+    cat_area = {"Credential access": "Credential/env access", "Network": "Network activity (possible exfiltration)",
+                "Remote shell": "Network activity (possible exfiltration)", "Persistence": "Filesystem persistence",
                 "Obfuscation": "Decoding/obfuscation", "Install-time execution": "Install hooks"}
     for f in beh:
         a = cat_area.get(f.get("cat"))

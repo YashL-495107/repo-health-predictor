@@ -107,7 +107,7 @@ def test_new_postinstall_hook_and_new_dependency_are_flagged():
     assert "first published 3 days before this release (very new: under 30 days)" in dep["evidence"]
     assert rows[("Dependencies", "left-pad")]["change"] == "unchanged"
     assert rows[("Credential/env access", "install.js")]["change"] == "added"
-    assert rows[("Network exfiltration", "install.js")]["change"] == "added"
+    assert rows[("Network activity (possible exfiltration)", "install.js")]["change"] == "added"
     assert rows[("Publisher", "1.0.0 -> 1.1.0")]["change"] == "changed"
     gap = rows[("Release gap (dormancy)", "1.1.0")]
     assert gap["long_gap"] and "1.1.0: 579 days after 1.0.0" in gap["evidence"] and "1.0.0: 59 days after 0.9.0" in gap["evidence"]
@@ -119,7 +119,7 @@ def test_new_postinstall_hook_and_new_dependency_are_flagged():
     assert dom["evidence"].startswith("could not check") and "takeover-risk indicator, not proof" in dom["evidence"]
     assert "@" not in json.dumps(res["rows"])                                      # never an address
     stages = {c["stage"]: c["lit"] for c in KC.killchain(res["killchain_findings"])}
-    assert stages == {"Install-time execution": True, "Credential/env access": True, "Network exfiltration": True,
+    assert stages == {"Install-time execution": True, "Credential/env access": True, "Network activity (possible exfiltration)": True,
                       "Persistence": False, "Obfuscation": False}
     assert "trust_score" not in json.dumps(res).lower()                            # no Trust score on this page
 
@@ -175,18 +175,19 @@ def test_publisher_identity_appearing_is_not_a_change():
 # ------------------------------------------------------------------ kill chain (fixed table)
 
 def test_killchain_mapping_table():
-    assert KC.STAGES == ("Install-time execution", "Credential/env access", "Network exfiltration", "Persistence", "Obfuscation")
+    assert KC.STAGES == ("Install-time execution", "Credential/env access", "Network activity (possible exfiltration)", "Persistence", "Obfuscation")
+    assert "Network exfiltration" not in KC.STAGES and "Network exfiltration" not in U.AREAS   # renamed (wording)
     cases = [
         ({"source": "Behavior", "cat": "Credential access", "rule": "Credential access: reads credential files", "sev": "Medium"},
          ["Credential/env access"]),
-        ({"source": "Behavior", "cat": "Network", "rule": "Network: exfil-style endpoint", "sev": "Medium"}, ["Network exfiltration"]),
+        ({"source": "Behavior", "cat": "Network", "rule": "Network: exfil-style endpoint", "sev": "Medium"}, ["Network activity (possible exfiltration)"]),
         ({"source": "Behavior pattern", "cat": "Pattern", "rule": "Credential-stealer pattern", "sev": "High"},
-         ["Credential/env access", "Network exfiltration"]),
+         ["Credential/env access", "Network activity (possible exfiltration)"]),
         ({"source": "Behavior", "cat": "Persistence", "rule": "Persistence: installs itself to run later", "sev": "Medium"}, ["Persistence"]),
         ({"source": "Behavior pattern", "cat": "Pattern", "rule": "Hidden persistence payload", "sev": "High"}, ["Persistence", "Obfuscation"]),
         ({"source": "Layer 1: AST De-obfuscator", "rule": "decode then exec", "sev": "High"}, ["Obfuscation"]),
         ({"source": "Layer 2: Static setup.py Check", "rule": "setup.py runs a command", "sev": "High"}, ["Install-time execution"]),
-        ({"detector": "credential_exfiltration", "tier": "high_risk", "rule": "x"}, ["Credential/env access", "Network exfiltration"]),
+        ({"detector": "credential_exfiltration", "tier": "high_risk", "rule": "x"}, ["Credential/env access", "Network activity (possible exfiltration)"]),
         ({"detector": "decoded_payload", "tier": "review", "rule": "x"}, ["Obfuscation"]),
         ({"detector": "setup_py_hook", "tier": "review", "rule": "x"}, ["Install-time execution"]),
         ({"area": "Install hooks", "item": "npm postinstall", "change": "added"}, ["Install-time execution"]),

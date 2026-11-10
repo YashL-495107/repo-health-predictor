@@ -1,6 +1,6 @@
 """Kill-chain strip (visual only): which attack stages EXISTING findings point at. No new detection, no scoring.
 
-Stages, in order: Install-time execution -> Credential/env access -> Network exfiltration -> Persistence ->
+Stages, in order: Install-time execution -> Credential/env access -> Network activity (possible exfiltration) -> Persistence ->
 Obfuscation. A stage is lit only when at least one finding maps to it through the fixed table MAP below; the
 findings that lit it are listed on hover. Findings at info / Low level are ignored (they are notes, not indicators).
 
@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import html
 
-STAGES = ("Install-time execution", "Credential/env access", "Network exfiltration", "Persistence", "Obfuscation")
+STAGES = ("Install-time execution", "Credential/env access", "Network activity (possible exfiltration)", "Persistence", "Obfuscation")
 
 # (stage, field, value): a finding maps to the stage when finding[field] == value. "rule_prefix" matches the start of
 # finding["rule"]. Fixed table, tested in tests/test_killchain.py.
@@ -27,13 +27,13 @@ MAP = (
     ("Credential/env access", "rule_prefix", "Credential-stealer pattern"),
     ("Credential/env access", "rule_prefix", "Credential access:"),
     ("Credential/env access", "area", "Credential/env access"),
-    ("Network exfiltration", "cat", "Network"),
-    ("Network exfiltration", "cat", "Remote shell"),
-    ("Network exfiltration", "detector", "credential_exfiltration"),
-    ("Network exfiltration", "rule_prefix", "Credential-stealer pattern"),
-    ("Network exfiltration", "rule_prefix", "Network:"),
-    ("Network exfiltration", "rule_prefix", "Backdoor / reverse shell"),
-    ("Network exfiltration", "area", "Network exfiltration"),
+    ("Network activity (possible exfiltration)", "cat", "Network"),
+    ("Network activity (possible exfiltration)", "cat", "Remote shell"),
+    ("Network activity (possible exfiltration)", "detector", "credential_exfiltration"),
+    ("Network activity (possible exfiltration)", "rule_prefix", "Credential-stealer pattern"),
+    ("Network activity (possible exfiltration)", "rule_prefix", "Network:"),
+    ("Network activity (possible exfiltration)", "rule_prefix", "Backdoor / reverse shell"),
+    ("Network activity (possible exfiltration)", "area", "Network activity (possible exfiltration)"),
     ("Persistence", "cat", "Persistence"),
     ("Persistence", "rule_prefix", "Persistence:"),
     ("Persistence", "rule_prefix", "Hidden persistence payload"),
