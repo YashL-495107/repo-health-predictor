@@ -115,6 +115,65 @@ def check_frozen(split: str, readme: Path = BENCH / "README.md") -> str:
     return recorded or ""
 
 
+# Fresh held-out set (PREREG_v2.md): the rulesets allowed to score it, each with the git tag its ruleset files must
+# match byte-for-byte (after git's own line-ending normalisation). Ruleset files = every tracked .py file at the
+# repository root and in detectors/ (the scanning code; benchmark/, tests/, scripts/ and pages/ are not ruleset files).
+FRESH_RULESETS = {"2026.11.08-12": "ruleset-2026.11.08-12-frozen", "2026.11.10-v2": "ruleset-2026.11.10-v2-frozen"}
+RULESET_FILE_RE = re.compile(r"^(?:[^/]+|detectors/[^/]+)\.py$")
+
+
+def _git(*args: str, data: str | None = None) -> str:
+    import subprocess
+    try:
+        r = subprocess.run(["git", "-C", str(ROOT), "-c", "core.quotepath=off", *args], capture_output=True, text=True,
+                           input=data, timeout=120)
+    except (OSError, subprocess.SubprocessError) as e:
+        raise GuardError(f"REFUSING TO RUN the fresh split: git is needed to verify the ruleset files ({e})")
+    if r.returncode != 0:
+        raise GuardError(f"REFUSING TO RUN the fresh split: git {' '.join(args[:2])} failed: {r.stderr.strip()[:300]}")
+    return r.stdout
+
+
+def verify_ruleset_tag(tag: str) -> dict:
+    """Every ruleset file of `tag` must exist here with the same git blob id (git hash-object, which applies the same
+    line-ending conversion as checkout), and no extra tracked or untracked ruleset file may exist. Returns a record."""
+    tag_files = {}
+    for line in _git("ls-tree", "-r", tag).splitlines():
+        meta, _, path = line.partition("\t")
+        if RULESET_FILE_RE.match(path):
+            tag_files[path] = meta.split()[2]
+    if not tag_files:
+        raise GuardError(f"REFUSING TO RUN the fresh split: tag {tag} not found or has no ruleset files "
+                         f"(run: git fetch origin tag {tag})")
+    paths = sorted(tag_files)
+    missing = [p for p in paths if not (ROOT / p).is_file()]
+    if missing:
+        raise GuardError(f"REFUSING TO RUN the fresh split: ruleset file(s) of {tag} missing here: {missing[:5]}")
+    work = _git("hash-object", "--stdin-paths", data="\n".join(paths) + "\n").split()
+    differ = [p for p, b in zip(paths, work) if b != tag_files[p]]
+    here = [p for p in _git("ls-files", "--cached", "--others", "--exclude-standard").splitlines() if RULESET_FILE_RE.match(p)]
+    extra = sorted(set(here) - set(paths))
+    if differ or extra:
+        raise GuardError(f"REFUSING TO RUN the fresh split: ruleset files differ from {tag}: changed {differ[:5]}, "
+                         f"not in the tag {extra[:5]}")
+    digest = hashlib.sha256("".join(f"{p} {tag_files[p]}\n" for p in paths).encode()).hexdigest()
+    return {"tag": tag, "tag_commit": _git("rev-list", "-n", "1", tag).strip(), "files": len(paths),
+            "files_sha256": digest, "verified": True}
+
+
+def check_fresh(prereg: Path = BENCH / "PREREG_v2.md") -> dict:
+    """The fresh split may only run with a pre-registered, frozen ruleset whose files match its tag."""
+    from detectors import version as V
+    if not prereg.exists():
+        raise GuardError("REFUSING TO RUN the fresh split: benchmark/PREREG_v2.md is missing")
+    tag = FRESH_RULESETS.get(V.RULESET_VERSION)
+    if not tag or f"`{V.RULESET_VERSION}`" not in prereg.read_text(encoding="utf-8"):
+        raise GuardError(f"REFUSING TO RUN the fresh split: ruleset {V.RULESET_VERSION} is not pre-registered for it")
+    if not getattr(V, "RULESET_FROZEN", False):
+        raise GuardError("REFUSING TO RUN the fresh split: RULESET_FROZEN is not set in detectors/version.py")
+    return verify_ruleset_tag(tag)
+
+
 def contamination(path: Path | None = None) -> str:
     """'not contaminated' unless benchmark/CHANGELOG.md has an entry under 'Post-viewing changes'. Pre-run changes
     (made before any test-split scan) do not contaminate the test set."""
@@ -839,7 +898,7 @@ def append(path: Path, rec: dict) -> None:
 def parse_args(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--mode", choices=("artifact", "repo"), default="artifact")
-    ap.add_argument("--split", choices=("dev", "test", "replay", "all"), default="dev")
+    ap.add_argument("--split", choices=("dev", "test", "replay", "fresh", "all"), default="dev")
     ap.add_argument("--category", action="append", choices=bench_items.CATEGORIES,
                     help="restrict to a category (repeatable)")
     ap.add_argument("--debug-slice", action="store_true", help="only the harness-debug slice (dev items)")
@@ -875,6 +934,7 @@ def main(argv=None) -> int:
         assert_ai_off()
         envinfo = setup_env(args)
         recorded = check_frozen(args.split)
+        ruleset_check = check_fresh() if args.split == "fresh" else None
         items, moves = bench_items.all_items()       # refuses without dev_credibility.csv
     except GuardError as e:
         print(str(e), file=sys.stderr)
@@ -885,6 +945,8 @@ def main(argv=None) -> int:
                "virustotal": args.virustotal, "ruleset_version": RULESET_VERSION, "protocol_ruleset": recorded,
                "snapshot": os.environ["REPOHEALTH_SNAPSHOT"], "seed": args.seed, "offline": args.offline,
                "contamination": contamination(), "ai_layer": "off"}
+    if ruleset_check:
+        run_cfg["ruleset_check"] = ruleset_check
     done, old_cfg = load_done(out, args.retry_errors)
     if old_cfg:
         keys = ("mode", "osv", "fragility_escalation", "ruleset_version", "virustotal")
@@ -902,6 +964,9 @@ def main(argv=None) -> int:
     print(f"ruleset {RULESET_VERSION} | snapshot {run_cfg['snapshot']} | seed {args.seed} | mode {args.mode} | "
           f"split {args.split} | OSV {'on' if args.osv else 'OFF (ablation)'} | fragility escalation "
           f"{'on' if args.fragility_escalation else 'OFF (ablation)'} | AI layer off | test set {run_cfg['contamination']}")
+    if ruleset_check:
+        print(f"ruleset files verified against tag {ruleset_check['tag']} ({ruleset_check['tag_commit'][:12]}): "
+              f"{ruleset_check['files']} files, sha256 {ruleset_check['files_sha256'][:16]}")
     print(f"dev-set overlap moves: {len(moves)} | output {out}")
     print(f"{len(done)} item(s) already done, {len(todo)} to scan now (of {len(todo_all)} selected)")
     osv_index = OsvIndex(args.offline)

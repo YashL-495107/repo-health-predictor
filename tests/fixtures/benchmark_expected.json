@@ -31,6 +31,10 @@
     "not_assessed",
     "unknown"
    ],
+   "install_hook_target": [
+    "not_applicable",
+    "unknown"
+   ],
    "lookalike_name": [
     "ran",
     "none_found"
@@ -124,6 +128,10 @@
    ],
    "dependency_injection": [
     "not_assessed",
+    "unknown"
+   ],
+   "install_hook_target": [
+    "not_applicable",
     "unknown"
    ],
    "lookalike_name": [
@@ -221,6 +229,10 @@
     "ran",
     "none_found"
    ],
+   "install_hook_target": [
+    "not_applicable",
+    "unknown"
+   ],
    "lookalike_name": [
     "ran",
     "none_found"
@@ -316,6 +328,10 @@
     "ran",
     "none_found"
    ],
+   "install_hook_target": [
+    "not_applicable",
+    "unknown"
+   ],
    "lookalike_name": [
     "ran",
     "none_found"
@@ -410,6 +426,10 @@
    "dependency_injection": [
     "ran",
     "none_found"
+   ],
+   "install_hook_target": [
+    "not_applicable",
+    "unknown"
    ],
    "lookalike_name": [
     "ran",

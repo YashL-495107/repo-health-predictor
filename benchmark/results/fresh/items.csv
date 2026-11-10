@@ -1,0 +1,419 @@
+id,category,ecosystem,bucket,near_duplicate,near_duplicate_rules,v1_status,v2_status,v1_strict,v1_lenient,v2_strict,v2_lenient,v1_label,v2_label,v2_detectors_strict
+DD-PyPI-0wneg-0.9.0-3a0c792c,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-PyPI-adandv-912.6-f05a8cb0,known_bad,PyPI,PyPI setup.py,yes,file;host;named,scored,scored,False,False,True,True,No findings (Partial assessment),High-risk patterns: review before use (Partial assessment),setup_py_hook
+DD-PyPI-advpruebitaa9-1.0.0-7e7b920f,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-aeodatav04-0.4-7b83631b,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-ailynitro-1.0-03de2490,known_bad,PyPI,PyPI setup.py,no,,scored,scored,True,True,True,True,High-risk patterns: review before use (Partial assessment),High-risk patterns: review before use (Partial assessment),behavior_patterns + setup_py_hook
+DD-PyPI-aiogram-sever-patch-3.3.8-7b535200,known_bad,PyPI,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-PyPI-androidspyeye-2.5-e1e3f6e7,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-PyPI-artifact-lab-3-package-0.1.2-f2cfd34b,known_bad,PyPI,PyPI setup.py,no,,scored,scored,True,True,True,True,High-risk patterns: review before use (Partial assessment),High-risk patterns: review before use (Partial assessment),behavior_patterns + credential_exfiltration + setup_py_hook
+DD-PyPI-artifact-lab-3-package-b1ec2b9f-0.1.1-5f6d3abb,known_bad,PyPI,other,no,,scored,scored,True,True,True,True,High-risk patterns: review before use (Partial assessment),High-risk patterns: review before use (Partial assessment),credential_exfiltration
+DD-PyPI-atlasctf-21-prod-15-99.99.99-f1d4e30f,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-atlasctf-21-prod-16-99.99.99.1-defac4f0,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,True,True,Review recommended (Partial assessment),High-risk patterns: review before use (Partial assessment),setup_py_hook
+DD-PyPI-atlasctf-21-prod-29-99.99.99-6e45ada9,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-atlassian-exp-99.0.0-c834b618,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,False,True,True,No findings (Partial assessment),High-risk patterns: review before use (Partial assessment),setup_py_hook
+DD-PyPI-automsg-0.0.1-04c22953,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-PyPI-boogipoper-0.1.0-50f89485,known_bad,PyPI,PyPI setup.py,no,,scored,scored,True,True,True,True,High-risk patterns: review before use (Partial assessment),High-risk patterns: review before use (Partial assessment),behavior_patterns
+DD-PyPI-byted-rtc-robot-api-v2-0.0.45.15-27f7d37d,known_bad,PyPI,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-PyPI-bytedplus-99.7-fef8df48,known_bad,PyPI,PyPI setup.py,yes,host;named,scored,scored,False,False,True,True,No findings (Partial assessment),High-risk patterns: review before use (Partial assessment),setup_py_hook
+DD-PyPI-bytedsp-912.6-675364dd,known_bad,PyPI,PyPI setup.py,yes,host;named,scored,scored,False,False,True,True,No findings (Partial assessment),High-risk patterns: review before use (Partial assessment),setup_py_hook
+DD-PyPI-bytekafka-0-0-15-98.7-f2d82ef6,known_bad,PyPI,other,yes,host,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-PyPI-captcha-py-1.0-5297fc35,known_bad,PyPI,PyPI setup.py,no,,scored,scored,True,True,True,True,High-risk patterns: review before use (Partial assessment),High-risk patterns: review before use (Partial assessment),behavior_patterns + setup_py_hook
+DD-PyPI-colimer-1.0-24bb93a3,known_bad,PyPI,PyPI setup.py,no,,scored,scored,True,True,True,True,High-risk patterns: review before use (Partial assessment),High-risk patterns: review before use (Partial assessment),behavior_patterns + setup_py_hook
+DD-PyPI-colorating-1.0.0-efca45f6,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-colotama-0.4.8-d6d86589,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-definitely-not-requests-2.28.2-4310083d,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-dfdfdfdfhhh-1.0.3-bb50c9d6,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-distpro-92.6-f38d89d0,known_bad,PyPI,PyPI setup.py,yes,file;host;named,scored,scored,False,False,True,True,No findings (Partial assessment),High-risk patterns: review before use (Partial assessment),setup_py_hook
+DD-PyPI-donotdownload-0.0.0-d6e88167,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-dpndncyconfusion-0.1-ec1e220d,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-easyrequests-1.0.0-ded40595,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-embiggen-0.11.97-87b39944,known_bad,PyPI,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-PyPI-esqccpongcpu-1.16-df9e31a9,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-esqinfostrosint-9.73-80a263c0,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-esqinfovirtualgame-3.2-fd3ba2c5,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-esqproofosintkill-3.22-22fe320c,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-esqproofpostpull-10.60-ec47d11b,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-faiss-gp-1.0.2-dea7c340,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,True,True,Review recommended (Partial assessment),High-risk patterns: review before use (Partial assessment),setup_py_hook
+DD-PyPI-fasdghjkhjafsd-0.0.1-2171945f,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-feddecor-94.6-3c3511a7,known_bad,PyPI,PyPI setup.py,yes,file;host;named,scored,scored,False,False,True,True,No findings (Partial assessment),High-risk patterns: review before use (Partial assessment),setup_py_hook
+DD-PyPI-flaask-0.0.3-2be0e1d9,known_bad,PyPI,other,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-fluiddaddy-1.0-f8f0cf1d,known_bad,PyPI,PyPI setup.py,yes,host,scored,scored,False,False,True,True,No findings (Partial assessment),High-risk patterns: review before use (Partial assessment),setup_py_hook
+DD-PyPI-formatter-test-package-0.1.0-207c5b78,known_bad,PyPI,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-PyPI-genz-translator-9026.0.1-757f69dc,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-groq-mcp-9.9.9-6e575487,known_bad,PyPI,other,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-guardrails-ai-0.10.1-72dfc42a,known_bad,PyPI,other,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-gym-reschdule-combination-93.6-97b7fe9c,known_bad,PyPI,PyPI setup.py,yes,file;host;named,scored,scored,False,False,True,True,No findings (Partial assessment),High-risk patterns: review before use (Partial assessment),setup_py_hook
+DD-PyPI-hooktest1-0.1.1-93eebc6d,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-PyPI-hooktest3-0.1.1-0785183f,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-http3-client-1.0.0-74611282,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-PyPI-imad213-0.1.0-c4eb1ffd,known_bad,PyPI,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-PyPI-keystackutilities-99.99.4-c7e8dc56,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,False,True,True,No findings (Partial assessment),High-risk patterns: review before use (Partial assessment),setup_py_hook
+DD-PyPI-lala6992-0.3.0-ab1504ed,known_bad,PyPI,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-PyPI-libgetrandram-7.78-96a068bc,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-libhackedloadtool-8.54-5c7f84bd,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-libhttppostpost-10.70-d7e8bd28,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-libidee-0.1-e7569b68,known_bad,PyPI,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-PyPI-libkilledgame-4.61-4274bc7f,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-liblibpostcc-2.61-4ea48f30,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-libloadhackedpyw-8.65-178cb1aa,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-liblxml3-0.2-77849fd3,known_bad,PyPI,PyPI setup.py,yes,file;host;named,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-PyPI-libpiposintmc-4.71-920d6d28,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-libpywvisavirtual-2.26-acc0b4d0,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-libvirtualreplacepyw-9.34-109b49fe,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-matplotlib-requests-16.12.4-365af908,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-mlc-llm-nightly-99.99.99-3c3e356b,known_bad,PyPI,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-PyPI-morecolor-5-71bcd89c,known_bad,PyPI,PyPI setup.py,no,,scored,scored,True,True,True,True,High-risk patterns: review before use (Partial assessment),High-risk patterns: review before use (Partial assessment),credential_exfiltration
+DD-PyPI-musl-dev-1.0.0-c5a47207,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,True,True,Review recommended (Partial assessment),High-risk patterns: review before use (Partial assessment),setup_py_hook
+DD-PyPI-my-fun-tools-0.1.1-c744e3c1,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-panderequests-0.1-1520be5c,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-PyPI-pandirequests-0.1-0ce2229b,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-PyPI-papara-1.0-2220bb56,known_bad,PyPI,PyPI setup.py,no,,scored,scored,True,True,True,True,High-risk patterns: review before use (Partial assessment),High-risk patterns: review before use (Partial assessment),behavior_patterns + setup_py_hook
+DD-PyPI-pip-rce-0.0.4-2f886205,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,True,True,Review recommended (Partial assessment),High-risk patterns: review before use (Partial assessment),setup_py_hook
+DD-PyPI-ppkt2synergy-0.1.1-70d92cf2,known_bad,PyPI,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-PyPI-print-django-3.9.10-9e474c3a,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-prolificdreamer-9.6-9da651ae,known_bad,PyPI,PyPI setup.py,yes,host,scored,scored,False,False,True,True,No findings (Partial assessment),High-risk patterns: review before use (Partial assessment),setup_py_hook
+DD-PyPI-pxz-1.1.14-e0fa1da6,known_bad,PyPI,other,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-py-hydracontrolget-9.17-f68b23cf,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-py-hydrasupernvidia-3.77-bbc6053f,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-py-paypalinfopip-1.81-2739b61e,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-py-paypalpongosint-10.27-603d2ef5,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-py-pushpingload-3.47-6fd147fe,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-pyadd-0.1.0-0e35e084,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-PyPI-pycolorlib3-0.0.5-ef83219b,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-pycolorstrex-1.0-6a7c5cdc,known_bad,PyPI,PyPI setup.py,yes,host,scored,scored,False,False,True,True,No findings (Partial assessment),High-risk patterns: review before use (Partial assessment),setup_py_hook
+DD-PyPI-pycolorz-0.0.7-9a613c6f,known_bad,PyPI,PyPI setup.py,yes,host,scored,scored,False,False,True,True,No findings (Partial assessment),High-risk patterns: review before use (Partial assessment),setup_py_hook
+DD-PyPI-pycordapi-0.1-3ab39b8f,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-pycryptexe-1.0.8-e63477b9,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-pydantics-1.0.0-d4a6327f,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-pydefender-1.0.0-3712df7e,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-PyPI-pylint-beautifulsoup-17.10.12-1bc12324,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-pysisphus-912.6-398eddf7,known_bad,PyPI,PyPI setup.py,yes,host;named,scored,scored,False,False,True,True,No findings (Partial assessment),High-risk patterns: review before use (Partial assessment),setup_py_hook
+DD-PyPI-python-ledgercommon-1.56.6-f95d883e,known_bad,PyPI,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-PyPI-pytoileur-1.0.1-73ec7c9c,known_bad,PyPI,PyPI setup.py,no,,scored,scored,True,True,True,True,High-risk patterns: review before use (Partial assessment),High-risk patterns: review before use (Partial assessment),decoded_payload
+DD-PyPI-pyyal-94.6-894bfb39,known_bad,PyPI,PyPI setup.py,yes,file;host;named,scored,scored,False,True,True,True,Review recommended (Partial assessment),High-risk patterns: review before use (Partial assessment),setup_py_hook
+DD-PyPI-qaqaqazzz-1.5-8145f66c,known_bad,PyPI,PyPI setup.py,no,,scored,scored,True,True,True,True,High-risk patterns: review before use (Partial assessment),High-risk patterns: review before use (Partial assessment),setup_py_hook
+DD-PyPI-quick-telegram-sender-0.7-836cfa07,known_bad,PyPI,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-PyPI-random-security-test-pkg-1.1.3-e9460043,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-PyPI-req-flask-2.9.4-5604968a,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-requ-sts-0.1.0-4fa34375,known_bad,PyPI,PyPI setup.py,no,,scored,scored,True,True,True,True,High-risk patterns: review before use (Partial assessment),High-risk patterns: review before use (Partial assessment),decoded_payload
+DD-PyPI-requestn-8.0-4169480e,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-requests-flask-16.9.16-d8ed8b34,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-reverseshell-0.0.5-673aa702,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-s3transfer-sl-0.12.2-577f5524,known_bad,PyPI,PyPI setup.py,no,,scored,scored,True,True,True,True,High-risk patterns: review before use (Partial assessment),High-risk patterns: review before use (Partial assessment),behavior_patterns + credential_exfiltration + setup_py_hook
+DD-PyPI-selenium-matplotlib-17.9.4-cfb16873,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-selfcandystudystudy-9.14-31ed57f9,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-selfencodemaskpong-9.37-07007ffd,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-selflgtbcontrolpyw-3.27-25e744f3,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-selfloadcvencode-9.93-3083ad34,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-selfnvidiaccpong-5.3-229a024a,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-selfosintlgtbstr-5.1-37837b1a,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-selfpaypalcontrolsuper-5.71-84cf457a,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-selfpywkillgui-4.33-07719e89,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-selfrandloadcv-9.47-b756f9d1,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-selfreplaceencodepush-4.93-3d98ce93,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-selfstudytoolrandom-5.12-bda731ce,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-shermed-1.0-0cfe6297,known_bad,PyPI,PyPI setup.py,no,,scored,scored,True,True,True,True,High-risk patterns: review before use (Partial assessment),High-risk patterns: review before use (Partial assessment),behavior_patterns + setup_py_hook
+DD-PyPI-shiva123456-23.99.0-469a1b76,known_bad,PyPI,PyPI setup.py,no,,scored,scored,True,True,True,True,High-risk patterns: review before use (Partial assessment),High-risk patterns: review before use (Partial assessment),setup_py_hook
+DD-PyPI-shoots-bynet-0.1.1-cd0e36a1,known_bad,PyPI,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-PyPI-sklearns-0.3-944d1eb1,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,True,True,Review recommended (Partial assessment),High-risk patterns: review before use (Partial assessment),setup_py_hook
+DD-PyPI-spellcheckers-1.0.0-9b3a32a5,known_bad,PyPI,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-PyPI-startup-entrypoints-4.0-26a6baac,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,True,True,Review recommended (Partial assessment),High-risk patterns: review before use (Partial assessment),setup_py_hook
+DD-PyPI-support-hub-0.8-870c2659,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-PyPI-suyo-1.4.2-85978a84,known_bad,PyPI,other,no,,scored,scored,True,True,True,True,High-risk patterns: review before use (Partial assessment),High-risk patterns: review before use (Partial assessment),behavior_patterns
+DD-PyPI-synapse-sso-proconnect-0.0.3-1fe8bb67,known_bad,PyPI,other,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-sysargvsox-1.1.1-c525f4bd,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-taya-2.0-7c3f4142,known_bad,PyPI,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-PyPI-tdwtauthauthentication-1.0.8-3ec31386,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-PyPI-test-poc-package-for-session-0.0.1-655c0569,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-PyPI-testerpackage123-0.1-2d653185,known_bad,PyPI,other,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-thisismytest-5.0.0-497ce68c,known_bad,PyPI,PyPI setup.py,no,,scored,scored,True,True,True,True,High-risk patterns: review before use (Partial assessment),High-risk patterns: review before use (Partial assessment),setup_py_hook
+DD-PyPI-thisismytest123-2.0.0-fcca759e,known_bad,PyPI,PyPI setup.py,no,,scored,scored,True,True,True,True,High-risk patterns: review before use (Partial assessment),High-risk patterns: review before use (Partial assessment),setup_py_hook
+DD-PyPI-tiketoken-99.7-651c4db7,known_bad,PyPI,PyPI setup.py,yes,host;named,scored,scored,False,False,True,True,No findings (Partial assessment),High-risk patterns: review before use (Partial assessment),setup_py_hook
+DD-PyPI-tinyad1-1.0.0-6e5cd117,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-tktoken-99.7-60fc9c6a,known_bad,PyPI,PyPI setup.py,yes,host;named,scored,scored,False,False,True,True,No findings (Partial assessment),High-risk patterns: review before use (Partial assessment),setup_py_hook
+DD-PyPI-torchs-visions-94.6-6dfadaa3,known_bad,PyPI,PyPI setup.py,yes,file;host;named,scored,scored,False,False,True,True,No findings (Partial assessment),High-risk patterns: review before use (Partial assessment),setup_py_hook
+DD-PyPI-tppeppingram-6.37-55ec3938,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-tppushmaskpull-4.22-8e034315,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-tppyrandomed-4.33-69a02dde,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-tpramtoolpong-10.48-85139e47,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-tprandstringpep-6.33-1a52a87f,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-tryconf-0.1-e643e9be,known_bad,PyPI,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-PyPI-tucan-x-0.0.1-134957f3,known_bad,PyPI,PyPI setup.py,no,,scored,scored,True,True,True,True,High-risk patterns: review before use (Partial assessment),High-risk patterns: review before use (Partial assessment),setup_py_hook
+DD-PyPI-vcdiff-py-2.1.0-69926174,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-PyPI-veriftest1asdlaa-1-5d9df8a4,known_bad,PyPI,PyPI setup.py,no,,scored,scored,True,True,True,True,High-risk patterns: review before use (Partial assessment),High-risk patterns: review before use (Partial assessment),setup_py_hook
+DD-PyPI-vermillion-0.4-3f9d5eff,known_bad,PyPI,PyPI setup.py,yes,host,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-virus-muerto-1.0.0-e6d411a7,known_bad,PyPI,PyPI setup.py,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-vtk-osmesa-900.548.736-f74738c8,known_bad,PyPI,PyPI setup.py,no,,scored,scored,True,True,True,True,High-risk patterns: review before use (Partial assessment),High-risk patterns: review before use (Partial assessment),setup_py_hook
+DD-PyPI-xolojgmnizxche-0.0.0-1990b21c,known_bad,PyPI,other,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-PyPI-xxxsss-0.1.0-1693e6f2,known_bad,PyPI,PyPI setup.py,no,,scored,scored,True,True,True,True,High-risk patterns: review before use (Partial assessment),High-risk patterns: review before use (Partial assessment),behavior_patterns
+DD-npm-000webhost-auth-999.9.9-0137da7c,known_bad,npm,npm install hook,no,,scored,scored,False,False,True,True,No findings (Partial assessment),High-risk patterns: review before use (Partial assessment),install_hook_target
+DD-npm-@42ailab@42plugin-darwin-arm64-0.3.8-ba7d746c,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-@42ailab@42plugin-linux-x64-0.4.21-4fc56760,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-@42ailab@42plugin-win32-x64-0.2.26-7793dc01,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-@afg-ikea@ikea-kiosk-related-components-99.9.9-073b8872,known_bad,npm,npm install hook,no,,scored,scored,True,True,True,True,High-risk patterns: review before use (Partial assessment),High-risk patterns: review before use (Partial assessment),behavior_patterns
+DD-npm-@antv@l7-component-2.27.10-a04cb489,known_bad,npm,npm install hook,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-@antv@li-aiearth-assets-0.6.7-55a713a4,known_bad,npm,npm install hook,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-@cap-js@db-service-2.10.1-893729fb,known_bad,npm,npm install hook,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-@chat-components@common-0.0.2-0681b509,known_bad,npm,npm install hook,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-@chatbot-builder@core-10.1.2-f311eaca,known_bad,npm,npm install hook,no,,scored,scored,False,False,True,True,No findings (Partial assessment),High-risk patterns: review before use (Partial assessment),install_hook_target
+DD-npm-@cheqplease@structured-logger-2.2.10-33ccef18,known_bad,npm,npm install hook,no,,scored,scored,True,True,True,True,High-risk patterns: review before use (Partial assessment),High-risk patterns: review before use (Partial assessment),behavior_patterns + install_hook_target
+DD-npm-@cloudplatform-single-spa@svp-agent-backup-99.99.99-13205620,known_bad,npm,npm install hook,no,,scored,scored,False,False,True,True,No findings (Partial assessment),High-risk patterns: review before use (Partial assessment),install_hook_target
+DD-npm-@codexed@codex-0.121.0-codexed.4-693baa2c,known_bad,npm,npm install hook,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-@ctrl@ngx-codemirror-7.0.2-6c0ae590,known_bad,npm,npm install hook,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-@douinfe@create-semi-d2c-plugin-89.3.5-8547fa7a,known_bad,npm,npm install hook,yes,file;host;named,scored,scored,False,False,True,True,No findings (Partial assessment),High-risk patterns: review before use (Partial assessment),install_hook_target
+DD-npm-@ejazullah@browser-mcp-0.0.63-6f2418cd,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-@espace-client-axafr@dashboard-detail-card-1.0.0-3c913948,known_bad,npm,npm install hook,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-npm-@evo-tech@backoffice-test-api-0.0.75-7a2a5b24,known_bad,npm,npm install hook,no,,scored,scored,False,False,True,True,No findings (Partial assessment),High-risk patterns: review before use (Partial assessment),install_hook_target
+DD-npm-@google-pay-trust@init-google-pay-99.0.4-87d84694,known_bad,npm,npm install hook,yes,file;named,scored,scored,False,False,True,True,No findings (Partial assessment),High-risk patterns: review before use (Partial assessment),install_hook_target
+DD-npm-@hi.editor@core-0.2.1-alpha.0-98c54490,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-@hornetsecurity@angular-pew-pew-1.0.4-59011a92,known_bad,npm,npm install hook,no,,scored,scored,False,False,True,True,No findings (Partial assessment),High-risk patterns: review before use (Partial assessment),install_hook_target
+DD-npm-@inscada@mcp-server-1.4.6-f194d976,known_bad,npm,other,no,,scored,scored,False,False,False,True,No findings (Partial assessment),Review recommended (Partial assessment),
+DD-npm-@jes4l@react-pkg-0.0.3-3ba7c241,known_bad,npm,npm install hook,no,,scored,scored,True,True,True,True,High-risk patterns: review before use (Partial assessment),High-risk patterns: review before use (Partial assessment),behavior_patterns
+DD-npm-@lucideproxy@svg-0.0.11-3d2e3972,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-@mastra@files-sdk-0.2.1-79f947b1,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-@mastra@s3-0.5.3-4a72ceaf,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-@mic-security@complex-components-99.0.0-bb035651,known_bad,npm,npm install hook,no,,scored,scored,True,True,True,True,High-risk patterns: review before use (Partial assessment),High-risk patterns: review before use (Partial assessment),behavior_patterns
+DD-npm-@nativescript-community@text-1.6.9-b1ed0ebd,known_bad,npm,npm install hook,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-@navancorp@icons-1.2.8937-6348a58d,known_bad,npm,npm install hook,no,,scored,scored,False,False,True,True,No findings (Partial assessment),High-risk patterns: review before use (Partial assessment),install_hook_target
+DD-npm-@one-site@europcar-2.64.123456-a1c0a081,known_bad,npm,npm install hook,no,,scored,scored,True,True,True,True,High-risk patterns: review before use (Partial assessment),High-risk patterns: review before use (Partial assessment),behavior_patterns
+DD-npm-@operato@graphql-9.0.22-632b00c7,known_bad,npm,npm install hook,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-@peterwiener@l-1.0.2-e757e21c,known_bad,npm,npm install hook,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-npm-@qwen-code@qwen-code-0.23.0-7d4996bb,known_bad,npm,other,yes,host,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-npm-@rupahealth@design-9.9.16-8943f947,known_bad,npm,npm install hook,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-npm-@shenira@libsignal-node-2.2.6-ddf22e76,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-@siwatfa@yorn-1.0.43-485f157e,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-@skyeng@libs-99.99.92-26d1c814,known_bad,npm,npm install hook,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-npm-@team-event@models-1.2.9213-917e4217,known_bad,npm,npm install hook,no,,scored,scored,False,False,True,True,No findings (Partial assessment),High-risk patterns: review before use (Partial assessment),install_hook_target
+DD-npm-@things-factory@email-base-9.0.43-3ae8cd9f,known_bad,npm,npm install hook,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-@toptal@picasso-100.0.11-98a96cdc,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-@tushar-br@editing-pack-1.0.268-7addce43,known_bad,npm,npm install hook,no,,scored,scored,False,False,False,True,No findings (Partial assessment),Review recommended (Partial assessment),
+DD-npm-@typescript_eslinter@eslint-1.5.0-6d4b04df,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-@xayz@baileys-6.0.3-b3a5dccf,known_bad,npm,npm install hook,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-npm-@zapier@eslint-plugin-zapier-11.0.4-dfb8475d,known_bad,npm,npm install hook,yes,file;named,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-acm-nano-logger-fe-1.0.1-21a73b78,known_bad,npm,npm install hook,no,,scored,scored,False,False,True,True,No findings (Partial assessment),High-risk patterns: review before use (Partial assessment),install_hook_target
+DD-npm-ade-miemee2-breki-3.3.1-ff302e86,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-agentgg-0.1.0-c6a4ce4b,known_bad,npm,other,yes,host,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-npm-airbnb-typescript-prettier-1.0.0-b3c9cb8a,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-akdump-0.1.2-d94d0f9e,known_bad,npm,npm install hook,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-andi-keripik68-miaww-4.2.3-6e7c4dd3,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-astra-db-recommendations-starter-1.0.0-92edbcd3,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-atlas-global-npm-9.10.0-9e5fdf50,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-autotel-mcp-instrumentation-32.0.1-bb81db77,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-bambang-kue36-ruro-1.2.1-da8417f7,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-bcryptutils-1.1.16-f439cce2,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-bella-mangga85-sukiwir-3.4.3-8861f155,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-betterjsloggin-1.2.5-0ed9444c,known_bad,npm,other,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-npm-boardflow-1.1.8-502081f4,known_bad,npm,npm install hook,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-build-angular-99.1.1-23dfe254,known_bad,npm,npm install hook,no,,scored,scored,True,True,True,True,High-risk patterns: review before use (Partial assessment),High-risk patterns: review before use (Partial assessment),behavior_patterns + install_hook_target
+DD-npm-calculated_members_message.js-1.0.1-e2244975,known_bad,npm,npm install hook,no,,scored,scored,False,False,True,True,No findings (Partial assessment),High-risk patterns: review before use (Partial assessment),install_hook_target
+DD-npm-certik-swc-registry-1.0.2-7741e026,known_bad,npm,npm install hook,no,,scored,scored,False,False,True,True,No findings (Partial assessment),High-risk patterns: review before use (Partial assessment),install_hook_target
+DD-npm-courageous_spider-notthedev-3.2.2-7501d504,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-defensive_gazelle_z3n-4.3.3-82a3fdd3,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-dell.github.io-9.9.12-1dda0181,known_bad,npm,npm install hook,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-npm-deploy-pages-4.3.0-492d3103,known_bad,npm,npm install hook,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-npm-dev-debugger-vite-1.3.7-fe5afdab,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-electron-dependency-confusion-window-3.0.3-43eb89e8,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-elf-stats-merry-sparkler-742-1.0.1-577966d9,known_bad,npm,npm install hook,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-elf-stats-shimmering-icicle-214-1.0.0-faaf3980,known_bad,npm,other,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-npm-elf-stats-snowy-candy-850-1.0.0-510f5043,known_bad,npm,npm install hook,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-elf-stats-snuggly-cookie-673-2.2.0-8f69aa0f,known_bad,npm,npm install hook,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-npm-elf-stats-sprucey-fireplace-355-1.0.0-6e8d7bf5,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-ember-glimmer-1.0.0-7a5d4b98,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-f0-flow-resolver-7.0.11-e096acad,known_bad,npm,npm install hook,no,,scored,scored,True,True,True,True,High-risk patterns: review before use (Partial assessment),High-risk patterns: review before use (Partial assessment),behavior_patterns + install_hook_target
+DD-npm-fajar-gulai8-sluey-1.4.2-a998d369,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-gita-oblok95-ruro-1.4.2-6708069e,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-gopro-plus-downloader-12.1.0-e80b1a32,known_bad,npm,npm install hook,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-npm-helpersutils-dev-tools-1.0.4-8dd19746,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-hendra-miemee77-miaww-1.1.2-59994606,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-hl-naduccio-1.0.2-58161232,known_bad,npm,npm install hook,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-html-report-100.101.1337-817cb214,known_bad,npm,npm install hook,no,,scored,scored,False,True,True,True,Review recommended (Partial assessment),High-risk patterns: review before use (Partial assessment),install_hook_target
+DD-npm-htps-curl-0.0.2-e91667b8,known_bad,npm,other,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-npm-internallib_v557-1.0.23-fb640d9a,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-jquery-tools-1.0.0-ccf682ef,known_bad,npm,npm install hook,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-js-nodecat-1.0.7-9139631c,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-just_tick-appteadev-2.3.2-4c656a4b,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-justgetit-1.2.4-17cfa0a4,known_bad,npm,npm install hook,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-npm-kiki-nasisayur55-sukiwir-2.4.1-1f25664e,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-kwp-client-99.99.2-d98054ea,known_bad,npm,npm install hook,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-npm-laila-nasiuduk53-miaww-4.3.2-452640b3,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-lina-sambalado46-breki-3.1.2-0a1df7cf,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-linear_camel_z3n-4.1.3-74289586,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-load-nyc-config-5.1.2-bc06d15c,known_bad,npm,npm install hook,no,,scored,scored,True,True,True,True,High-risk patterns: review before use (Partial assessment),High-risk patterns: review before use (Partial assessment),behavior_patterns + install_hook_target
+DD-npm-mad-1.0.0.2.2.8.-1.0.3-61776fc4,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-mailconfirmer-3.3.17-be669709,known_bad,npm,npm install hook,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-maman-jengkol88-sluey-4.1.2-637e43d1,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-my-unique-package-here-1.0.0-a72d9fa0,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-n8n-nodes-gg-udhasudsh-hgjkhg-official-0.0.55-529aa712,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-native_dep-99.10.0-15129f5c,known_bad,npm,npm install hook,no,,scored,scored,True,True,True,True,High-risk patterns: review before use (Partial assessment),High-risk patterns: review before use (Partial assessment),behavior_patterns + install_hook_target
+DD-npm-next-preconfig-1.0.0-162d3d8e,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-nf-metatron-0.0.1-7aa805b6,known_bad,npm,npm install hook,no,,scored,scored,True,True,True,True,High-risk patterns: review before use (Partial assessment),High-risk patterns: review before use (Partial assessment),behavior_patterns + install_hook_target
+DD-npm-node-calculator-7bea-1.0.9-f0b269ae,known_bad,npm,npm install hook,no,,scored,scored,True,True,True,True,High-risk patterns: review before use (Partial assessment),High-risk patterns: review before use (Partial assessment),behavior_patterns
+DD-npm-node-calculator-e776-4.0.0-45032cc8,known_bad,npm,npm install hook,no,,scored,scored,True,True,True,True,High-risk patterns: review before use (Partial assessment),High-risk patterns: review before use (Partial assessment),behavior_patterns + install_hook_target
+DD-npm-node-commerce-web-1.0.0-b007ed21,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-nurul-lepet58-sukiwir-4.3.2-55f7a432,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-oasis-os-provider-messaging-8.9.2-a5bf70ed,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-okta-pisang3-remi-2.1.2-7960b101,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-overstock-login-layer-3.6.3-b5a59a50,known_bad,npm,npm install hook,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-npm-pay-by-bank-dashboard-server-1.0.26-28700b49,known_bad,npm,npm install hook,no,,scored,scored,True,True,True,True,High-risk patterns: review before use (Partial assessment),High-risk patterns: review before use (Partial assessment),behavior_patterns + install_hook_target
+DD-npm-paysafe-apple-pay-99.99.1-4a3331b0,known_bad,npm,npm install hook,yes,host,scored,scored,False,True,True,True,Review recommended (Partial assessment),High-risk patterns: review before use (Partial assessment),install_hook_target
+DD-npm-picocolor-logger-1.0.1-8a150262,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-pinecone-js-1.0.1-9d5c11dd,known_bad,npm,npm install hook,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-playground_root-1.0.0-9a34ccbb,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-postcss-hotfix-99.9.9-17b58460,known_bad,npm,npm install hook,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-npm-pro-rhr-container-9.0.3-b0b906b3,known_bad,npm,npm install hook,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-npm-processwithcloudevents-client-10.0.6-9da11d56,known_bad,npm,npm install hook,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-npm-productboard-html-to-image-999.0.9-2de47a76,known_bad,npm,npm install hook,no,,scored,scored,True,True,True,True,High-risk patterns: review before use (Partial assessment),High-risk patterns: review before use (Partial assessment),behavior_patterns + install_hook_target
+DD-npm-react-native-windows-repo-1.0.3-528166fa,known_bad,npm,npm install hook,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-npm-reactcodepad-1.0.0-99fd79ae,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-reasonable_sloth_z3n-1.1.4-c8077a63,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-reauthentication-node-sdk-1.0.2-8f42e140,known_bad,npm,npm install hook,no,,scored,scored,False,False,True,True,No findings (Partial assessment),High-risk patterns: review before use (Partial assessment),install_hook_target
+DD-npm-rsflows-pexml-99.9.33-d1bec23f,known_bad,npm,npm install hook,no,,scored,scored,True,True,True,True,High-risk patterns: review before use (Partial assessment),High-risk patterns: review before use (Partial assessment),behavior_patterns + install_hook_target
+DD-npm-sendbird-docs-validation-1005.0.1-b183396e,known_bad,npm,npm install hook,no,,scored,scored,True,True,True,True,High-risk patterns: review before use (Partial assessment),High-risk patterns: review before use (Partial assessment),behavior_patterns + install_hook_target
+DD-npm-shopee-ui-automatic-import-loader-7.5.5-0f862d62,known_bad,npm,npm install hook,no,,scored,scored,True,True,True,True,High-risk patterns: review before use (Partial assessment),High-risk patterns: review before use (Partial assessment),behavior_patterns + install_hook_target
+DD-npm-stillm4ddpocs-demo-gadget-999.9.12-e1efc126,known_bad,npm,npm install hook,no,,scored,scored,False,False,True,True,No findings (Partial assessment),High-risk patterns: review before use (Partial assessment),install_hook_target
+DD-npm-storyblok-rich-text-astro-renderer-workspace-99.99.1-92a77675,known_bad,npm,npm install hook,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-npm-strutil-pro-2.3.0-446eca44,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-sysverify-2.0.10-54e843e3,known_bad,npm,npm install hook,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-npm-testing-octa-1.0.0-3863bd1f,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-theice-6.0.1-1abd83dd,known_bad,npm,npm install hook,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-npm-tidebot-1.0.0-ed0d22e0,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-tnactgfds-0.30.12-9690af23,known_bad,npm,npm install hook,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-npm-total_weasel_z3n-2.2.2-45affa6f,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-trgrip-1.0.6-eef80e28,known_bad,npm,npm install hook,no,,scored,scored,True,True,True,True,High-risk patterns: review before use (Partial assessment),High-risk patterns: review before use (Partial assessment),behavior_patterns
+DD-npm-tuti-otak-otak63-apidev-4.3.3-ab83abbf,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-udin-gepuk16-ruro-1.4.2-ed884e65,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-uipathisfun-1.0.17-df0d4e93,known_bad,npm,npm install hook,no,,scored,scored,False,False,True,True,No findings (Partial assessment),High-risk patterns: review before use (Partial assessment),install_hook_target
+DD-npm-umi-oncom78-ruro-4.3.4-a7e59b51,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-violetics-7.0.6-alpha-c22280bb,known_bad,npm,npm install hook,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-npm-vite-ui-components-1.0.6-41e37e8c,known_bad,npm,npm install hook,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-vuepress-plugin-lego-analytics-4.0.1-6bb08df9,known_bad,npm,npm install hook,no,,scored,scored,False,True,True,True,Review recommended (Partial assessment),High-risk patterns: review before use (Partial assessment),install_hook_target
+DD-npm-web3-secrets-detector-2.3.7-3b7ff600,known_bad,npm,npm install hook,no,,scored,scored,True,True,True,True,High-risk patterns: review before use (Partial assessment),High-risk patterns: review before use (Partial assessment),behavior_patterns + install_hook_target
+DD-npm-web3-token-helper-1.2.1-65167521,known_bad,npm,other,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-npm-wifi-x-xnet-1.0.0-512ba9cb,known_bad,npm,npm install hook,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-worldnormal-1.0.0-2e450f3a,known_bad,npm,npm install hook,no,,scored,scored,False,False,True,True,No findings (Partial assessment),High-risk patterns: review before use (Partial assessment),install_hook_target
+DD-npm-xo-angular-ui-utils-1.0.3-3148946a,known_bad,npm,npm install hook,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-xo-shipping-change-88.8.9-fedc2433,known_bad,npm,other,no,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+DD-npm-zap_contracts-7.2.10-4510489c,known_bad,npm,npm install hook,no,,scored,scored,True,True,True,True,High-risk patterns: review before use (Partial assessment),High-risk patterns: review before use (Partial assessment),behavior_patterns + install_hook_target
+DD-npm-zora1abs-co1ns-sdk-1.0.0-d0280f0a,known_bad,npm,npm install hook,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+DD-npm-zqdl222-22.2.2-fa12127a,known_bad,npm,npm install hook,no,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+fresh_known_good:PyPI:altair@6.3.0,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+fresh_known_good:PyPI:amazon-ion@0.15.0,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:anyio@4.16.0,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:argcomplete@3.7.2,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:async-lru@2.4.0,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:caio@0.12.10,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:charset-normalizer@3.5.2,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:cloudpathlib@0.26.0,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:cuda-pathfinder@1.8.6,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:deprecated@3.0.1,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:feedparser@6.0.14,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:glom@25.12.0,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:google-crc32c@1.9.0,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:graphviz@0.21,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:grpcio-health-checking@1.85.1,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:gunicorn@26.2.0,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+fresh_known_good:PyPI:iniconfig@2.3.1,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:maturin@1.16.0,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:mkdocs-get-deps@0.2.2,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:multitasking@0.0.13,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:nvidia-cuda-cupti@13.5.25,known_good,PyPI,,,,not_assessed,not_assessed,False,False,False,False,,,
+fresh_known_good:PyPI:nvidia-cuda-runtime-cu12@12.9.79,known_good,PyPI,,,,scored,scored,False,True,False,True,Review recommended,Review recommended,
+fresh_known_good:PyPI:nvidia-nvshmem-cu13@3.8.0,known_good,PyPI,,,,not_assessed,not_assessed,False,False,False,False,,,
+fresh_known_good:PyPI:nvidia-nvtx-cu12@12.9.79,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:nvidia-nvtx@13.5.25,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:opentelemetry-sdk@1.45.2,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:pillow-heif@1.8.1,known_good,PyPI,,,,not_assessed,not_assessed,False,False,False,False,,,
+fresh_known_good:PyPI:poetry-core@2.5.0,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:postgrest@2.34.1,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:pyarrow-hotfix@0.7,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:pybase64@1.5.1,known_good,PyPI,,,,scored,scored,False,True,False,True,Review recommended,Review recommended,
+fresh_known_good:PyPI:pygithub@2.10.0,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+fresh_known_good:PyPI:pynacl@1.6.2,known_good,PyPI,,,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+fresh_known_good:PyPI:pyotp@2.10.0,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:pytest-django@4.14.0,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:pytest-rerunfailures@16.7,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:python-dateutil@4.0.0,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+fresh_known_good:PyPI:qrcode@8.2,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:rdflib@7.6.0,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+fresh_known_good:PyPI:readme-renderer@46.0,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:resolvelib@1.2.1,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:retrying@1.4.2,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:setproctitle@1.3.8,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:snowflake-connector-python@5.2.0,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:snowplow-tracker@1.1.0,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:spacy@3.8.18,known_good,PyPI,,,,scored,scored,False,True,False,True,Review recommended (Partial assessment),Review recommended (Partial assessment),
+fresh_known_good:PyPI:sqlalchemy-utils@0.43.0,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:starlette@1.10.0,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:supabase-auth@2.34.1,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:tomli@2.5.0,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:toolz@1.2.0,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:tox@4.67.13,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:tqdm@4.70.1,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:truststore@0.10.5,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:types-s3transfer@0.19.3,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:tzlocal@5.4.5,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:ua-parser-builtins@202610,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:uv@0.13.7,known_good,PyPI,,,,not_assessed,not_assessed,False,False,False,False,,,
+fresh_known_good:PyPI:watchfiles@1.3.0,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:PyPI:xgboost@3.4.1,known_good,PyPI,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:@aws-sdk/region-config-resolver@3.972.61,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:@csstools/css-tokenizer@4.0.2,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:@eslint/config-array@0.23.5,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:@humanfs/node@0.17.0,known_good,npm,,,,scored,scored,False,True,False,True,Review recommended,Review recommended,
+fresh_known_good:npm:@inquirer/type@4.2.1,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:@napi-rs/wasm-runtime@1.2.7,known_good,npm,,,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+fresh_known_good:npm:@opentelemetry/core@3.1.1,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:@rollup/rollup-linux-x64-gnu@4.68.2,known_good,npm,,,,scored,scored,False,True,False,True,Review recommended,Review recommended,
+fresh_known_good:npm:@testing-library/jest-dom@7.0.1,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:@types/d3-array@3.2.2,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:@types/d3-path@3.1.1,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:@types/hast@3.0.5,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:@types/ms@2.1.0,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:@types/ws@8.18.2,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:ansi-regex@6.6.0,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:async-function@1.0.0,known_good,npm,,,,scored,scored,False,True,False,True,Review recommended,Review recommended,
+fresh_known_good:npm:baseline-browser-mapping@2.11.35,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:browserslist@4.29.5,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:caniuse-lite@1.0.30001823,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:cjs-module-lexer@2.3.0,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:class-variance-authority@0.7.1,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:cliui@9.0.1,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:data-view-byte-length@1.0.2,known_good,npm,,,,scored,scored,False,True,False,True,Review recommended,Review recommended,
+fresh_known_good:npm:dunder-proto@1.0.1,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:es-define-property@1.0.1,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:eslint@10.14.0,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:espree@11.2.0,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:file-type@22.3.0,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:google-auth-library@11.3.4,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:has-symbols@1.1.0,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:hasown@2.0.4,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:iconv-lite@0.7.3,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:ignore@7.0.14,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:import-in-the-middle@3.6.0,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:is-array-buffer@3.0.5,known_good,npm,,,,scored,scored,False,True,False,True,Review recommended,Review recommended,
+fresh_known_good:npm:is-async-function@2.1.1,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:is-fullwidth-code-point@5.1.0,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:is-regex@1.2.1,known_good,npm,,,,scored,scored,False,True,False,True,Review recommended,Review recommended,
+fresh_known_good:npm:is-wsl@3.1.1,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:keyv@6.1.0,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:lightningcss@1.33.0,known_good,npm,,,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),
+fresh_known_good:npm:long@5.3.2,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:lru-cache@11.5.3,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:node-releases@2.0.63,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:p-locate@7.0.0,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:possible-typed-array-names@1.1.0,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:psl@1.15.0,known_good,npm,,,,scored,scored,False,True,False,True,Review recommended,Review recommended,
+fresh_known_good:npm:read-pkg@10.1.0,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:sax@1.6.1,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:send@1.2.1,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:serve-static@2.2.1,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:side-channel-list@1.0.1,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:side-channel-weakmap@1.0.2,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:string.prototype.trim@1.2.11,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:tapable@2.3.3,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:tinyexec@1.3.1,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:tslib@2.9.1,known_good,npm,,,,scored,scored,False,True,False,True,Review recommended,Review recommended,
+fresh_known_good:npm:unplugin@3.7.0,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:update-browserslist-db@1.3.4,known_good,npm,,,,scored,scored,False,False,False,False,No findings,No findings,
+fresh_known_good:npm:webpack@5.112.2,known_good,npm,,,,scored,scored,False,False,False,False,No findings (Partial assessment),No findings (Partial assessment),

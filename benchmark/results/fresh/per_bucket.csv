@@ -1,0 +1,25 @@
+ruleset,subset,bucket,metric,k,n,rate,ci_low,ci_high
+v1,a,npm install hook,recall_strict,20,84,0.238095,0.159747,0.339351
+v1,a,npm install hook,recall_lenient,46,84,0.547619,0.44143,0.649643
+v1,a,PyPI setup.py,recall_strict,19,123,0.154472,0.101178,0.228694
+v1,a,PyPI setup.py,recall_lenient,92,123,0.747967,0.664526,0.816389
+v1,a,other,recall_strict,2,91,0.021978,0.006048,0.076632
+v1,a,other,recall_lenient,15,91,0.164835,0.102514,0.254307
+v1,b,npm install hook,recall_strict,20,80,0.25,0.168062,0.354847
+v1,b,npm install hook,recall_lenient,45,80,0.5625,0.453411,0.665861
+v1,b,PyPI setup.py,recall_strict,19,106,0.179245,0.117862,0.263064
+v1,b,PyPI setup.py,recall_lenient,90,106,0.849057,0.768797,0.904901
+v1,b,other,recall_strict,2,88,0.022727,0.006255,0.079125
+v1,b,other,recall_lenient,13,88,0.147727,0.088413,0.236511
+v2,a,npm install hook,recall_strict,39,84,0.464286,0.361542,0.570153
+v2,a,npm install hook,recall_lenient,63,84,0.75,0.647857,0.830277
+v2,a,PyPI setup.py,recall_strict,42,123,0.341463,0.263601,0.428928
+v2,a,PyPI setup.py,recall_lenient,108,123,0.878049,0.808513,0.924686
+v2,a,other,recall_strict,2,91,0.021978,0.006048,0.076632
+v2,a,other,recall_lenient,16,91,0.175824,0.111225,0.266684
+v2,b,npm install hook,recall_strict,36,80,0.45,0.345777,0.558805
+v2,b,npm install hook,recall_lenient,60,80,0.75,0.645153,0.831938
+v2,b,PyPI setup.py,recall_strict,27,106,0.254717,0.181364,0.345226
+v2,b,PyPI setup.py,recall_lenient,92,106,0.867925,0.790446,0.919668
+v2,b,other,recall_strict,2,88,0.022727,0.006255,0.079125
+v2,b,other,recall_lenient,14,88,0.159091,0.097199,0.249501

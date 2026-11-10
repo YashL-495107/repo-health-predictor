@@ -220,7 +220,7 @@ def main(argv=None) -> int:
     import run_benchmark as RB
     PROMPTS = RB.samples_root() / PROMPTS_SUBDIR
     if a.step == "select":
-        items, _ = bench_items.all_items()
+        items, _ = bench_items.v1_items()
         sel = select_items(items)
         write_csv(OUT / "items.csv", sel, note=f"Chat-AI comparison items, chosen by seed {SEED} before any result "
                                                 f"was viewed ({N_BAD} known-bad with obtainable code, {N_GOOD} known-good, {N_SCARY} scary)")

@@ -91,7 +91,14 @@ def local_checks(samples_dir: Path, cache_dir: Path) -> list[tuple]:
     except RB.GuardError as e:
         out.append(("AI layer off (no Gemini key, no AI module)", False, str(e)[:120], "Remove-Item Env:GEMINI_API_KEY"))
     try:
-        v = RB.check_frozen("test")
+        from detectors import version as V
+        if RB.readme_frozen_version() != V.RULESET_VERSION and V.RULESET_VERSION in RB.FRESH_RULESETS \
+                and V.RULESET_FROZEN and (RB.BENCH / "PREREG_v2.md").exists():
+            # ruleset v2 (branch ruleset-v2): pre-registered for the fresh split only (PREREG_v2.md); the v1 test
+            # split refuses to run with it, by design
+            v = f"{V.RULESET_VERSION} (fresh split only, PREREG_v2.md)"
+        else:
+            v = RB.check_frozen("test")
         out.append(("Frozen ruleset recorded in the protocol", True, v, ""))
     except RB.GuardError as e:
         out.append(("Frozen ruleset recorded in the protocol", False, str(e)[:120], "do not run the test split; report it"))
@@ -122,7 +129,7 @@ def local_checks(samples_dir: Path, cache_dir: Path) -> list[tuple]:
 def dev_items() -> list[tuple[str, str, dict]]:
     """(check name, mode, item): one dev repo-mode item, one dev npm artifact item, one dev PyPI artifact item."""
     import bench_items
-    items, _ = bench_items.all_items()
+    items, _ = bench_items.v1_items()
     dev = sorted((i for i in items if i["split"] == "dev"), key=lambda i: i["id"])
     pypi = next(i for i in dev if i["ecosystem"] == "PyPI" and i["package"])
     npm = next((i for i in dev if i["ecosystem"] == "npm" and i["package"]), None)

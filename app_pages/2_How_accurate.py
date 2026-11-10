@@ -1,5 +1,5 @@
-"""How accurate is it? Measured numbers of benchmark run 2 (ruleset 2026.11.08-12), all read from the committed result
-files by accuracy.py. Display only."""
+"""How accurate is it? Measured numbers of benchmark run 2 (ruleset v1, 2026.11.08-12) and of the fresh test set
+(v1 vs v2), all read from the committed result files by accuracy.py. Says which ruleset the app runs. Display only."""
 import os
 import sys
 
@@ -16,6 +16,9 @@ st.markdown(APP_CSS, unsafe_allow_html=True)
 
 st.title("How accurate is it?")
 d = A.load()
+note = A.ruleset_note()
+if note:
+    st.info(note)
 st.markdown(f"**{d['summary']}**")
 
 
@@ -91,6 +94,20 @@ with st.container(border=True):
     st.markdown("#### What is NOT measured")
     for line in d["not_measured"]:
         st.markdown("- " + line)
+
+v2 = A.load_v2()
+if v2:
+    with st.container(border=True):
+        st.markdown("#### Version 2 (fresh test set)")
+        st.markdown(v2["notes"][0])
+        table(v2["recall"])
+        st.markdown("**Recall per bucket** (headline subset)")
+        table(v2["buckets"])
+        for line in v2["notes"][1:]:
+            st.caption(line)
+        st.caption("Artifact mode, no OSV lookup, no fragility escalation (v1's headline configuration). Details: "
+                   f"[benchmark/RESULTS_v2.md]({A.REPO_URL}benchmark/RESULTS_v2.md) · "
+                   f"[benchmark/PREREG_v2.md]({A.REPO_URL}benchmark/PREREG_v2.md)")
 
 st.caption("Indicators, not proof. No findings does not mean safe. Numbers are read from benchmark/results/run2/, "
            "benchmark/RESULTS.md and benchmark/ERROR_ANALYSIS.md.")

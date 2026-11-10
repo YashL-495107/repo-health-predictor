@@ -1,0 +1,15 @@
+ruleset,set,subset,metric,k,n,rate,ci_low,ci_high,rule_of_three
+v1,known_bad,a,recall_strict,41,298,0.137584,0.103064,0.181329,
+v1,known_bad,a,recall_lenient,153,298,0.513423,0.456866,0.569638,
+v1,known_bad,b,recall_strict,41,274,0.149635,0.112256,0.196702,
+v1,known_bad,b,recall_lenient,148,274,0.540146,0.480986,0.598196,
+v1,known_good,all,fp_hard,0,116,0.0,0.0,0.032055,0.025862
+v1,known_good,all,fp_soft,12,116,0.103448,0.060173,0.172146,
+v1,known_good,all,fp_lenient,12,116,0.103448,0.060173,0.172146,
+v2,known_bad,a,recall_strict,83,298,0.278523,0.230693,0.331992,
+v2,known_bad,a,recall_lenient,187,298,0.627517,0.571329,0.680459,
+v2,known_bad,b,recall_strict,65,274,0.237226,0.190709,0.291009,
+v2,known_bad,b,recall_lenient,166,274,0.605839,0.546898,0.661855,
+v2,known_good,all,fp_hard,0,116,0.0,0.0,0.032055,0.025862
+v2,known_good,all,fp_soft,12,116,0.103448,0.060173,0.172146,
+v2,known_good,all,fp_lenient,12,116,0.103448,0.060173,0.172146,
