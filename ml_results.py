@@ -92,7 +92,7 @@ def results_table(d: dict) -> list[dict]:
     for op in ("strict", "lenient"):
         rec, fp = d["rules"][op]
         rows.append({"Feature set": f"Frozen rules, {op} (ruleset 2026.11.08-12)", "Model": "fixed rules", "Trusted": "yes",
-                     "ROC AUC": "-", **{f"Recall @ {t}% FP": "" for t in (0, 5, 10, 15)},
+                     "ROC AUC": "n/a (fixed points)", **{f"Recall @ {t}% FP": "" for t in (0, 5, 10, 15)},
                      "Recall @ 0% FP" if op == "strict" else "Recall @ 15% FP":
                          f"{p(rec['recall'])} (FP {p(fp['rate'])})"})
     return rows

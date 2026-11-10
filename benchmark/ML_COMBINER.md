@@ -33,8 +33,8 @@ A simple model that combines the frozen ruleset's own outputs for each item (fin
 | B: A + install hook + inflated version | random forest | yes | 0.874 (95% CI 0.839-0.908) | 13.1% (FP 0.7%) | 59.7% (FP 2.6%) | 72.1% (FP 7.7%) | 81.6% (FP 13.5%) |
 | C: B + size, file count, artifact kind, ecosystem (not trusted: dataset bias) | logistic regression | no: dataset bias | 0.999 (95% CI 0.997-1.000) | 99.6% (FP 0.2%) | 99.7% (FP 5.0%) | 100.0% (FP 8.5%) | 100.0% (FP 12.6%) |
 | C: B + size, file count, artifact kind, ecosystem (not trusted: dataset bias) | random forest | no: dataset bias | 0.999 (95% CI 0.998-1.000) | 99.5% (FP 0.7%) | 99.7% (FP 3.6%) | 99.7% (FP 9.1%) | 99.7% (FP 12.6%) |
-| Frozen rules, strict (ruleset 2026.11.08-12) | fixed rules | yes | - | 12.4% (FP 0.0%) |  |  |  |
-| Frozen rules, lenient (ruleset 2026.11.08-12) | fixed rules | yes | - |  |  |  | 50.0% (FP 14.5%) |
+| Frozen rules, strict (ruleset 2026.11.08-12) | fixed rules | yes | n/a (fixed points) | 12.4% (FP 0.0%) |  |  |  |
+| Frozen rules, lenient (ruleset 2026.11.08-12) | fixed rules | yes | n/a (fixed points) |  |  |  | 50.0% (FP 14.5%) |
 
 ## Source leakage check
 
