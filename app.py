@@ -1,4 +1,4 @@
-"""GitHub Repository Health & Abandonment Predictor - Streamlit app."""
+"""Repository & Package Trust Check - Streamlit app."""
 import html
 import os
 import queue
@@ -31,7 +31,7 @@ from pillars import (LABEL_FRAGILE, LABEL_HIGH_RISK, LABEL_KNOWN_MALICIOUS, LABE
                      LABEL_REVIEW, MAINTENANCE_CEILING)
 
 load_dotenv()
-st.set_page_config(page_title="Repo Health Predictor", page_icon="🩺", layout="wide")
+st.set_page_config(page_title="Repository & Package Trust Check", page_icon="🩺", layout="wide")
 SAMPLES = ["psf/requests", "lodash/lodash", "sqlmapproject/sqlmap"]
 COLORS = {"Healthy": "#1a9850", "Slowing down": "#f4a300", "At risk": "#e66101", "Likely abandoned": "#d73027", "Archived (read-only)": "#6c757d"}
 TRUST_COLORS = {LABEL_KNOWN_MALICIOUS: "#b2182b", LABEL_HIGH_RISK: "#e66101", LABEL_REVIEW: "#f4a300",
@@ -330,7 +330,11 @@ def render_verdict_meaning(label_base: str | None):
 DOMAIN_STATUS = {"registered": "registered", "not_registered": "not registered", "could_not_check": AS.COULD_NOT_CHECK}
 
 
-def render_additional_signals(sig: dict):
+NO_MANIFEST_GUESSED = ("Not checked: no package manifest in the repository root. The npm/PyPI name shown above is guessed "
+                       "from the repository name and is not used for these checks.")
+
+
+def render_additional_signals(sig: dict, name_guessed: bool = False):
     """Informational panel. Never changes the Trust score or the verdict; a failed lookup says "could not check"."""
     with st.container(border=True):
         st.markdown(f"#### {AS.PANEL_TITLE}")
@@ -338,7 +342,7 @@ def render_additional_signals(sig: dict):
                    f"Checked {sig.get('checked_at')} (UTC); results are kept for 15 minutes.")
         reg = sig.get("registry") or {}
         if reg.get("status") == "not_applicable":
-            st.info(_md_escape(f"Not checked: {reg.get('reason')}."))
+            st.info(NO_MANIFEST_GUESSED if name_guessed else _md_escape(f"Not checked: {reg.get('reason')}."))
             return
         p = sig.get("package") or {}
         st.caption(_md_escape(f"Package: {p.get('name')} ({p.get('ecosystem')})"
@@ -393,8 +397,8 @@ with st.sidebar:
     st.caption("Maintenance score bands")
     st.markdown(f"- **Healthy**: {HEALTHY}+\n- **Slowing down**: {SLOWING}-{HEALTHY - 1}\n- **Likely abandoned**: below {SLOWING}")
 
-st.title("GitHub Repository Health & Abandonment Predictor")
-st.caption("Paste any public GitHub repository to get its Trust score (indicators, not proof) and its maintenance health.")
+st.title("Repository & Package Trust Check")
+st.caption("Trust score from code, package and supply-chain evidence. Indicators, not proof. Maintenance shown separately.")
 
 if "repo_input" not in st.session_state: st.session_state.repo_input = ""
 def _pick(sample: str):
@@ -624,7 +628,7 @@ if go_clicked or (target and st.session_state.get("analyzed") == target):
             if bd["simulator"]: st.info("⚡ **Compromise Simulator:** " + bd["simulator"])
         if not shown_any:
             st.info("No supply-chain data was available for this repository.")
-        render_additional_signals(sig)
+        render_additional_signals(sig, name_guessed=not pkg and bool((data.get("blast_radius") or {}).get("package_name_guessed")))
 
     with t_maint:
         st.markdown(f"#### Maintenance (separate from the Trust score; can cap it at {MAINTENANCE_CEILING} when fragile)")
