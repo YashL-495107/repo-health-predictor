@@ -177,7 +177,7 @@ def test_signals_never_feed_the_score():
     """No scoring, cap, detector or verdict module imports the additional signals or the upgrade check (display-only
     modules: the app, its pages, and upgrade_check itself, which shows signals and computes no score)."""
     for p in list(ROOT.glob("*.py")) + list((ROOT / "detectors").glob("*.py")):
-        if p.name in ("app.py", "additional_signals.py", "upgrade_check.py"):
+        if p.name in ("app.py", "trust_check.py", "additional_signals.py", "upgrade_check.py"):
             continue
         import re
         text = p.read_text(encoding="utf-8")

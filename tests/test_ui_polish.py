@@ -11,7 +11,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from ui_text import PARTIAL_BADGE, filter_findings, partial_badge, result_json  # noqa: E402
 
-APP = os.path.join(ROOT, "app.py")
+APP = os.path.join(ROOT, "app.py")                  # entrypoint (router)
+MAIN_PAGE = os.path.join(ROOT, "trust_check.py")    # the main page's code
 
 
 def _pillars(**status):
@@ -98,7 +99,7 @@ def test_app_tabs_badge_filter_download_and_examples():
 
 
 def test_download_button_and_tooltips_in_source():
-    src = open(APP, encoding="utf-8").read()
+    src = open(MAIN_PAGE, encoding="utf-8").read()
     assert 'download_button("Download result (JSON)", data=result_json(export, [token, user_token, gemini_key, gemini_key_input])' in src
     assert 'export = {**data, "receipt": receipt, "additional_signals": sig}' in src
     assert 'hovertemplate="%{theta}: %{r:.0f} / 100<extra></extra>"' in src                 # radar: factor and value
@@ -147,7 +148,7 @@ def test_title_subtitle_and_guessed_package_message():
     import test_app as T
     from streamlit.testing.v1 import AppTest
     from github_client import GitHubClient
-    src = open(APP, encoding="utf-8").read()
+    src = open(MAIN_PAGE, encoding="utf-8").read()
     assert 'st.title("Repository & Package Trust Check")' in src
     assert ('st.caption("Trust score from code, package and supply-chain evidence. Indicators, not proof. '
             'Maintenance shown separately.")') in src

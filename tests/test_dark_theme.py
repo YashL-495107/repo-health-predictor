@@ -18,7 +18,7 @@ def test_config_sets_dark_base_and_keeps_existing_settings():
 
 def test_verdict_chip_text_contrast_on_every_tier_colour():
     from ui_text import NEUTRAL_COLOR, chip_text_color, contrast
-    src = open(os.path.join(ROOT, "app.py"), encoding="utf-8").read()
+    src = open(os.path.join(ROOT, "trust_check.py"), encoding="utf-8").read()
     tiers = re.findall(r"#[0-9a-fA-F]{6}", src[src.index("TRUST_COLORS = {"):src.index("STATUS_TEXT")])
     assert len(tiers) == 6
     for c in tiers + [NEUTRAL_COLOR, "#444444"]:
@@ -27,7 +27,7 @@ def test_verdict_chip_text_contrast_on_every_tier_colour():
 
 
 def test_charts_have_transparent_backgrounds():
-    src = open(os.path.join(ROOT, "app.py"), encoding="utf-8").read()
+    src = open(os.path.join(ROOT, "trust_check.py"), encoding="utf-8").read()
     for layout in re.findall(r"update_layout\((.*)", src):
         assert 'paper_bgcolor="rgba(0,0,0,0)"' in layout, layout[:80]
     assert "background:#fff" not in src.replace(" ", "") and "background-color:white" not in src

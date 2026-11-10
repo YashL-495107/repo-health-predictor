@@ -10,7 +10,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from pillars import LABEL_NO_FINDINGS, LABEL_REVIEW, PARTIAL_NOTE  # noqa: E402
 from ui_text import TRUST_DISCLAIMER, blast_display, headline_label  # noqa: E402
 
-APP = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "app.py")
+APP = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "app.py")          # entrypoint (router)
+MAIN_PAGE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "trust_check.py")  # its code
 
 
 # 1. headline
@@ -29,13 +30,13 @@ def test_other_labels_are_unchanged():
 
 
 def test_trust_score_disclaimer_next_to_the_score():
-    src = open(APP, encoding="utf-8").read()
+    src = open(MAIN_PAGE, encoding="utf-8").read()
     assert TRUST_DISCLAIMER == "not a safety guarantee" and "{TRUST_DISCLAIMER}</span>" in src
 
 
 # 2. no secret parts
 def test_app_never_displays_key_diagnostics():
-    src = open(APP, encoding="utf-8").read()
+    src = open(MAIN_PAGE, encoding="utf-8").read()
     assert "describe_gemini_key" not in src and "ends …" not in src
 
 
@@ -74,7 +75,7 @@ def test_blast_radius_records_whether_deps_dev_answered():
 
 # 4. one collapsed expander for everything Gemini produces
 def test_gemini_sections_are_in_one_collapsed_expander():
-    src = open(APP, encoding="utf-8").read()
+    src = open(MAIN_PAGE, encoding="utf-8").read()
     i = src.index('st.expander("AI-generated, advisory, not part of the benchmark", expanded=False)')
     body = src[i:src.index('    if scan.get("code_scan") == "unavailable"', i)]
     for part in ("AI explanation of findings", "AI Migration Engine", "Executive Memo", "Drop-in Replacements"):
@@ -186,7 +187,7 @@ def test_assessment_gaps_next_to_the_score():
 def test_trust_section_is_in_overview_and_maintenance_keeps_its_own_tab():
     """Tabbed layout (UI polish): "What drives the Trust score" closes the Overview tab; the renamed Maintenance section
     opens the Maintenance tab, so the two are still not mixed."""
-    src = open(APP, encoding="utf-8").read()
+    src = open(MAIN_PAGE, encoding="utf-8").read()
     assert 'st.tabs(["Overview", "Findings", "Supply chain", "Maintenance", "What was checked"])' in src
     head = 'st.markdown("#### What drives the Trust score")'
     maint = 'st.markdown(f"#### Maintenance (separate from the Trust score; can cap it at {MAINTENANCE_CEILING} when fragile)")'
@@ -219,7 +220,7 @@ def test_app_renders_the_trust_drivers_section():
 
 
 def test_forks_wording_and_partial_colour():
-    src = open(APP, encoding="utf-8").read()
+    src = open(MAIN_PAGE, encoding="utf-8").read()
     assert "Forks with newer commits than upstream" in src and "akeover Forks" not in src
     intel = open(os.path.join(os.path.dirname(APP), "intelligence.py"), encoding="utf-8").read()
     assert "takeover forks" not in intel.lower()
