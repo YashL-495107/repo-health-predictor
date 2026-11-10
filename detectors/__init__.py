@@ -13,7 +13,7 @@ from __future__ import annotations
 import concurrent.futures as cf
 
 from . import (behavior_patterns, ci_workflow, committed_binary, credential_exfiltration, decoded_payload,
-               dependency_injection, lookalike_name, osv_advisories, osv_known_malicious, protestware_destructive,
+               dependency_injection, install_hook_target, lookalike_name, osv_advisories, osv_known_malicious, protestware_destructive,
                publisher_change, release_delta, release_vs_git, repo_secrets, revival_takeover, scorecard, setup_py_hook,
                tagless_release, virustotal)
 from .base import (FINDING_TIERS, PILLARS, STATUSES, TIER_DISPLAY, TIERS, make_result, not_assessed,  # noqa: F401
@@ -29,6 +29,7 @@ REGISTRY = [
     revival_takeover,      # Integrity (Phase 3)
     decoded_payload,       # Behavior
     setup_py_hook,         # Behavior
+    install_hook_target,   # Behavior (ruleset v2)
     behavior_patterns,     # Behavior
     credential_exfiltration,  # Behavior (Phase 4, data flow)
     protestware_destructive,  # Behavior (Phase 4, data flow)

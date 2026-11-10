@@ -37,3 +37,17 @@ test set (`run_benchmark.contamination()` reads it).
   extract_datadog.py and prepare_known_bad.py read through. The selection is byte-identical (tested on the real
   listing: the same 312 ZIPs). **No test-split item had been scanned**: only a metadata dry run (trees, the two
   manifests, HEAD requests; no sample downloaded).
+
+## Ruleset v2 (a separate ruleset, not a change to v1; see benchmark/PREREG_v2.md)
+
+This section is not a post-viewing change to v1: the v1 rules, tag `ruleset-2026.11.08-12-frozen`, run-1 and run-2
+results stay as they are and v1 remains the official headline. It records that v2 exists and how it was made, so no
+v1 test-set number is ever read as held-out evidence for v2.
+
+- **2026.11.08-12 -> 2026.11.10-v2** (2026-11-10, branch ruleset-v2): install-hook target tracing (new detector
+  install_hook_target) and the setup.py trace in setup_py_hook (docs/RULESET_CHANGELOG.md). Developed after viewing
+  run-2 results, on the 76 items of two error-analysis buckets, and checked for false positives on the v1 known-good,
+  scary and dormant sets: **for v2, the whole v1 test set is development data (contaminated)**. v2 is evaluated only on
+  the fresh held-out set selected and committed before the freeze (benchmark/PREREG_v2.md, tag
+  `ruleset-2026.11.10-v2-frozen`), scanned with both v1 and v2.
+

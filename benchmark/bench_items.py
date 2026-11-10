@@ -25,6 +25,7 @@ CREDIBILITY = MAN / "dev_credibility.csv"
 VIEWED_FILES = ("scan_results.csv", "scan_holdout.csv", "backtest_repos.csv", "backtest_skipped.csv")
 CATEGORIES = ("known_bad", "known_good", "dormant", "scary", "replay", "dev")
 DATADOG_EXTRACTED = MAN / "datadog_extracted.csv"   # written by extract_datadog.py (hashes only, no content)
+FRESH = MAN / "fresh"                                # ruleset-v2 fresh held-out set (benchmark/PREREG_v2.md)
 
 # Replay cases that can be scanned (replay_incidents.csv status replayable / partially replayable).
 # version = the release scanned; the release before it in the registry history is the benign comparison.
@@ -139,6 +140,20 @@ def load_items() -> list[dict]:
             items.append(_item(cat, r["ecosystem"], r["package"], r["version"], repo=r.get("repo", ""), source=fname,
                                extra={"sha256": r.get("sha256", ""), "npm_integrity": r.get("npm_integrity", ""),
                                       "obtainable": "yes" if r.get("version") else "no"}))
+    # Fresh held-out set (split "fresh"; PREREG_v2.md): DataDog samples drawn with seed 20261110 and a fresh random
+    # known-good sample. Absent files simply add nothing (v1 runs and older checkouts are unchanged).
+    for r in read_manifest(FRESH / "datadog_extracted.csv"):
+        if r.get("status") != "extracted":
+            continue
+        items.append(_item("known_bad", r["ecosystem"], r["package"], r["version"], id_=r["id"], source="datadog",
+                           extra={"split": "fresh", "obtainable": "yes",
+                                  "obtainable_detail": f"DataDog sample {r['sample_path']}",
+                                  "sample_dir": r["sample_dir"], "sha256": r.get("zip_sha256", "")}))
+    for r in read_manifest(FRESH / "known_good.csv"):
+        items.append(_item("known_good", r["ecosystem"], r["package"], r["version"], repo=r.get("repo", ""),
+                           id_=f"fresh_known_good:{r['ecosystem']}:{r['package']}@{r['version']}", source="fresh/known_good.csv",
+                           extra={"split": "fresh", "sha256": r.get("sha256", ""), "npm_integrity": r.get("npm_integrity", ""),
+                                  "obtainable": "yes" if r.get("version") else "no"}))
     for r in read_manifest(MAN / "replay_incidents.csv"):
         tgt = REPLAY_TARGETS.get(r["incident"])
         eco, pkg, ver = tgt if tgt else (r["ecosystem"], r["incident"], "")
@@ -175,7 +190,7 @@ def assign_splits(items: list[dict], dev: dict | None = None) -> tuple[list[dict
     dev = dev or dev_sets()
     moves = []
     for it in items:
-        if it["split"] != "test":
+        if it["split"] not in ("test", "fresh"):
             continue
         why = None
         if it["repo"] and it["repo"].lower() in dev["repos"]:
@@ -183,8 +198,9 @@ def assign_splits(items: list[dict], dev: dict | None = None) -> tuple[list[dict
         elif norm(it["package"]) in dev["packages"]:
             why = f"package {it['package']} matches {dev['packages'][norm(it['package'])]}"
         if why:
-            it["split"], it["move_reason"] = "dev", why
-            moves.append({"id": it["id"], "category": it["category"], "reason": why})
+            it["move_reason"] = why + (" (was split fresh)" if it["split"] == "fresh" else "")
+            it["split"] = "dev"
+            moves.append({"id": it["id"], "category": it["category"], "reason": it["move_reason"]})
     return items, moves
 
 

@@ -3,6 +3,27 @@
 Every change to detector logic, thresholds, tier mapping or fragility weights bumps `RULESET_VERSION`
 (`detectors/version.py`). Results produced under different versions are not directly comparable.
 
+## 2026.11.10-v2 (ruleset v2; frozen for the fresh held-out set, benchmark/PREREG_v2.md; branch ruleset-v2 only)
+
+Developed AFTER viewing run-2 results, on the 76 items of two error-analysis buckets (benchmark/ERROR_ANALYSIS.md);
+v1 (2026.11.08-12, tag `ruleset-2026.11.08-12-frozen`) stays the official headline and is unchanged on main.
+
+- **New detector `install_hook_target` (Behavior)**: follows each npm preinstall / install / postinstall command to the
+  local file it runs (`node x.js`, `node ./lib/x.js`, `sh x.sh`, inline `node -e` code and the files it requires), then
+  up to 3 hops of local require / import / spawned file paths, and checks each traced file: host fingerprint + network,
+  OAST / request-catcher / IP-lookup endpoint, socket + interactive shell (high_risk); detached background process
+  (review). `os.platform` / `arch` / `homedir` are not fingerprint signals. See install_trace.py.
+- **`setup_py_hook` extended** with install_trace.trace_setup_py: the package-root setup.py of nested artifacts (the
+  shallowest setup.py when none is at depth <= 2; v1 looked at depth <= 2 only, so it never ran on the DataDog
+  samples), calls resolved through import aliases, string constants that parse as Python, local modules followed
+  up to two levels (from setup.py: imported inside a function or called; from a followed module: every local
+  import), per-file rules host fingerprint + network, OAST / IP-lookup endpoint, socket + shell, exec + network
+  (high_risk) and a single alias-resolved exec / network call in setup.py (review).
+- `.cjs` and `.mjs` files are read as text (repo_scan.TEXT_EXT), so a hook target such as `node x.cjs` is visible.
+- Before the freeze, checked on: all 117 v1 random known-good, 18 scary and 12 dormant items (artifact mode, headline
+  flags): no label changed versus v1 run 2 (0 hard false positives, the same 17 + 4 soft ones); in-sample on the 76
+  development items: 41 strict / 44 lenient (v1: 0 / 0). Numbers and method: benchmark/PREREG_v2.md.
+
 ## 2026.11.08-12 (FROZEN; final pre-run dev round, no test-split item scanned)
 
 Changes detection outcomes (item 2), so the version is bumped. **No test-split item had been scanned.**

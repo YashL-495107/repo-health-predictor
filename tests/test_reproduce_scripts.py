@@ -49,7 +49,11 @@ def test_sh_checks_fail_fast_without_token():
     assert r.returncode == 1 and "FAIL:" in r.stderr and "--selfcheck" not in r.stdout   # stops before any scan
     tag = subprocess.run(["git", "rev-parse", "--verify", "--quiet", "ruleset-2026.11.08-12-frozen^{commit}"], cwd=ROOT,
                          capture_output=True)
-    if tag.returncode == 0:
+    sys.path.insert(0, str(ROOT))
+    from detectors import version as V
+    if V.RULESET_VERSION != "2026.11.08-12":      # branch ruleset-v2: the v1 reproduce script refuses, by design
+        assert "ruleset does not match the frozen version" in r.stderr
+    elif tag.returncode == 0:
         assert "GITHUB_TOKEN is not set" in r.stderr
     else:
         assert "tag ruleset-2026.11.08-12-frozen not found" in r.stderr

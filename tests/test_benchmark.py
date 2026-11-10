@@ -169,8 +169,19 @@ def test_refuses_test_split_without_frozen_ruleset(tmp_path, monkeypatch):
 
 
 def test_protocol_records_the_current_frozen_ruleset():
+    """v1's protocol records 2026.11.08-12; the code is either that ruleset or one pre-registered for the fresh
+    split in PREREG_v2.md (branch ruleset-v2), and frozen either way."""
     from detectors import version as V
-    assert RB.readme_frozen_version() == V.RULESET_VERSION and V.RULESET_FROZEN
+    assert RB.readme_frozen_version() == "2026.11.08-12" and V.RULESET_FROZEN
+    assert V.RULESET_VERSION == RB.readme_frozen_version() or (
+        V.RULESET_VERSION in RB.FRESH_RULESETS and f"`{V.RULESET_VERSION}`" in (RB.BENCH / "PREREG_v2.md").read_text(encoding="utf-8"))
+
+
+def test_v1_test_split_refuses_with_v2_ruleset():
+    from detectors import version as V
+    if V.RULESET_VERSION != RB.readme_frozen_version():
+        with pytest.raises(RB.GuardError):
+            RB.check_frozen("test")
 
 
 def test_transient_reasons():
