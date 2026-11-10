@@ -148,7 +148,9 @@ def test_sidebar_page_order():
     at.switch_page("app_pages/2_How_accurate.py").run()
     assert not at.exception, at.exception
     assert at.title[0].value == "How accurate is it?"
-    assert any(m.value == f"**{A.SUMMARY}**" for m in at.markdown)
+    assert any(m.value == f"**{A.summary_text()}**" for m in at.markdown)
+    if A.ruleset_note():
+        assert any(i.value == A.ruleset_note() for i in at.info)
     tables = [t.value for t in at.table]
     lay = next(t for t in tables if t.index.name == "Layer")
     assert list(lay["Strict"]) == [r["Strict"] for r in D["layered"]]
@@ -217,7 +219,8 @@ def test_v2_readme_section():
         pytest.skip("no fresh results on this branch")
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     assert "### Version 2 (fresh test set)" in readme and A.readme_v2_table(v2) in readme
-    assert "**v1 above stays the official result.**" in readme
+    assert "**The app runs v2.** The pre-registered benchmark above measured v1" in readme
+    assert f"**Which ruleset the app runs.** {A.ruleset_note()}" in readme
     for line in v2["notes"][1:]:
         assert line in readme
     man = ROOT / "benchmark" / "manifests" / "fresh"
@@ -229,3 +232,74 @@ def test_v2_readme_section():
     assert f"{n(man / 'datadog_selection.csv')} new DataDog samples" in readme
     assert f"{summ[('v2', 'a', 'recall_strict')]['n']} scanned)" in readme
     assert f"{n(man / 'known_good.csv')} new random known-good packages ({summ[('v2', 'all', 'fp_hard')]['n']} scanned)" in readme
+
+
+# ------------------------------------------------------------------ which ruleset the app runs (v2 after the merge)
+def _fresh_numbers():
+    summ = {(r["ruleset"], r["subset"], r["metric"]): r for r in csv.DictReader(open(FRESH / "summary.csv", encoding="utf-8"))}
+    head = next(csv.DictReader(open(FRESH / "headline.csv", encoding="utf-8")))["subset"]
+    s, l, h = summ[("v2", head, "recall_strict")], summ[("v2", head, "recall_lenient")], summ[("v2", "all", "fp_hard")]
+    pc = lambda r: f"{100 * int(r['k']) / int(r['n']):.1f}% ({r['k']}/{r['n']})"   # noqa: E731
+    return pc(s), pc(l), f"{h['k']}/{h['n']}"
+
+
+def test_texts_say_the_app_runs_v2_and_the_benchmark_measured_v1():
+    import pytest
+    from detectors import RULESET_VERSION
+    if RULESET_VERSION != A.V2_RULESET:
+        pytest.skip("the app runs v1 on this branch")
+    rec = {(r["operating_point"], r["run"]): r for r in rows("recall.csv")}
+    v1s = f"{100 * int(rec[('strict', 'headline')]['hits']) / 314:.1f}% ({rec[('strict', 'headline')]['hits']}/314)"
+    v1l = f"{100 * int(rec[('lenient', 'headline')]['hits']) / 314:.1f}% ({rec[('lenient', 'headline')]['hits']}/314)"
+    s, l, h = _fresh_numbers()
+    assert (s, l, h) == ("23.7% (65/274)", "60.6% (166/274)", "0/116") and (v1s, v1l) == ("12.4% (39/314)", "50.0% (157/314)")
+    note = A.ruleset_note()
+    assert note.startswith("The app runs ruleset 2026.11.10-v2 (v2).")
+    assert f"measured ruleset v1 (2026.11.08-12): {v1s} strict and {v1l} lenient" in note
+    assert f"{s} strict and {l} lenient recall, {h} hard false positives" in note
+    assert "None of the 120 fresh known-good packages has an npm install script" in note
+    assert A.summary_text() != A.SUMMARY and "ruleset v1 (2026.11.08-12, run 2)" in A.summary_text()
+    for lab in (LABEL_REVIEW, LABEL_HIGH_RISK, LABEL_NO_FINDINGS, "Fragile / unmaintained", "Not assessed", None):
+        cv = A.compact_verdict(lab)
+        assert f"This app runs ruleset 2026.11.10-v2 (v2); on a fresh, pre-registered test set v2 reached {s} strict and " \
+               f"{l} lenient recall with {h} hard false positives." in cv
+        assert "no held-out false-positive evidence" in cv and cv.endswith("Repository-mode known-bad recall is not measured.")
+    for lab in (LABEL_REVIEW, LABEL_HIGH_RISK, LABEL_NO_FINDINGS):
+        assert A.compact_verdict(lab).startswith("In the original benchmark of ruleset v1 (2026.11.08-12),")
+    assert A.load_v2()["notes"][0].startswith("The app runs this ruleset: v2 (2026.11.10-v2).")
+
+
+def test_texts_unchanged_when_the_app_runs_v1(monkeypatch):
+    monkeypatch.setattr(A, "app_ruleset", lambda: A.V1_RULESET)
+    assert A.ruleset_note() is None and A.summary_text() == A.SUMMARY
+    for lab in (LABEL_REVIEW, LABEL_HIGH_RISK, LABEL_NO_FINDINGS):
+        cv = A.compact_verdict(lab)
+        assert cv.startswith("In the benchmark,") and "This app runs" not in cv
+
+
+def test_trust_check_footer_and_verdict_show_the_running_ruleset():
+    from streamlit.testing.v1 import AppTest
+    import test_app as T
+    from detectors import RULESET_VERSION
+    from github_client import GitHubClient
+    with patch("github_client.fetch_features", T.fake_fetch), patch.object(GitHubClient, "__init__", T._fake_init):
+        at = AppTest.from_file(str(ROOT / "app.py"), default_timeout=30).run()
+        at.text_input(key="repo_input").set_value("o/r-ruleset")
+        at.button[0].click().run()
+        assert not at.exception, at.exception
+        caps = [c.value for c in at.caption]
+        assert any(c.startswith(f"Ruleset {RULESET_VERSION} ") for c in caps)
+        if RULESET_VERSION == A.V2_RULESET:
+            assert any("This app runs ruleset 2026\\.11\\.10\\-v2 \\(v2\\)" in c for c in caps)
+
+
+def test_combiner_and_guarddog_pages_label_their_data_as_v1():
+    from streamlit.testing.v1 import AppTest
+    for page in ("app_pages/3_Learned_combiner.py", "app_pages/4_Compared_with_GuardDog.py"):
+        at = AppTest.from_file(str(ROOT / "app.py"), default_timeout=30).run()
+        at.switch_page(page).run()
+        assert not at.exception, at.exception
+        caps = [c.value for c in at.caption]
+        if A.app_ruleset() != A.V1_RULESET:
+            assert any(c.startswith("Benchmark run 2 data: every number on this page measured ruleset v1 (2026.11.08-12).")
+                       and A.app_ruleset() in c for c in caps)

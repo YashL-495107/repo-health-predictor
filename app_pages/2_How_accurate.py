@@ -1,5 +1,5 @@
-"""How accurate is it? Measured numbers of benchmark run 2 (ruleset 2026.11.08-12), all read from the committed result
-files by accuracy.py. Display only."""
+"""How accurate is it? Measured numbers of benchmark run 2 (ruleset v1, 2026.11.08-12) and of the fresh test set
+(v1 vs v2), all read from the committed result files by accuracy.py. Says which ruleset the app runs. Display only."""
 import os
 import sys
 
@@ -16,6 +16,9 @@ st.markdown(APP_CSS, unsafe_allow_html=True)
 
 st.title("How accurate is it?")
 d = A.load()
+note = A.ruleset_note()
+if note:
+    st.info(note)
 st.markdown(f"**{d['summary']}**")
 
 

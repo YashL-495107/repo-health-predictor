@@ -7,7 +7,11 @@ A Streamlit app that pulls **live data from the GitHub REST API** for any public
 Paste a repo URL -> get the health score, a radar chart of the contributing factors, the evidence behind each factor,
 and a plain-English explanation.
 
-## Trust score and benchmark (frozen ruleset 2026.11.08-12)
+## Trust score and benchmark
+
+**Which ruleset the app runs.** The app runs ruleset 2026.11.10-v2 (v2). The original pre-registered benchmark (run 2) measured ruleset v1 (2026.11.08-12): 12.4% (39/314) strict and 50.0% (157/314) lenient recall without the OSV lookup. v2 was measured afterwards on a fresh, pre-registered test set (headline: excluding near-duplicates of its development items): 23.7% (65/274) strict and 60.6% (166/274) lenient recall, 0/116 hard false positives on random known-good packages. None of the 120 fresh known-good packages has an npm install script, so v2's new install-hook check has no held-out false-positive evidence (only development checks on install-hook packages). Details: section "Version 2 (fresh test set)" below.
+
+### Original pre-registered benchmark (frozen ruleset 2026.11.08-12, v1)
 
 Next to the maintenance health score, the app shows a **Trust score (0-100, indicators, not proof;
 not a safety guarantee)**: the weakest of three evidence pillars (Integrity, Behavior, Exposure) from static detectors, then evidence
@@ -52,7 +56,7 @@ or `scripts/reproduce.sh --quick` (bash); see `benchmark/README.md` section 9.
 
 ### Version 2 (fresh test set)
 
-Not the headline: **v1 above stays the official result.** Ruleset v2 (`2026.11.10-v2`, branch `ruleset-v2`) adds install-hook target tracing for npm and a deeper setup.py check. It was developed after viewing run 2, frozen (tag `ruleset-2026.11.10-v2-frozen`) and pre-registered (`benchmark/PREREG_v2.md`) before a fresh test set was scanned by both rulesets: 300 new DataDog samples (no package shared with the v1 sets; 298 scanned) and 120 new random known-good packages (116 scanned). Artifact mode, no OSV lookup, no fragility escalation. From `benchmark/RESULTS_v2.md` and `benchmark/results/fresh/`:
+**The app runs v2.** The pre-registered benchmark above measured v1 and stays the original pre-registered result. Ruleset v2 (`2026.11.10-v2`, branch `ruleset-v2`) adds install-hook target tracing for npm and a deeper setup.py check. It was developed after viewing run 2, frozen (tag `ruleset-2026.11.10-v2-frozen`) and pre-registered (`benchmark/PREREG_v2.md`) before a fresh test set was scanned by both rulesets: 300 new DataDog samples (no package shared with the v1 sets; 298 scanned) and 120 new random known-good packages (116 scanned). Artifact mode, no OSV lookup, no fragility escalation. From `benchmark/RESULTS_v2.md` and `benchmark/results/fresh/`:
 
 | fresh test set | v1 (official) | v2 |
 |---|---|---|

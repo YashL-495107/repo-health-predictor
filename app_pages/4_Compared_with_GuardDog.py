@@ -9,11 +9,16 @@ import streamlit as st
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import guarddog_results as G  # noqa: E402
+import accuracy  # noqa: E402
 from ui_text import APP_CSS  # noqa: E402
 
 st.set_page_config(page_title="Compared with GuardDog", page_icon="🩺", layout="wide")
 st.markdown(APP_CSS, unsafe_allow_html=True)
 st.title(G.TITLE)
+_rv = accuracy.app_ruleset()
+if _rv != accuracy.V1_RULESET:
+    st.caption(f"Benchmark run 2 data: every number on this page measured ruleset v1 (2026.11.08-12). The app now runs "
+               f"ruleset {_rv}, which this page does not measure (see How accurate is it?, Version 2).")
 st.error("**Caveat:** " + G.CAVEAT)
 
 if not G.available():
