@@ -46,6 +46,21 @@ replacement. Read [METHOD.md](METHOD.md), [LIMITS.md](LIMITS.md), [THREAT_MODEL.
 `benchmark/ERROR_ANALYSIS.md` before quoting any number. Reproduce with `scripts/reproduce.ps1 -Quick` (PowerShell)
 or `scripts/reproduce.sh --quick` (bash); see `benchmark/README.md` section 9.
 
+### Version 2 (fresh test set)
+
+Not the headline: **v1 above stays the official result.** Ruleset v2 (`2026.11.10-v2`, branch `ruleset-v2`) adds install-hook target tracing for npm and a deeper setup.py check. It was developed after viewing run 2, frozen (tag `ruleset-2026.11.10-v2-frozen`) and pre-registered (`benchmark/PREREG_v2.md`) before a fresh test set was scanned by both rulesets: 300 new DataDog samples (no package shared with the v1 sets; 298 scanned) and 120 new random known-good packages (116 scanned). Artifact mode, no OSV lookup, no fragility escalation. From `benchmark/RESULTS_v2.md` and `benchmark/results/fresh/`:
+
+| fresh test set | v1 (official) | v2 |
+|---|---|---|
+| Recall, strict: excluding near-duplicates of the v2 development items (headline) | 15.0% (41/274; 95% CI 11.2%-19.7%) | 23.7% (65/274; 95% CI 19.1%-29.1%) |
+| Recall, lenient: excluding near-duplicates of the v2 development items (headline) | 54.0% (148/274; 95% CI 48.1%-59.8%) | 60.6% (166/274; 95% CI 54.7%-66.2%) |
+| Recall, strict: all fresh known-bad | 13.8% (41/298; 95% CI 10.3%-18.1%) | 27.9% (83/298; 95% CI 23.1%-33.2%) |
+| Recall, lenient: all fresh known-bad | 51.3% (153/298; 95% CI 45.7%-57.0%) | 62.8% (187/298; 95% CI 57.1%-68.0%) |
+| Hard false positives, fresh random known-good | 0.0% (0/116; 95% CI 0.0%-3.2%); rule of three: at most 2.6% | 0.0% (0/116; 95% CI 0.0%-3.2%); rule of three: at most 2.6% |
+| Soft false positives (Review recommended) | 10.3% (12/116; 95% CI 6.0%-17.2%) | 10.3% (12/116; 95% CI 6.0%-17.2%) |
+
+Headline subset: excluding near-duplicates of the v2 development items (24 near-duplicates removed; v2 strict recall differs by 4.1 points between the subsets, pre-registered threshold 3). 0 of 120 fresh known-good packages have an npm install script, so the fresh set gives no false-positive evidence for the new install-hook tracer; that evidence rests on the v1 install-hook packages checked before the freeze (development data).
+
 ## Run it
 
 ```bash

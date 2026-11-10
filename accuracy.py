@@ -174,3 +174,62 @@ def readme_layered_table(d: dict | None = None) -> str:
         name = f"**{r['Layer']}: headline**" if "headline" in r["Meaning"] else r["Layer"]
         rows.append(f"| {name} | {r['Strict']} | {r['Lenient']} | {r['Meaning'].replace(' (headline)', '')} |")
     return head + "\n".join(rows) + "\n"
+
+
+# ------------------------------------------------------------------ ruleset v2, fresh held-out set (branch ruleset-v2)
+FRESH = ROOT / "benchmark" / "results" / "fresh"
+FRESH_GOOD = ROOT / "benchmark" / "manifests" / "fresh" / "known_good.csv"
+SUBSET_LABEL = {"a": "all fresh known-bad", "b": "excluding near-duplicates of the v2 development items"}
+
+
+def load_v2(fresh_dir: Path = FRESH, good_manifest: Path = FRESH_GOOD) -> dict | None:
+    """v1 vs v2 on the fresh held-out set, read from benchmark/results/fresh/*.csv (results_v2.py). None when the
+    files are not there (main, or before the fresh runs)."""
+    try:
+        head = _rows("headline.csv", fresh_dir)[0]
+        summ = {(r["ruleset"], r["subset"], r["metric"]): r for r in _rows("summary.csv", fresh_dir)}
+        buck = {(r["ruleset"], r["subset"], r["bucket"], r["metric"]): r for r in _rows("per_bucket.csv", fresh_dir)}
+        with open(good_manifest, newline="", encoding="utf-8") as fh:
+            good = list(csv.DictReader(line for line in fh if not line.startswith("#")))
+    except (OSError, IndexError, KeyError):
+        return None
+    h = head["subset"]
+    other = "a" if h == "b" else "b"
+    recall = []
+    for s in (h, other):
+        for op in ("strict", "lenient"):
+            recall.append({"Metric": f"Recall, {op}: {SUBSET_LABEL[s]}" + (" (headline)" if s == h else ""),
+                           "v1 (official, 2026.11.08-12)": rate_from_row(summ[("v1", s, f"recall_{op}")], "k"),
+                           "v2 (2026.11.10-v2)": rate_from_row(summ[("v2", s, f"recall_{op}")], "k")})
+    for kind, lab in (("hard", "Hard false positives, fresh random known-good"),
+                      ("soft", "Soft false positives (Review recommended)")):
+        recall.append({"Metric": lab, "v1 (official, 2026.11.08-12)": rate_from_row(summ[("v1", "all", f"fp_{kind}")], "k"),
+                       "v2 (2026.11.10-v2)": rate_from_row(summ[("v2", "all", f"fp_{kind}")], "k")})
+    buckets = []
+    for b in ("npm install hook", "PyPI setup.py", "other"):
+        g = {(k, m): buck[(k, h, b, m)] for k in ("v1", "v2") for m in ("recall_strict", "recall_lenient")}
+        buckets.append({"Bucket": b, "v1 strict": rate_from_row(g[("v1", "recall_strict")], "k"),
+                        "v2 strict": rate_from_row(g[("v2", "recall_strict")], "k"),
+                        "v1 lenient": rate_from_row(g[("v1", "recall_lenient")], "k"),
+                        "v2 lenient": rate_from_row(g[("v2", "recall_lenient")], "k")})
+    hooks = sum(1 for r in good if (r.get("install_scripts") or "").strip())
+    notes = [
+        "v1 (ruleset 2026.11.08-12, run 2) remains the official headline above. Version 2 is a separate ruleset "
+        "(branch ruleset-v2), developed after viewing run 2 and frozen (tag ruleset-2026.11.10-v2-frozen) before a "
+        "fresh test set was scanned by both rulesets.",
+        f"Headline subset: {SUBSET_LABEL[h]} ({head['near_duplicates']} near-duplicates removed; v2 strict recall "
+        f"differs by {float(head['v2_strict_gap_pp']):.1f} points between the subsets, pre-registered threshold "
+        f"{float(head['threshold_pp']):.0f}).",
+        f"{hooks} of {len(good)} fresh known-good packages have an npm install script, so the fresh set gives no "
+        "false-positive evidence for the new install-hook tracer; that evidence rests on the v1 install-hook packages "
+        "checked before the freeze (development data).",
+    ]
+    return {"recall": recall, "buckets": buckets, "notes": notes, "headline_subset": h}
+
+
+def readme_v2_table(v2: dict | None = None) -> str:
+    """The README 'Version 2 (fresh test set)' table, from the same rows as the page; tests check the README has it."""
+    v2 = v2 or load_v2()
+    out = "| fresh test set | v1 (official) | v2 |\n|---|---|---|\n"
+    return out + "\n".join(f"| {r['Metric']} | {r['v1 (official, 2026.11.08-12)']} | {r['v2 (2026.11.10-v2)']} |"
+                           for r in v2["recall"]) + "\n"

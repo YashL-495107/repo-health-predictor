@@ -73,5 +73,19 @@ with st.container(border=True):
     for line in d["not_measured"]:
         st.markdown("- " + line)
 
+v2 = A.load_v2()
+if v2:
+    with st.container(border=True):
+        st.markdown("#### Version 2 (fresh test set)")
+        st.markdown(v2["notes"][0])
+        table(v2["recall"])
+        st.markdown("**Recall per bucket** (headline subset)")
+        table(v2["buckets"])
+        for line in v2["notes"][1:]:
+            st.caption(line)
+        st.caption("Artifact mode, no OSV lookup, no fragility escalation (v1's headline configuration). Details: "
+                   f"[benchmark/RESULTS_v2.md]({A.REPO_URL}benchmark/RESULTS_v2.md) · "
+                   f"[benchmark/PREREG_v2.md]({A.REPO_URL}benchmark/PREREG_v2.md)")
+
 st.caption("Indicators, not proof. No findings does not mean safe. Numbers are read from benchmark/results/run2/, "
            "benchmark/RESULTS.md and benchmark/ERROR_ANALYSIS.md.")

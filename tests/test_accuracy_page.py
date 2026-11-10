@@ -155,7 +155,11 @@ def test_sidebar_page_order():
     heads = [m.value for m in at.markdown if m.value.startswith("#### ")]
     assert heads == ["#### Layered detection (known-bad samples, artifact mode)", "#### False positives",
                      "#### Precision (at the benchmark's class ratio)", "#### Per detector", "#### Why it misses",
-                     "#### How it was measured", "#### What is NOT measured"]
+                     "#### How it was measured", "#### What is NOT measured"] + (
+        ["#### Version 2 (fresh test set)"] if A.load_v2() else [])
+    if A.load_v2():
+        v2t = next(t for t in tables if t.index.name == "Metric")
+        assert list(v2t["v2 (2026.11.10-v2)"]) == [r["v2 (2026.11.10-v2)"] for r in A.load_v2()["recall"]]
 
 
 def _md_escape(text):
@@ -177,3 +181,50 @@ def test_trust_check_shows_the_compact_summary_and_link():
         assert any(c in {_md_escape(A.compact_verdict(l)) for l in labels} for c in caps)
         assert not any(list(df.value.columns) == ["Mode", "Measure", "Measured"] for df in at.dataframe)
         assert "pages/2_How_accurate.py" in (ROOT / "trust_check.py").read_text(encoding="utf-8")
+
+
+# ------------------------------------------------------------------ version 2 (fresh test set, branch ruleset-v2)
+FRESH = ROOT / "benchmark" / "results" / "fresh"
+
+
+def test_v2_rows_equal_fresh_csvs():
+    import pytest
+    v2 = A.load_v2()
+    if v2 is None:
+        pytest.skip("no fresh results on this branch")
+    summ = {(r["ruleset"], r["subset"], r["metric"]): r for r in csv.DictReader(open(FRESH / "summary.csv", encoding="utf-8"))}
+    head = next(csv.DictReader(open(FRESH / "headline.csv", encoding="utf-8")))["subset"]
+    other = "a" if head == "b" else "b"
+    want = []
+    for sub in (head, other):
+        for op in ("strict", "lenient"):
+            want.append(tuple(fmt(r["rate"], r["k"], r["n"], r["ci_low"], r["ci_high"])
+                              for r in (summ[("v1", sub, f"recall_{op}")], summ[("v2", sub, f"recall_{op}")])))
+    for kind in ("hard", "soft"):
+        want.append(tuple(fmt(r["rate"], r["k"], r["n"], r["ci_low"], r["ci_high"], r["rule_of_three"])
+                          for r in (summ[("v1", "all", f"fp_{kind}")], summ[("v2", "all", f"fp_{kind}")])))
+    got = [(r["v1 (official, 2026.11.08-12)"], r["v2 (2026.11.10-v2)"]) for r in v2["recall"]]
+    assert got == want
+    md = (ROOT / "benchmark" / "RESULTS_v2.md").read_text(encoding="utf-8")
+    assert all(x in md for pair in got for x in pair)
+
+
+def test_v2_readme_section():
+    import pytest
+    v2 = A.load_v2()
+    if v2 is None:
+        pytest.skip("no fresh results on this branch")
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    assert "### Version 2 (fresh test set)" in readme and A.readme_v2_table(v2) in readme
+    assert "**v1 above stays the official result.**" in readme
+    for line in v2["notes"][1:]:
+        assert line in readme
+    man = ROOT / "benchmark" / "manifests" / "fresh"
+
+    def n(path, pred=lambda r: True):
+        with open(path, newline="", encoding="utf-8") as fh:
+            return sum(1 for r in csv.DictReader(x for x in fh if not x.startswith("#")) if pred(r))
+    summ = {(r["ruleset"], r["subset"], r["metric"]): r for r in csv.DictReader(open(FRESH / "summary.csv", encoding="utf-8"))}
+    assert f"{n(man / 'datadog_selection.csv')} new DataDog samples" in readme
+    assert f"{summ[('v2', 'a', 'recall_strict')]['n']} scanned)" in readme
+    assert f"{n(man / 'known_good.csv')} new random known-good packages ({summ[('v2', 'all', 'fp_hard')]['n']} scanned)" in readme
