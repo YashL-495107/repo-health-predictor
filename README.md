@@ -12,16 +12,24 @@ and a plain-English explanation.
 Next to the maintenance health score, the app shows a **Trust score (0-100, indicators, not proof;
 not a safety guarantee)**: the weakest of three evidence pillars (Integrity, Behavior, Exposure) from static detectors, then evidence
 caps. It was benchmarked once on a held-out test set with a frozen ruleset (git tag `ruleset-2026.11.08-12-frozen`).
-Headline (artifact mode, no OSV lookup, run 2), from `benchmark/RESULTS.md`:
+Headline: the **behavior detectors only** row (artifact mode, no OSV lookup, run 2). The other two rows are upper bounds,
+because the known-bad labels come from the same OSV MAL- records the lookup uses (circular). From `benchmark/RESULTS.md`
+and `benchmark/results/run2/`:
 
-| measure | result |
+| layer (known-bad samples, artifact mode) | strict | lenient | what it means |
+|---|---|---|---|
+| Known-malware database (OSV MAL- lookup) alone | 72.3% (227/314) | n/a (no tiers) | upper bound: the known-bad labels come from the same database (circular) |
+| **Behavior detectors only (never-seen malware): headline** | 12.4% (39/314; 95% CI 9.2%-16.5%) | 50.0% (157/314; 95% CI 44.5%-55.5%) | the fair measure of detecting new malware |
+| Full system as the app runs (detectors + OSV) | 77.1% (242/314; 95% CI 72.1%-81.4%) | 85.0% (267/314; 95% CI 80.7%-88.6%) | upper bound, same caveat (circular) |
+
+| false positives | result |
 |---|---|
-| known-bad strict recall | 12.4% (39/314; 95% CI 9.2%-16.5%) |
-| known-bad lenient recall | 50.0% (157/314; 95% CI 44.5%-55.5%) |
 | random known-good strict / hard false positives | 0/117 (rule of three: at most 2.6%) |
 | random known-good lenient false positives | 14.5% (17/117) |
 | scary-but-legitimate lenient false positives | 4/18 |
 | dormant libraries flagged | 0/12 |
+
+All numbers, with the repository-mode false-positive rates, are on the app's **How accurate is it?** page.
 
 **Run 2 is the headline; run 1 is superseded.** In run 1, Windows Defender had removed extracted `.sample` files
 of known-bad DataDog items (136 files in 122 items, measured by `benchmark/verify_samples.py`), so run-1 known-bad recall

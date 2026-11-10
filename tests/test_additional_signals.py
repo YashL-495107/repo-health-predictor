@@ -299,12 +299,12 @@ def test_app_shows_the_panels_without_changing_the_score():
         assert not at2.exception, at2.exception
         md = [m.value for m in at2.markdown]
         assert f"#### {AS.PANEL_TITLE}" in md
-        assert "##### What this verdict meant in the benchmark" in md
+        assert any(c.value.startswith("In the benchmark") or "benchmark" in c.value for c in at2.caption)
         frames = [df.value for df in at2.dataframe]
         dom = next(f for f in frames if "Domain checked" in f.columns)
         assert list(dom["Domain checked"]) == ["diginow.it"] and list(dom["Flag"]) == [AS.FLAG_NOT_REGISTERED]
         assert any("Takeover-risk indicator, not proof" in w.value for w in at2.warning)
-        assert any(list(f.columns) == ["Mode", "Measure", "Measured"] for f in frames)
+        assert not any(list(f.columns) == ["Mode", "Measure", "Measured"] for f in frames)   # compact summary now
         # the Trust score card and the verdict are identical with and without the signals
         card = lambda ms: [m for m in ms if "rh-card" in m]                           # noqa: E731
         assert card(md) == card(base_md) and card(md)
