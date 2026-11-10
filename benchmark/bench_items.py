@@ -146,13 +146,13 @@ def load_items() -> list[dict]:
         if r.get("status") != "extracted":
             continue
         items.append(_item("known_bad", r["ecosystem"], r["package"], r["version"], id_=r["id"], source="datadog",
-                           extra={"split": "fresh", "obtainable": "yes",
+                           extra={"split": "fresh", "origin": "fresh", "obtainable": "yes",
                                   "obtainable_detail": f"DataDog sample {r['sample_path']}",
                                   "sample_dir": r["sample_dir"], "sha256": r.get("zip_sha256", "")}))
     for r in read_manifest(FRESH / "known_good.csv"):
         items.append(_item("known_good", r["ecosystem"], r["package"], r["version"], repo=r.get("repo", ""),
                            id_=f"fresh_known_good:{r['ecosystem']}:{r['package']}@{r['version']}", source="fresh/known_good.csv",
-                           extra={"split": "fresh", "sha256": r.get("sha256", ""), "npm_integrity": r.get("npm_integrity", ""),
+                           extra={"split": "fresh", "origin": "fresh", "sha256": r.get("sha256", ""), "npm_integrity": r.get("npm_integrity", ""),
                                   "obtainable": "yes" if r.get("version") else "no"}))
     for r in read_manifest(MAN / "replay_incidents.csv"):
         tgt = REPLAY_TARGETS.get(r["incident"])
@@ -206,6 +206,14 @@ def assign_splits(items: list[dict], dev: dict | None = None) -> tuple[list[dict
 
 def all_items() -> tuple[list[dict], list[dict]]:
     return assign_splits(load_items())
+
+
+def v1_items() -> tuple[list[dict], list[dict]]:
+    """all_items() without the fresh held-out set (origin "fresh", also when moved to dev): what the v1 tools
+    (prepare_known_bad, compare_chat_ai, selfcheck) work on, so their outputs do not depend on manifests/fresh/."""
+    items, moves = all_items()
+    fresh = {i["id"] for i in items if i.get("origin") == "fresh"}
+    return [i for i in items if i["id"] not in fresh], [m for m in moves if m["id"] not in fresh]
 
 
 def main() -> int:

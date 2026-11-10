@@ -129,7 +129,7 @@ def local_checks(samples_dir: Path, cache_dir: Path) -> list[tuple]:
 def dev_items() -> list[tuple[str, str, dict]]:
     """(check name, mode, item): one dev repo-mode item, one dev npm artifact item, one dev PyPI artifact item."""
     import bench_items
-    items, _ = bench_items.all_items()
+    items, _ = bench_items.v1_items()
     dev = sorted((i for i in items if i["split"] == "dev"), key=lambda i: i["id"])
     pypi = next(i for i in dev if i["ecosystem"] == "PyPI" and i["package"])
     npm = next((i for i in dev if i["ecosystem"] == "npm" and i["package"]), None)

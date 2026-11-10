@@ -322,3 +322,10 @@ def test_results_v2_build():
     assert any(r["id"] == "b3" for r in t["not_scored"])
     with pytest.raises(SystemExit):
         R.build(v2, v2, facts)                                     # the v1 slot must hold a v1 run
+
+
+def test_v1_tools_ignore_the_fresh_set():
+    import bench_items as B
+    items, _ = B.v1_items()
+    assert not any(i.get("origin") == "fresh" or i["split"] == "fresh" for i in items)
+    assert len(items) == len([i for i in B.all_items()[0] if i.get("origin") != "fresh"])

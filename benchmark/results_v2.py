@@ -40,8 +40,8 @@ def fresh_rows(run: dict, category: str) -> list[dict]:
 
 def rate(k: int, n: int) -> dict:
     ci = M.wilson(k, n)
-    return {"k": k, "n": n, "rate": round(k / n, 4) if n else None,
-            "ci_low": round(ci[0], 4) if ci else None, "ci_high": round(ci[1], 4) if ci else None}
+    return {"k": k, "n": n, "rate": round(k / n, 6) if n else None,
+            "ci_low": round(ci[0], 6) if ci else None, "ci_high": round(ci[1], 6) if ci else None}
 
 
 def recall(rows: list[dict], tiers) -> dict:
@@ -66,7 +66,8 @@ def check_run(name: str, run: dict) -> dict:
     return cfg
 
 
-def build(v1: dict, v2: dict, facts: list[dict]) -> tuple[list[str], dict]:
+def build(v1: dict, v2: dict, facts: list[dict], extracted: list[dict] | None = None,
+          good_manifest: list[dict] | None = None) -> tuple[list[str], dict]:
     c1, c2 = check_run("v1", v1), check_run("v2", v2)
     fx = {f["id"]: f for f in facts}
     runs = {"v1": v1, "v2": v2}
@@ -83,12 +84,12 @@ def build(v1: dict, v2: dict, facts: list[dict]) -> tuple[list[str], dict]:
         for which in ("a", "b"):
             for op, t in M.OPS.items():
                 summary.append({"ruleset": k, "set": "known_bad", "subset": which, "metric": f"recall_{op}",
-                                **recall(subset(bad[k], which), t)})
+                                **recall(subset(bad[k], which), t), "rule_of_three": None})
         fb = M.fp_block(good[k])
         for kind in ("hard", "soft", "lenient"):
             summary.append({"ruleset": k, "set": "known_good", "subset": "all", "metric": f"fp_{kind}",
                             **rate(fb[kind]["fp"], fb[kind]["n"]),
-                            "rule_of_three": round(M.rule_of_three(fb[kind]["n"]), 4) if fb[kind]["fp"] == 0 and fb[kind]["n"] else None})
+                            "rule_of_three": round(M.rule_of_three(fb[kind]["n"]), 6) if fb[kind]["fp"] == 0 and fb[kind]["n"] else None})
     get = {(s["ruleset"], s["subset"], s["metric"]): s for s in summary}
     a, b = get[("v2", "a", "recall_strict")], get[("v2", "b", "recall_strict")]
     gap = abs((a["rate"] or 0) - (b["rate"] or 0)) * 100
@@ -148,6 +149,21 @@ def build(v1: dict, v2: dict, facts: list[dict]) -> tuple[list[str], dict]:
     L += M._table(["class / status", "v1", "v2"], [[f"{c} / {s}", cnt["v1"].get((c, s), 0), cnt["v2"].get((c, s), 0)]
                                                   for c, s in cats])
     nd = Counter(f["near_duplicate"] for f in facts)
+    if extracted is not None:
+        st = Counter(r.get("status") for r in extracted)
+        not_ext = [r for r in extracted if r.get("status") != "extracted"]
+        L += ["", f"Fresh known-bad selection: {len(extracted)} ZIPs; {st.get('extracted', 0)} extracted and scanned; "
+              f"{len(not_ext)} not extracted, so not run items and not scored: "
+              + ("; ".join(f"{r['id']} ({r.get('reason') or r.get('status')})" for r in not_ext) or "none") + "."]
+    if good_manifest is not None:
+        hooks = [r["package"] for r in good_manifest if (r.get("install_scripts") or "").strip()]
+        L += ["", f"**Fresh known-good install scripts: {len(hooks)} of {len(good_manifest)} packages declare an npm install "
+              "script** (manifest column install_scripts" + (": " + ", ".join(hooks) if hooks else "") + "). "
+              + ("So the fresh set gives no false-positive evidence for the install-hook tracer (`install_hook_target`): "
+                 "its false-positive evidence rests on the v1 npm install-hook packages checked before the freeze "
+                 "(\"v2 dev\", PREREG_v2.md section 2: esbuild, puppeteer, @swc/core, cypress traced with no finding; "
+                 "core-js traced from its tarball, no finding), which are development data, not held-out evidence."
+                 if not hooks else "")]
     L += ["", f"Near-duplicates of the 76 dev items (pre-scan, PREREG_v2.md section 4): {nd.get('yes', 0)} of {len(facts)} "
           "extracted fresh known-bad items. Rules that fired: " + (", ".join(f"{k} {v}" for k, v in Counter(
               r for f in facts for r in f["near_duplicate_rules"].split(";") if r).most_common()) or "none") + "."]
@@ -169,6 +185,13 @@ def build(v1: dict, v2: dict, facts: list[dict]) -> tuple[list[str], dict]:
                       ("lenient", "any review-or-above finding, known-good")):
         rows.append([lab, rt(get[("v1", "all", f"fp_{kind}")], kind == "hard"), rt(get[("v2", "all", f"fp_{kind}")], kind == "hard")])
     L += M._table(["metric", "v1", "v2"], rows)
+    g_both = [i for i in sorted({r["id"] for r in good["v2"]}) if M.scored(v1.get(i) or {}) and M.scored(v2.get(i) or {})]
+    lab = [i for i in g_both if v1[i].get("label") != v2[i].get("label")]
+    cnt_diff = [i for i in g_both if v1[i].get("findings_by_tier") != v2[i].get("findings_by_tier")]
+    L += ["", f"Fresh known-good scored by both: {len(g_both)}; label different between v1 and v2: {len(lab)}"
+          + (f" ({', '.join(lab)})" if lab else "") + f"; finding counts different: {len(cnt_diff)}"
+          + (": " + "; ".join(f"{i} ({v1[i]['findings_by_tier']} -> {v2[i]['findings_by_tier']}, v2 detectors: "
+                              f"{' + '.join(M.detectors_fired(v2[i], M.LENIENT))})" for i in cnt_diff) if cnt_diff else "") + "."]
     L += ["", "Paired on items scored by both rulesets (headline subset): "]
     for op in M.OPS:
         p = paired[op]
@@ -201,7 +224,9 @@ def build(v1: dict, v2: dict, facts: list[dict]) -> tuple[list[str], dict]:
           "separately as subset (b).",
           "- The fresh known-good set is a new random sample of popular packages; scary and dormant sets were not redrawn.",
           "- No AI layer, no OSV MAL- lookup, no fragility escalation (the headline configuration of v1)."]
-    tables = {"summary": summary, "per_bucket": per_bucket, "per_detector_v2": per_det, "items": items,
+    tables = {"headline": [{"subset": head, "v2_strict_gap_pp": round(gap, 2), "threshold_pp": HEADLINE_GAP_PP,
+                            "near_duplicates": len(near & {r["id"] for r in bad["v2"]})}],
+              "summary": summary, "per_bucket": per_bucket, "per_detector_v2": per_det, "items": items,
               "not_scored": not_scored}
     return L, tables
 
@@ -217,7 +242,9 @@ def main(argv=None) -> int:
     facts = bench_items.read_manifest(Path(a.facts))
     if not facts:
         raise SystemExit(f"no pre-scan facts in {a.facts}: run fresh_set.py facts first")
-    lines, tables = build(M.load_run(a.v1), M.load_run(a.v2), facts)
+    lines, tables = build(M.load_run(a.v1), M.load_run(a.v2), facts,
+                          bench_items.read_manifest(bench_items.MAN / "fresh" / "datadog_extracted.csv"),
+                          bench_items.read_manifest(bench_items.MAN / "fresh" / "known_good.csv"))
     Path(a.out).write_text("\n".join(lines) + "\n", encoding="utf-8")
     for p in M.write_csvs(tables, Path(a.csv_dir)):
         print("wrote", p)

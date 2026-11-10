@@ -41,7 +41,7 @@ def has_code(item: dict, samples_root: Path) -> tuple[str, str]:
 
 
 def build(samples_root: Path) -> list[dict]:
-    items, _moves = bench_items.all_items()
+    items, _moves = bench_items.v1_items()
     rows = []
     for it in sorted((i for i in items if i["category"] == "known_bad"), key=lambda i: i["id"]):
         code, detail = has_code(it, samples_root)
