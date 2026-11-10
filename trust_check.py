@@ -24,7 +24,7 @@ from ui_text import (APP_CSS, NEUTRAL_COLOR, TRUST_DISCLAIMER, app_version, chip
                      filter_findings, headline_label, partial_badge, result_json, trust_drivers)
 import additional_signals as AS
 import killchain
-from verdict_meaning import verdict_meaning
+from accuracy import compact_verdict
 from blast_radius import analyze_blast_radius
 from detectors import RULESET_VERSION, TIER_DISPLAY
 from releases import collect_release_context
@@ -315,17 +315,10 @@ def render_checks(res: dict):
 
 
 def render_verdict_meaning(label_base: str | None):
-    """Measured benchmark numbers for this verdict, read from benchmark/results/run2 (verdict_meaning.py)."""
-    vm = verdict_meaning(label_base)
-    with st.container(border=True):
-        st.markdown("##### What this verdict meant in the benchmark")
-        st.caption(_md_escape(f"{label_base or 'This label'}: {vm['meaning']}"))
-        if vm["available"]:
-            st.dataframe(pd.DataFrame(vm["rows"]), hide_index=True, width="stretch", height=36 * (len(vm["rows"]) + 1) + 3)
-            if vm["extra"]:
-                st.caption(_md_escape(vm["extra"]))
-        st.caption(_md_escape(vm["mode_note"]))
-        st.caption(_md_escape(vm["source_note"]))
+    """One or two lines on what this verdict meant in benchmark run 2 (accuracy.compact_verdict, read from the run-2
+    CSVs), and a link to the full "How accurate is it?" page."""
+    st.caption(_md_escape(compact_verdict(label_base)))
+    st.page_link("pages/2_How_accurate.py", label="How accurate is it? (all benchmark numbers)", icon="📊")
 
 
 DOMAIN_STATUS = {"registered": "registered", "not_registered": "not registered", "could_not_check": AS.COULD_NOT_CHECK}
