@@ -47,7 +47,7 @@ def test_app_bad_input():
 def test_sample_button_autoruns():
     with patch("github_client.fetch_features", fake_fetch), patch.object(GitHubClient, "__init__", _fake_init):
         at = AppTest.from_file(os.path.join(os.path.dirname(__file__), "..", "app.py"), default_timeout=30).run()
-        next(b for b in at.button if b.label == "pallets/flask").click().run()
+        next(b for b in at.button if b.label == "psf/requests").click().run()
         assert not at.exception and not at.error
         assert any("Trust score" in md.value for md in at.markdown)  # headline relabelled in Phase 1 (trust engine)
         print("sample button OK")

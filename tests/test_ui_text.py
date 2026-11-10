@@ -183,12 +183,16 @@ def test_assessment_gaps_next_to_the_score():
     assert assessment_gaps(full, "Python", "ran") == []
 
 
-def test_trust_section_sits_directly_before_the_renamed_maintenance_section():
+def test_trust_section_is_in_overview_and_maintenance_keeps_its_own_tab():
+    """Tabbed layout (UI polish): "What drives the Trust score" closes the Overview tab; the renamed Maintenance section
+    opens the Maintenance tab, so the two are still not mixed."""
     src = open(APP, encoding="utf-8").read()
+    assert 'st.tabs(["Overview", "Findings", "Supply chain", "Maintenance", "What was checked"])' in src
     head = 'st.markdown("#### What drives the Trust score")'
-    i, j = src.index(head), \
-        src.index('st.markdown(f"#### Maintenance (separate from the Trust score; can cap it at {MAINTENANCE_CEILING} when fragile)")')
-    assert i < j and "#### " not in src[i + len(head):j]                # no other section in between
+    maint = 'st.markdown(f"#### Maintenance (separate from the Trust score; can cap it at {MAINTENANCE_CEILING} when fragile)")'
+    i, f, m = src.index(head), src.index("    with t_find:"), src.index("    with t_maint:")
+    assert src.index("    with t_over:") < i < f and "#### " not in src[i + len(head):f]   # last section of Overview
+    assert src[m:].lstrip().split("\n", 1)[1].strip().startswith(maint)                    # first of Maintenance
     assert "What drives the maintenance score" not in src
 
 
@@ -202,9 +206,11 @@ def test_app_renders_the_trust_drivers_section():
         at.text_input(key="repo_input").set_value("https://github.com/o/r")
         at.button[0].click().run()
         assert not at.exception, at.exception
-        heads = [md.value for md in at.markdown if md.value.startswith("#### ")]
-        k = heads.index("#### What drives the Trust score")
-        assert heads[k + 1] == "#### Maintenance (separate from the Trust score; can cap it at 50 when fragile)"
+        assert [t.label for t in at.tabs] == ["Overview", "Findings", "Supply chain", "Maintenance", "What was checked"]
+        over = [md.value for md in at.tabs[0].markdown if md.value.startswith("#### ")]
+        maint = [md.value for md in at.tabs[3].markdown if md.value.startswith("#### ")]
+        assert over[-1] == "#### What drives the Trust score"
+        assert maint[0] == "#### Maintenance (separate from the Trust score; can cap it at 50 when fragile)"
         frames = [df.value for df in at.dataframe]
         assert any(list(f.columns) == ["Pillar", "Score", "Detectors ran", "Limiting"] and
                    list(f["Pillar"]) == ["Integrity", "Behavior", "Exposure"] for f in frames)

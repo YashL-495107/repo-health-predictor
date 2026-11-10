@@ -121,3 +121,62 @@ def assessment_gaps(res: dict, language: str | None, code_scan: str | None) -> l
     elif code_scan in ("unavailable", "not_run"):
         out.append("Python code scan did not run")
     return out
+
+
+PARTIAL_BADGE = PARTIAL_NOTE     # "Partial assessment"
+
+
+def partial_badge(res: dict, gaps: list[str]) -> dict | None:
+    """The "Partial assessment" badge next to the Trust score: shown when apply_gate marked the result partial, when an
+    evidence pillar was not assessed or not applicable, or when code was not code-scanned (assessment_gaps). Display
+    only: built from values already computed. {"label": str, "reason": str} or None for a complete assessment."""
+    reasons: list[str] = []
+    for r in list(res.get("partial_reasons") or []) + list(gaps or []):
+        r = str(r).strip().rstrip(".")
+        if r and r not in reasons:
+            reasons.append(r)
+    if not (res.get("partial") or reasons):
+        return None
+    return {"label": PARTIAL_BADGE, "reason": "; ".join(reasons) or "some checks did not run"}
+
+
+def filter_findings(rows: list[dict], severities: list[str] | None, query: str | None) -> list[dict]:
+    """Findings-table filter: keep rows whose severity ("sev") is selected (all when none is selected) and whose rule,
+    file or source contains the search text (case-insensitive). Rows are returned unchanged, in their order."""
+    sel = set(severities or [])
+    q = (query or "").strip().lower()
+    out = []
+    for r in rows:
+        if sel and r.get("sev") not in sel:
+            continue
+        if q and not any(q in str(r.get(k) or "").lower() for k in ("rule", "file", "source")):
+            continue
+        out.append(r)
+    return out
+
+
+_SECRET_KEY = ("token", "api_key", "apikey", "authorization", "password", "secret_key", "gemini_key")
+
+
+def result_json(data: dict, secrets: list[str] | tuple = ()) -> str:
+    """The in-memory analysis result as JSON for download. Keys that name a credential are dropped and any occurrence
+    of the given secret values (the GitHub token, the Gemini key) is replaced by "[redacted]", so neither can leave in
+    the file. Values that are not JSON types are written as text. Nothing is recomputed."""
+    import json
+    vals = [s for s in secrets if isinstance(s, str) and len(s) >= 4]
+
+    def clean(x):
+        if isinstance(x, dict):
+            return {str(k): clean(v) for k, v in x.items()
+                    if not any(t in str(k).lower() for t in _SECRET_KEY)}
+        if isinstance(x, (list, tuple, set)):
+            return [clean(v) for v in x]
+        if isinstance(x, str):
+            for s in vals:
+                x = x.replace(s, "[redacted]")
+            return x
+        if x is None or isinstance(x, (bool, int, float)):
+            return x
+        return clean(str(x))
+
+    return json.dumps(clean(data), indent=2, ensure_ascii=False, sort_keys=True)
