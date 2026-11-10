@@ -1,0 +1,7 @@
+check,feature_set,model,value,n,ci_low,ci_high,note
+ceiling: known-bad with an all-zero feature vector,A_strict,-,53,314,,,77 of 117 known-good are all-zero too; at 0% FP at most 261 of 314 known-bad can be ranked above them
+ceiling: known-bad with an all-zero feature vector,A,-,53,314,,,71 of 117 known-good are all-zero too; at 0% FP at most 261 of 314 known-bad can be ranked above them
+ceiling: known-bad with an all-zero feature vector,B,-,39,314,,,70 of 117 known-good are all-zero too; at 0% FP at most 275 of 314 known-bad can be ranked above them
+ceiling: known-bad with an all-zero feature vector,C,-,0,314,,,0 of 117 known-good are all-zero too; at 0% FP at most 314 of 314 known-bad can be ranked above them
+shuffled labels: ROC AUC,A_strict,logistic_regression,0.457251,431,0.398139,0.523699,labels permuted with seed 20261107; should be near 0.5
+shuffled labels: ROC AUC,A,logistic_regression,0.467731,431,0.407344,0.533200,labels permuted with seed 20261107; should be near 0.5

@@ -11,6 +11,7 @@ PAGES = [
     st.Page("pages/1_Dependency_Audit.py", title="Dependency Audit", url_path="Dependency_Audit"),
     st.Page("pages/1_Upgrade_check.py", title="Upgrade check", url_path="Upgrade_check"),
     st.Page("pages/2_How_accurate.py", title="How accurate is it?", url_path="How_accurate"),
+    st.Page("pages/3_Learned_combiner.py", title="Learned combiner (experimental)", url_path="Learned_combiner"),
 ]
 
 st.navigation(PAGES).run()

@@ -1,1 +1,2 @@
 pytest>=8
+scikit-learn==1.9.1    # benchmark/ml_combiner.py only (research; the app does not import it)
