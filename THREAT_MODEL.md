@@ -46,6 +46,17 @@ A package or repository whose published code or metadata contains:
   have far fewer malicious packages, so real-world precision is lower and was not measured.
 - **Dual-use code is flagged.** Security tools contain the same code as the malware they test for.
 
+## Additional signals (informational)
+
+Two post-freeze signals are shown in their own panel and never change the score or the verdict; they are
+unvalidated (no benchmark number) and need the network (a failed lookup says "could not check"):
+
+- **Maintainer email domain takeover** (in scope as an indicator, not proof): a maintainer's contact domain that is
+  not registered, or was registered after the latest release, may let someone else receive that maintainer's
+  password-reset mail and publish under the account.
+- **Provenance identity:** whether the repository named in a PyPI / npm attestation is the scanned repository. The
+  attestation signature is not cryptographically verified here, so a forged or replayed attestation is out of scope.
+
 ## Adversary assumption
 
 An attacker who knows these rules can avoid them (for example by keeping a single indicator in a test or docs path,

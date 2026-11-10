@@ -1,0 +1,23 @@
+{
+ "_recorded": "registry.npmjs.org/node-ipc, 2026-11-10, trimmed to the fields used; e-mail local parts redacted",
+ "dist-tags": {
+  "latest": "14.0.0"
+ },
+ "maintainers": [
+  {
+   "email": "redacted@diginow.it",
+   "name": "riaevangelist"
+  }
+ ],
+ "name": "node-ipc",
+ "time": {
+  "14.0.0": "2026-08-24T22:17:14.926Z"
+ },
+ "versions": {
+  "14.0.0": {
+   "dist": {
+    "tarball": "https://registry.npmjs.org/node-ipc/-/node-ipc-14.0.0.tgz"
+   }
+  }
+ }
+}

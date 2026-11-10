@@ -1,0 +1,15 @@
+{
+ "_recorded": "pypi.org/integrity/sampleproject/4.0.0/sampleproject-4.0.0.tar.gz/provenance, 2026-11-10; attestations removed (not used)",
+ "version": 1,
+ "attestation_bundles": [
+  {
+   "publisher": {
+    "claims": null,
+    "environment": "",
+    "kind": "GitHub",
+    "repository": "pypa/sampleproject",
+    "workflow": "release.yml"
+   }
+  }
+ ]
+}

@@ -5,6 +5,7 @@ import queue
 import re
 import threading
 import time
+from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor
 import pandas as pd
 import plotly.graph_objects as go
@@ -19,8 +20,10 @@ from repo_scan import scan_repo
 from bus_factor import run_bus_factor_analysis
 import hashlib
 from intelligence import build_ai_cards, SuccessCache, gather_repo_intel, run_ai_layer, _configured_model, resolve_gemini_key, _MISSING
-from ui_text import (NEUTRAL_COLOR, TRUST_DISCLAIMER, assessment_gaps, blast_display, filter_findings,
-                     headline_label, partial_badge, result_json, trust_drivers)
+from ui_text import (NEUTRAL_COLOR, TRUST_DISCLAIMER, app_version, assessment_gaps, blast_display, evidence_receipt,
+                     filter_findings, headline_label, partial_badge, result_json, trust_drivers)
+import additional_signals as AS
+from verdict_meaning import verdict_meaning
 from blast_radius import analyze_blast_radius
 from detectors import RULESET_VERSION, TIER_DISPLAY
 from releases import collect_release_context
@@ -139,6 +142,38 @@ def ai_layer(owner: str, repo: str, gemini_key: str, data: dict) -> dict:
         ai = {"ai_report": {"executive_memo": "", "issue_triage_summary": "", "alternatives": [], "source": "Heuristic engine", "error": err}, "ai_audit_trails": {}, "ai_status": err}
     _ai_cache().put(cache_key, ai)
     return ai
+
+@st.cache_data(ttl=900, show_spinner=False)
+def additional_signals(ecosystem: str | None, name: str | None, scanned_repo: str) -> dict:
+    """Informational signals (not part of the frozen ruleset or the benchmark). Each request has a timeout
+    (AS.TIMEOUT); the whole result is cached for 15 minutes, failures included, and "Retry" clears it."""
+    return AS.collect(ecosystem, name, scanned_repo, AS.http_get_json)
+
+
+class _NotResolved(Exception):
+    pass
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def _full_commit_cached(owner: str, repo: str, short: str, token: str) -> str:
+    try:
+        sha = GitHubClient(token).get(f"/repos/{owner}/{repo}/commits/{short}").json().get("sha")
+    except (GitHubError, ValueError) as e:
+        raise _NotResolved(type(e).__name__) from e
+    if not (isinstance(sha, str) and sha.startswith(short)):
+        raise _NotResolved("unexpected answer")
+    return sha
+
+
+def full_commit(owner: str, repo: str, short: str | None, token: str) -> str | None:
+    """Full SHA of the scanned archive's commit (cached on success only), or None when it cannot be resolved."""
+    if not short:
+        return None
+    try:
+        return _full_commit_cached(owner, repo, short, token)
+    except _NotResolved:
+        return None
+
 
 def analyze_with_status(owner: str, repo: str, token: str) -> dict:
     """Run the cached analyze() in a worker thread (with the script context attached) and show stage progress in
@@ -278,6 +313,75 @@ def render_checks(res: dict):
             st.caption(_md_escape(f"Git tags: {rs['n_tags'] if rs.get('n_tags') is not None else 'not available'}; matching tag: {rs.get('matched_tag') or 'none'}"))
 
 
+def render_verdict_meaning(label_base: str | None):
+    """Measured benchmark numbers for this verdict, read from benchmark/results/run2 (verdict_meaning.py)."""
+    vm = verdict_meaning(label_base)
+    with st.container(border=True):
+        st.markdown("##### What this verdict meant in the benchmark")
+        st.caption(_md_escape(f"{label_base or 'This label'}: {vm['meaning']}"))
+        if vm["available"]:
+            st.dataframe(pd.DataFrame(vm["rows"]), hide_index=True, width="stretch", height=36 * (len(vm["rows"]) + 1) + 3)
+            if vm["extra"]:
+                st.caption(_md_escape(vm["extra"]))
+        st.caption(_md_escape(vm["mode_note"]))
+        st.caption(_md_escape(vm["source_note"]))
+
+
+DOMAIN_STATUS = {"registered": "registered", "not_registered": "not registered", "could_not_check": AS.COULD_NOT_CHECK}
+
+
+def render_additional_signals(sig: dict):
+    """Informational panel. Never changes the Trust score or the verdict; a failed lookup says "could not check"."""
+    with st.container(border=True):
+        st.markdown(f"#### {AS.PANEL_TITLE}")
+        st.caption("Informational only: these signals never change the Trust score, a cap or the verdict. "
+                   f"Checked {sig.get('checked_at')} (UTC); results are kept for 15 minutes.")
+        reg = sig.get("registry") or {}
+        if reg.get("status") == "not_applicable":
+            st.info(_md_escape(f"Not checked: {reg.get('reason')}."))
+            return
+        p = sig.get("package") or {}
+        st.caption(_md_escape(f"Package: {p.get('name')} ({p.get('ecosystem')})"
+                              + (f", latest release {reg.get('version')}" if reg.get("version") else "")))
+        if reg.get("status") == "could_not_check":
+            st.warning(_md_escape(f"Could not check the registry: {reg.get('reason')}. No additional signal is shown."))
+        elif reg.get("status") == "not_found":
+            st.info(_md_escape(f"Not checked: {reg.get('reason')}."))
+        else:
+            st.markdown(f"**Maintainer email domains** ({AS.TAKEOVER_NOTE})")
+            c = reg.get("contacts") or {}
+            skipped = []
+            if c.get("free_mail"): skipped.append(f"{c['free_mail']} free-mail address(es)")
+            if c.get("other_skipped"): skipped.append(f"{c['other_skipped']} GitHub no-reply address(es)")
+            if c.get("more"): skipped.append(f"{c['more']} more domain(s) beyond the first {AS.MAX_DOMAINS}")
+            src = f"Source: {reg.get('contact_source')}; only domains are shown, never the address."
+            st.caption(_md_escape(src + (" Skipped: " + ", ".join(skipped) + "." if skipped else "")))
+            if not sig.get("domains"):
+                st.caption("No other contact domain is listed, so there was nothing to look up.")
+            else:
+                st.dataframe(pd.DataFrame([{"Domain checked": d["domain"],
+                                            "RDAP": DOMAIN_STATUS.get(d["status"], d["status"]),
+                                            "Flag": d.get("flag") or "-", "Detail": d.get("reason") or ""}
+                                           for d in sig["domains"]]), hide_index=True, width="stretch")
+                if any(d.get("flag") for d in sig["domains"]):
+                    st.warning(f"Takeover-risk indicator, not proof: whoever controls a maintainer's email domain may "
+                               "be able to reset that maintainer's registry account. Check the account before trusting "
+                               "a new release.")
+        pv = sig.get("provenance") or {}
+        st.markdown(f"**Provenance identity** ({AS.SIGNATURE_NOTE})")
+        detail = _md_escape(pv.get("detail") or "")
+        if pv.get("status") == "match":
+            st.info("Source repository in the provenance matches the scanned repository: " + detail + ".")
+        elif pv.get("status") == "mismatch":
+            st.warning("Source repository in the provenance does NOT match the scanned repository: " + detail + ".")
+        elif pv.get("status") == "none":
+            st.caption("No attestation found: " + detail + ". (Not a failure: many packages are published without one.)")
+        else:
+            st.warning("Could not check the provenance: " + detail + ".")
+        if AS.has_failure(sig):
+            st.button("Retry additional signals", key="retry_signals", on_click=additional_signals.clear)
+
+
 with st.sidebar:
     st.header("About")
     st.write("Pulls **live data** from the GitHub REST API and public security sources and turns it into a **Trust score** (0-100, indicators, not proof): the weakest of three evidence pillars (Integrity, Behavior, Exposure). **Maintenance** (is anyone looking after it?) is shown separately; on its own it can lower the Trust score to 50 at most.")
@@ -344,10 +448,18 @@ if go_clicked or (target and st.session_state.get("analyzed") == target):
     elif scan.get("code_high") and sec["level"] not in ("Elevated", "High") and not dead:
         headline, why = ("Review the code findings", f"The scan found {scan['code_high']} high-severity, high-confidence code finding(s). Static analysis is noisy, so this does not change the score on its own, but check each one before relying on this code.")
 
+    pkg = sec.get("package") or {}
+    with st.spinner("Checking additional signals (informational) ..."):
+        sig = additional_signals(pkg.get("ecosystem"), pkg.get("name"), f["full_name"])
+    receipt = evidence_receipt(data, res.get("ruleset_version", RULESET_VERSION), app_version(),
+                               full_commit(owner, repo, scan.get("commit_sha"), token),
+                               datetime.now(timezone.utc).isoformat(timespec="seconds"))
+    export = {**data, "receipt": receipt, "additional_signals": sig}
+
     head_l, head_r = st.columns([4, 1], vertical_alignment="bottom")
     head_l.subheader(f["full_name"])
     if f["description"]: head_l.write(f["description"])
-    head_r.download_button("Download result (JSON)", data=result_json(data, [token, user_token, gemini_key, gemini_key_input]),
+    head_r.download_button("Download result (JSON)", data=result_json(export, [token, user_token, gemini_key, gemini_key_input]),
                            file_name=f"{f['full_name'].replace('/', '_')}_result.json", mime="application/json",
                            width="stretch", help="The result shown on this page. No token or API key is included.")
 
@@ -404,6 +516,7 @@ if go_clicked or (target and st.session_state.get("analyzed") == target):
         else:
             box = st.error if (headline in ("Replace it", "Review urgently") or "DO NOT USE" in headline) else (st.warning if headline in ("Upgrade or review", "Use with caution", "Review the findings before using", "Plan to migrate", "Review the code findings", "High-risk patterns found: review manually before use") else st.info)
             box(f"**{headline}.** {why}")
+        render_verdict_meaning(res.get("trust_label_base"))
         if sec["findings"]: st.dataframe(pd.DataFrame(sec["findings"]).rename(columns={"severity": "Level", "source": "Source", "item": "Item", "detail": "Detail"}), hide_index=True, width="stretch")
 
         intel_data = data.get("intelligence") or {}
@@ -511,6 +624,7 @@ if go_clicked or (target and st.session_state.get("analyzed") == target):
             if bd["simulator"]: st.info("⚡ **Compromise Simulator:** " + bd["simulator"])
         if not shown_any:
             st.info("No supply-chain data was available for this repository.")
+        render_additional_signals(sig)
 
     with t_maint:
         st.markdown(f"#### Maintenance (separate from the Trust score; can cap it at {MAINTENANCE_CEILING} when fragile)")

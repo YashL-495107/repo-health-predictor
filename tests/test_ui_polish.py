@@ -99,7 +99,8 @@ def test_app_tabs_badge_filter_download_and_examples():
 
 def test_download_button_and_tooltips_in_source():
     src = open(APP, encoding="utf-8").read()
-    assert 'download_button("Download result (JSON)", data=result_json(data, [token, user_token, gemini_key, gemini_key_input])' in src
+    assert 'download_button("Download result (JSON)", data=result_json(export, [token, user_token, gemini_key, gemini_key_input])' in src
+    assert 'export = {**data, "receipt": receipt, "additional_signals": sig}' in src
     assert 'hovertemplate="%{theta}: %{r:.0f} / 100<extra></extra>"' in src                 # radar: factor and value
     assert 'hovertemplate="%{x} weeks ago: %{y} commits<extra></extra>"' in src             # commits per week
     assert 'hover_bar(bar, "/ 100")' in src                                                 # pillar bar

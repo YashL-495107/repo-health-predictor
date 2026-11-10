@@ -9,6 +9,8 @@ blast_display: what the Supply-Chain Blast Radius section may show. Only sourced
 """
 from __future__ import annotations
 
+import re
+
 from pillars import LABEL_NO_FINDINGS, PARTIAL_NOTE
 
 TRUST_DISCLAIMER = "not a safety guarantee"
@@ -180,3 +182,55 @@ def result_json(data: dict, secrets: list[str] | tuple = ()) -> str:
         return clean(str(x))
 
     return json.dumps(clean(data), indent=2, ensure_ascii=False, sort_keys=True)
+
+
+def app_version(root: str | None = None) -> dict:
+    """The app's own git commit, read from the .git folder without running git. {"git_sha": str | None,
+    "source": str}. Not available (for example a deployment without .git) is said so, never guessed."""
+    import os
+    root = root or os.path.dirname(os.path.abspath(__file__))
+    git = os.path.join(root, ".git")
+    try:
+        head = open(os.path.join(git, "HEAD"), encoding="utf-8").read().strip()
+    except OSError:
+        return {"git_sha": None, "source": "not available (no .git folder)"}
+    if re.fullmatch(r"[0-9a-f]{40}", head):
+        return {"git_sha": head, "source": ".git/HEAD (detached)"}
+    m = re.fullmatch(r"ref: (refs/\S+)", head)
+    if not m:
+        return {"git_sha": None, "source": "not available (.git/HEAD not understood)"}
+    ref = m.group(1)
+    try:
+        sha = open(os.path.join(git, *ref.split("/")), encoding="utf-8").read().strip()
+        if re.fullmatch(r"[0-9a-f]{40}", sha):
+            return {"git_sha": sha, "source": f".git ({ref})"}
+    except OSError:
+        pass
+    try:
+        for line in open(os.path.join(git, "packed-refs"), encoding="utf-8"):
+            parts = line.strip().split(" ")
+            if len(parts) == 2 and parts[1] == ref and re.fullmatch(r"[0-9a-f]{40}", parts[0]):
+                return {"git_sha": parts[0], "source": f".git/packed-refs ({ref})"}
+    except OSError:
+        pass
+    return {"git_sha": None, "source": f"not available ({ref} not found)"}
+
+
+def evidence_receipt(data: dict, ruleset_version: str, app_ver: dict, full_commit: str | None, now_utc: str) -> dict:
+    """What the JSON download records about this scan: repository, default branch, the commit the content scan read
+    (short SHA from the downloaded archive, full SHA when GitHub resolved it), ruleset, app version and time.
+    Built only from values already in memory plus the resolved SHA passed in."""
+    f, scan = data.get("features") or {}, data.get("scan") or {}
+    short = scan.get("commit_sha") or None
+    if short:
+        commit = {"sha": full_commit or short, "short_sha_from_archive": short,
+                  "full_sha_resolved": bool(full_commit),
+                  "note": "the commit named by the downloaded repository archive" +
+                          ("" if full_commit else "; the full SHA could not be resolved, so the short SHA is given")}
+    else:
+        commit = {"sha": None, "short_sha_from_archive": None, "full_sha_resolved": False,
+                  "note": "not available: the content scan did not download the repository"}
+    return {"scanned_repository": f.get("full_name"), "default_branch": f.get("default_branch"),
+            "scanned_commit": commit, "ruleset_version": ruleset_version, "app_version": app_ver,
+            "metadata_fetched_at": f.get("fetched_at"), "receipt_generated_at_utc": now_utc,
+            "note": "Trust score: indicators, not proof; not a safety guarantee."}

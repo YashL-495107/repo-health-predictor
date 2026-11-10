@@ -79,6 +79,28 @@ Threat model: [THREAT_MODEL.md](THREAT_MODEL.md). Method: [METHOD.md](METHOD.md)
   sample. They are detector-gap candidates (an install hook ran code the content detectors did not match); the cause is
   not established per item and no row is human-verified.
 
+## Additional signals (post-freeze, unvalidated)
+
+The app shows a separate panel, "Additional signals (not part of the frozen ruleset or the benchmark; unvalidated)",
+added after ruleset 2026.11.08-12 was frozen (`additional_signals.py`). It never changes the Trust score, a cap, a
+detector or the verdict, and none of it was measured: there is no recall or false-positive rate for it.
+
+- **Maintainer email domains** (takeover-risk indicator, not proof): the domains of the package's registry contact
+  addresses (npm maintainers; PyPI author / maintainer e-mail), free mail providers skipped, looked up with RDAP
+  (rdap.org). It flags a domain the registry's RDAP server does not know ("not registered") or one registered after
+  the package's latest release. Limits: the registrable domain is approximated without the Public Suffix List; some
+  country-code registries have no RDAP service ("could not check"); a domain registered recently can be a legitimate
+  new company domain; current registry contacts are not necessarily the account that published a given release; only
+  up to five domains are checked.
+- **Provenance identity:** the source repository named in a PyPI (PEP 740) or npm (SLSA) attestation, compared with
+  the scanned repository. The signature is not cryptographically verified here; a match says only what the
+  attestation claims, and most packages have no attestation at all.
+- **Network-dependent:** every lookup has a timeout and is cached for 15 minutes; a failed lookup is shown as "could
+  not check", never as a pass. RDAP could not be reached from the environment where this was built, so the RDAP part
+  is tested only with recorded registry answers and synthetic RDAP answers.
+- **Verdict meaning panel:** the numbers next to the verdict are read from `benchmark/results/run2/` (artifact-mode
+  recall and false positives, repository-mode false positives); repository-mode known-bad recall is not measured.
+
 ## Threat model
 
 See [THREAT_MODEL.md](THREAT_MODEL.md).
