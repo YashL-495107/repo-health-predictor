@@ -13,6 +13,7 @@ PAGES = [
     st.Page("app_pages/1_Upgrade_check.py", title="Upgrade check", url_path="Upgrade_check"),
     st.Page("app_pages/2_How_accurate.py", title="How accurate is it?", url_path="How_accurate"),
     st.Page("app_pages/3_Learned_combiner.py", title="Learned combiner (experimental)", url_path="Learned_combiner"),
+    st.Page("app_pages/4_Compared_with_GuardDog.py", title="Compared with GuardDog", url_path="Compared_with_GuardDog"),
 ]
 
 st.navigation(PAGES).run()

@@ -1,0 +1,32 @@
+# GuardDog external baseline (benchmark/guarddog_baseline.py) - NOT used by the app, NOT in CI.
+# Install into its OWN virtual environment, guarddog itself without dependencies (its sandbox library nono-py has
+# no Windows packages; the scan runs with --no-sandbox), then these pinned dependencies:
+#   python -m pip install --no-deps guarddog==3.2.0
+#   python -m pip install -r benchmark/requirements-guarddog.txt
+boto3==1.43.127
+botocore==1.43.127
+certifi==2026.10.23
+cffi==2.1.1
+charset-normalizer==3.5.2
+click==8.5.1
+configparser==7.3.0
+disposable-email-domains==0.0.237
+idna==3.20
+jmespath==1.1.0
+packaging==26.3
+prettytable==3.18.0
+pycparser==3.12
+pygit2==1.18.2
+python-dateutil==2.9.0.post0
+python-whois==0.9.6
+PyYAML==6.0.3
+requests==2.34.2
+s3transfer==0.19.3
+semantic-version==2.10.0
+six==1.17.0
+tarsafe==0.0.5
+termcolor==3.3.0
+typing_extensions==4.16.0
+urllib3==2.8.0
+wcwidth==0.9.4
+yara-python==4.5.4

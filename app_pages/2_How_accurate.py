@@ -73,6 +73,14 @@ with st.container(border=True):
     st.page_link("app_pages/3_Learned_combiner.py", label="Learned combiner (experimental): details", icon="🧪")
 
 with st.container(border=True):
+    import guarddog_results as GD
+    st.markdown("#### Compared with GuardDog")
+    if GD.available():
+        st.markdown(GD.headline(GD.load()))
+    st.caption(GD.CAVEAT)
+    st.page_link("app_pages/4_Compared_with_GuardDog.py", label="Compared with GuardDog: details", icon="🐕")
+
+with st.container(border=True):
     st.markdown("#### How it was measured")
     for line in d["measured"]:
         st.markdown("- " + line)

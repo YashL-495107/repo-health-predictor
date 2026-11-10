@@ -142,7 +142,7 @@ def test_sidebar_page_order():
     src = (ROOT / "app.py").read_text(encoding="utf-8")
     titles = re.findall(r'st\.Page\([^)]*title="([^"]+)"', src)
     assert titles == ["Trust check", "Dependency Audit", "Upgrade check", "How accurate is it?",
-                      "Learned combiner (experimental)"]
+                      "Learned combiner (experimental)", "Compared with GuardDog"]
     from streamlit.testing.v1 import AppTest
     at = AppTest.from_file(str(ROOT / "app.py"), default_timeout=30).run()
     at.switch_page("app_pages/2_How_accurate.py").run()
@@ -156,7 +156,8 @@ def test_sidebar_page_order():
     heads = [m.value for m in at.markdown if m.value.startswith("#### ")]
     assert heads == ["#### Layered detection (known-bad samples, artifact mode)", "#### False positives",
                      "#### Precision (at the benchmark's class ratio)", "#### Per detector", "#### Why it misses",
-                     "#### Learned combiner (experimental)", "#### How it was measured", "#### What is NOT measured"]
+                     "#### Learned combiner (experimental)", "#### Compared with GuardDog", "#### How it was measured",
+                     "#### What is NOT measured"]
 
 
 def _md_escape(text):
