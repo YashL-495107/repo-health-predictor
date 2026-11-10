@@ -51,12 +51,16 @@ def test_sh_checks_fail_fast_without_token():
                          capture_output=True)
     sys.path.insert(0, str(ROOT))
     from detectors import version as V
-    if V.RULESET_VERSION != "2026.11.08-12":      # branch ruleset-v2: the v1 reproduce script refuses, by design
-        assert "ruleset does not match the frozen version" in r.stderr
-    elif tag.returncode == 0:
-        assert "GITHUB_TOKEN is not set" in r.stderr
-    else:
+    # The script stops at its FIRST failing check, in this order: the v1 tag exists, the code is ruleset v1, a token
+    # is set. CI checkouts carry no tags, so there the first check fails; with the tag present, a v2 checkout (branch
+    # ruleset-v2, merged into main) fails the ruleset check by design (the script reproduces v1), and only a v1
+    # checkout gets as far as the token check.
+    if tag.returncode != 0:
         assert "tag ruleset-2026.11.08-12-frozen not found" in r.stderr
+    elif V.RULESET_VERSION != "2026.11.08-12":
+        assert "ruleset does not match the frozen version" in r.stderr
+    else:
+        assert "GITHUB_TOKEN is not set" in r.stderr
 
 
 @pytest.mark.skipif(shutil.which("pwsh") is None, reason="PowerShell 7 not installed")
