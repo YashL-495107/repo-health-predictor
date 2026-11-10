@@ -29,7 +29,14 @@ import releases
 
 AREAS = ("Install hooks", "Credential/env access", "Network activity (possible exfiltration)", "Network use", "Process spawn",
          "Decoding/obfuscation", "Filesystem persistence", "Dependencies", "Minified / obfuscated files")
-RISK_AREAS = set(AREAS)            # an ADDED row in any of these areas is risk-relevant
+CAPABILITY_AREAS = ("Credential/env access", "Network activity (possible exfiltration)", "Network use", "Process spawn",
+                    "Decoding/obfuscation", "Filesystem persistence")
+# Verdict rule (adjusted 2026-11-10 after a manual control check, requests 2.32.3 -> 2.32.4; post-freeze, unvalidated):
+# "Review before upgrading" only when at least one TRIGGER is added or changed - an install hook added; a capability
+# category present in the new version and absent in the current one; an added dependency that is very new (under
+# YOUNG_DAYS) or a lookalike; the publisher changed; provenance removed or naming another repository; a new minified /
+# obfuscated file; a maintainer-domain flag. A long release gap alone is never a trigger (info row only); it is
+# mentioned in each trigger when it is at least SILENCE_DAYS. Removed items are never triggers.
 PAGE_LABEL = "Added after the freeze; not part of the benchmark; unvalidated."
 NO_CHANGES = "No risk-relevant changes found"
 REVIEW = "Review before upgrading"
@@ -123,7 +130,9 @@ def evidence(release: dict, name: str) -> dict:
     out["behavior"] = beh
     cat_area = {"Credential access": "Credential/env access", "Network": "Network activity (possible exfiltration)",
                 "Remote shell": "Network activity (possible exfiltration)", "Persistence": "Filesystem persistence",
-                "Obfuscation": "Decoding/obfuscation", "Install-time execution": "Install hooks"}
+                "Obfuscation": "Decoding/obfuscation"}
+    # install hooks come from the registry scripts, the setup.py Layer 2 check and .pth files above; the behavior
+    # scan's "Install-time execution" findings repeat them (package.json / setup.py), so they are not added again
     for f in beh:
         a = cat_area.get(f.get("cat"))
         if a and str(f.get("sev")).lower() not in ("info", "low"):
@@ -207,7 +216,8 @@ def facts_rows(old: dict, new: dict, old_prev: dict | None, new_prev: dict | Non
                          f"{new['version']}: {pub_new} ({new.get('publisher_source')})"},
             {"area": "Release gap (dormancy)", "item": new["version"], "change": "info",
              "evidence": f"{old['version']}: {gap(old, old_prev)}; {new['version']}: {gap(new, new_prev)}",
-             "long_gap": isinstance(new_gap, int) and new_gap >= SILENCE_DAYS, "threshold": SILENCE_DAYS}]
+             "long_gap": isinstance(new_gap, int) and new_gap >= SILENCE_DAYS, "threshold": SILENCE_DAYS,
+             "gap_days": new_gap}]
     if old.get("size") and new.get("size"):
         pct = 100 * (new["size"] - old["size"]) / old["size"]
         rows.append({"area": "Size", "item": "artifact size", "change": "info",
@@ -216,17 +226,32 @@ def facts_rows(old: dict, new: dict, old_prev: dict | None, new_prev: dict | Non
 
 
 def verdict(rows: list[dict], old: dict, new: dict) -> dict:
+    """See the rule above (CAPABILITY_AREAS). {"verdict", "items"}; items name each trigger with its evidence."""
     if not old.get("read") or not new.get("read"):
         which = [e["version"] for e in (old, new) if not e.get("read")]
         return {"verdict": NOT_COMPARED, "items": [f"artifact of {v} not read" for v in which]}
-    items = [f"{r['area']}: {r['item']}" + (f" ({r['evidence']})" if r["area"] == "Dependencies" else "")
-             for r in rows if r.get("change") == "added" and r["area"] in RISK_AREAS]
-    items += [f"Publisher changed: {r['evidence']}" for r in rows if r["area"] == "Publisher" and r["change"] == "changed"]
-    items += [f"Long silence before the new version (at least {r['threshold']} days, revival_takeover's threshold): "
-              f"{r['evidence']}" for r in rows if r["area"] == "Release gap (dormancy)" and r.get("long_gap")]
-    items += [f"Provenance: {r['evidence']}" for r in rows if r["area"] == "Provenance" and r["change"] in ("removed", "mismatch")]
-    items += [f"Maintainer email domain: {r['item']} ({r['evidence']})" for r in rows
-              if r["area"] == "Maintainer email domain" and r.get("flag")]
+    gap = next((r for r in rows if r["area"] == "Release gap (dormancy)"), {})
+    after = f" after a {gap['gap_days']}-day silence" if gap.get("long_gap") else ""
+    items = []
+    for r in rows:
+        if r["area"] == "Install hooks" and r["change"] == "added":
+            items.append(f"Install hook added{after}: {r['evidence']}")
+        elif r["area"] == "Dependencies" and r["change"] == "added" and (r.get("young") or r.get("lookalike")):
+            items.append(f"New dependency {r['item']}{after}: {r['evidence']}")
+        elif r["area"] == "Minified / obfuscated files" and r["change"] == "added":
+            items.append(f"New minified / obfuscated file{after}: {r['evidence']}")
+        elif r["area"] == "Publisher" and r["change"] == "changed":
+            items.append(f"Publisher changed{after}: {r['evidence']}")
+        elif r["area"] == "Provenance" and r["change"] in ("removed", "mismatch"):
+            what = "Provenance removed" if r["change"] == "removed" else "Provenance names another repository"
+            items.append(f"{what}{after}: {r['evidence']}")
+        elif r["area"] == "Maintainer email domain" and r.get("flag"):
+            items.append(f"Maintainer email domain {r['item']}{after}: {r['evidence']}")
+    for area in CAPABILITY_AREAS:                      # category level: new in this version, absent before
+        if new["areas"][area] and not old["areas"][area]:
+            ev = list(new["areas"][area].values())
+            items.append(f"New capability category{after}: {area} ({'; '.join(ev[:3])}"
+                         + (f"; and {len(ev) - 3} more" if len(ev) > 3 else "") + ")")
     return {"verdict": REVIEW if items else NO_CHANGES, "items": items}
 
 

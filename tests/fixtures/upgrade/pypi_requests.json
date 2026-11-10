@@ -1,0 +1,70 @@
+{
+ "_recorded": "pypi.org/pypi/requests/json, 2026-11-10; trimmed to releases 2.32.2-2.32.4 and the fields the upgrade check reads; e-mail local parts redacted; artifacts NOT recorded (tests use stand-ins)",
+ "info": {
+  "author_email": "redacted@kennethreitz.org>",
+  "home_page": null,
+  "maintainer_email": "redacted@gmail.com>, Nate Prewitt <nate.prewitt@gmail.com>",
+  "name": "requests",
+  "project_urls": {
+   "Documentation": "https://requests.readthedocs.io",
+   "Source": "https://github.com/psf/requests"
+  },
+  "version": "2.32.4"
+ },
+ "releases": {
+  "2.32.2": [
+   {
+    "filename": "requests-2.32.2-py3-none-any.whl",
+    "packagetype": "bdist_wheel",
+    "size": 63902,
+    "upload_time_iso_8601": "2024-05-21T18:51:29.562156Z",
+    "url": "https://files.pythonhosted.org/packages/c3/20/748e38b466e0819491f0ce6e90ebe4184966ee304fe483e2c414b0f4ef07/requests-2.32.2-py3-none-any.whl",
+    "yanked": false
+   },
+   {
+    "filename": "requests-2.32.2.tar.gz",
+    "packagetype": "sdist",
+    "size": 130327,
+    "upload_time_iso_8601": "2024-05-21T18:51:32.819665Z",
+    "url": "https://files.pythonhosted.org/packages/86/ec/535bf6f9bd280de6a4637526602a146a68fde757100ecf8c9333173392db/requests-2.32.2.tar.gz",
+    "yanked": false
+   }
+  ],
+  "2.32.3": [
+   {
+    "filename": "requests-2.32.3-py3-none-any.whl",
+    "packagetype": "bdist_wheel",
+    "size": 64928,
+    "upload_time_iso_8601": "2024-05-29T15:37:47.027275Z",
+    "url": "https://files.pythonhosted.org/packages/f9/9b/335f9764261e915ed497fcdeb11df5dfd6f7bf257d4a6a2a686d80da4d54/requests-2.32.3-py3-none-any.whl",
+    "yanked": false
+   },
+   {
+    "filename": "requests-2.32.3.tar.gz",
+    "packagetype": "sdist",
+    "size": 131218,
+    "upload_time_iso_8601": "2024-05-29T15:37:49.536140Z",
+    "url": "https://files.pythonhosted.org/packages/63/70/2bf7780ad2d390a8d301ad0b550f1581eadbd9a20f896afe06353c2a2913/requests-2.32.3.tar.gz",
+    "yanked": false
+   }
+  ],
+  "2.32.4": [
+   {
+    "filename": "requests-2.32.4-py3-none-any.whl",
+    "packagetype": "bdist_wheel",
+    "size": 64847,
+    "upload_time_iso_8601": "2025-06-09T16:43:05.728107Z",
+    "url": "https://files.pythonhosted.org/packages/7c/e4/56027c4a6b4ae70ca9de302488c5ca95ad4a39e190093d6c1a8ace08341b/requests-2.32.4-py3-none-any.whl",
+    "yanked": false
+   },
+   {
+    "filename": "requests-2.32.4.tar.gz",
+    "packagetype": "sdist",
+    "size": 135258,
+    "upload_time_iso_8601": "2025-06-09T16:43:07.340534Z",
+    "url": "https://files.pythonhosted.org/packages/e1/0a/929373653770d8a0d7ea76c37de6e41f11eb07559b103b1c02cafb3f7cf8/requests-2.32.4.tar.gz",
+    "yanked": false
+   }
+  ]
+ }
+}

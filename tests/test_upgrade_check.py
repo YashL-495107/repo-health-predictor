@@ -113,8 +113,16 @@ def test_new_postinstall_hook_and_new_dependency_are_flagged():
     assert gap["long_gap"] and "1.1.0: 579 days after 1.0.0" in gap["evidence"] and "1.0.0: 59 days after 0.9.0" in gap["evidence"]
     v = res["verdict"]
     assert v["verdict"] == U.REVIEW == "Review before upgrading"
-    assert "Install hooks: npm postinstall" in v["items"] and any(i.startswith("Dependencies: lodahs") for i in v["items"])
-    assert any(i.startswith("Publisher changed:") for i in v["items"])
+    assert v["items"] == [
+        "Install hook added after a 579-day silence: package.json scripts.postinstall: node install.js",
+        "New dependency lodahs after a 579-day silence: first published 3 days before this release (very new: under "
+        "30 days); lookalike of 'lodash'",
+        "Publisher changed after a 579-day silence: 1.0.0: alice (npm _npmUser); 1.1.0: mallory (npm _npmUser)",
+        "New capability category after a 579-day silence: Credential/env access (install.js:3 Credential access: "
+        "reads credential files)",
+        "New capability category after a 579-day silence: Network activity (possible exfiltration) (npm postinstall: "
+        "node install.js -> install.js: script makes network calls; install.js:4 Network: exfil-style endpoint)",
+        "New capability category after a 579-day silence: Network use (install.js: imports or calls a network API)"]
     dom = rows[("Maintainer email domain", "example.org")]
     assert dom["evidence"].startswith("could not check") and "takeover-risk indicator, not proof" in dom["evidence"]
     assert "@" not in json.dumps(res["rows"])                                      # never an address
@@ -153,7 +161,8 @@ def test_node_ipc_replay_recorded_metadata():
     assert res["versions"] == {"current": "10.1.0", "new": "11.0.0"}
     assert rows[("Dependencies", "peacenotwar")]["change"] == "added" and rows[("Dependencies", "peacenotwar")]["young"]
     assert rows[("Publisher", "10.1.0 -> 11.0.0")]["change"] == "unchanged"
-    assert res["verdict"]["verdict"] == U.REVIEW
+    assert res["verdict"] == {"verdict": U.REVIEW, "items": [
+        "New dependency peacenotwar: first published 0 days before this release (very new: under 30 days)"]}
     assert "11.0.0: 173 days after 10.1.0" in rows[("Release gap (dormancy)", "11.0.0")]["evidence"]
 
 
@@ -257,3 +266,101 @@ def test_main_app_shows_the_killchain_strip():
         assert not at.exception, at.exception
         assert any("rh-kc-row" in m.value for m in at.tabs[0].markdown)
         assert any(c.value == KC.CAPTION for c in at.tabs[0].caption)
+
+
+# ------------------------------------------------------------------ verdict rule (adjusted after the requests control check)
+
+def stand_in_npm(pk: dict) -> dict:
+    return {v["dist"]["tarball"]: tgz({"package.json": "{}", "index.js": "module.exports = {}\n"}) for v in pk["versions"].values()}
+
+
+def test_long_gap_alone_is_not_a_trigger_same_publisher():
+    """Same publisher, a 376-day gap, nothing else changed (the requests 2.32.3 -> 2.32.4 shape): no review."""
+    pk = demo_packument()
+    pk["time"].update({"1.0.0": "2024-05-29T00:00:00.000Z", "1.1.0": "2025-06-09T00:00:00.000Z", "0.9.0": "2024-05-22T00:00:00.000Z"})
+    for v in pk["versions"].values():
+        v.update(scripts={}, dependencies={"left-pad": "1"}, _npmUser={"name": "alice"})
+    same = {"package.json": "{}", "index.js": DEMO_OLD["index.js"]}
+    bt = {v["dist"]["tarball"]: tgz(same) for v in pk["versions"].values()}
+    with registry({"https://registry.npmjs.org/demo-hooked": pk}, bt):
+        res = U.run("npm", "demo-hooked", "1.0.0", "1.1.0", rdap_fetch=rdap_table(), lookalike=lambda n: None)
+    gap = next(r for r in res["rows"] if r["area"] == "Release gap (dormancy)")
+    assert gap["change"] == "info" and gap["long_gap"] and gap["gap_days"] == 376
+    assert next(r for r in res["rows"] if r["area"] == "Publisher")["change"] == "unchanged"
+    assert res["verdict"] == {"verdict": U.NO_CHANGES, "items": []}
+
+
+def test_requests_control_recorded_metadata():
+    """Recorded PyPI metadata of requests 2.32.2-2.32.4 (2.32.4 came 376 days after 2.32.3), identical stand-in
+    artifacts: the long gap is an info row and the verdict is no risk-relevant changes."""
+    proj = json.loads((FIX / "pypi_requests.json").read_text())
+    jt = {"https://pypi.org/pypi/requests/json": proj}
+    for v in ("2.32.2", "2.32.3", "2.32.4"):
+        jt[f"https://pypi.org/pypi/requests/{v}/json"] = json.loads((FIX / f"pypi_requests_{v}.json").read_text())
+    bt = {}
+    for v, files in proj["releases"].items():
+        for f in files:
+            if f["packagetype"] == "sdist":
+                bt[f["url"]] = tgz({"setup.py": "from setuptools import setup\nsetup(name='requests')\n",
+                                    "src/requests/__init__.py": "import urllib3\n"})
+    with registry(jt, bt):
+        res = U.run("PyPI", "requests", "2.32.3", "2.32.4", rdap_fetch=rdap_table(), lookalike=lambda n: None)
+    gap = next(r for r in res["rows"] if r["area"] == "Release gap (dormancy)")
+    assert gap["gap_days"] == 376 and gap["change"] == "info"
+    assert res["verdict"] == {"verdict": U.NO_CHANGES, "items": []}
+
+
+def test_event_stream_publisher_change_after_long_silence():
+    pk = json.loads((FIX / "npm_event-stream.json").read_text())
+    with registry({"https://registry.npmjs.org/event-stream": pk}, stand_in_npm(pk)):
+        res = U.run("npm", "event-stream", None, "3.3.5", rdap_fetch=rdap_table(), lookalike=lambda n: None)
+    assert res["versions"] == {"current": "3.3.4", "new": "3.3.5"}
+    assert res["verdict"] == {"verdict": U.REVIEW, "items": [
+        "Publisher changed after a 779-day silence: 3.3.4: dominictarr (npm _npmUser); 3.3.5: right9ctrl (npm _npmUser)"]}
+
+
+def _ev(version, areas=None):
+    e = {"version": version, "read": True, "areas": {a: {} for a in U.AREAS}}
+    for a, items in (areas or {}).items():
+        e["areas"][a] = items
+    return e
+
+
+def test_removed_items_and_plain_added_dependencies_are_never_triggers():
+    old = _ev("1", {"Install hooks": {"setup.py cmdclass": "setup.py cmdclass: custom install"},
+                    "Process spawn": {"a.py": "a.py: starts processes"}})
+    new = _ev("2")
+    rows = [{"area": "Install hooks", "item": "setup.py cmdclass", "change": "removed", "evidence": "setup.py removed"},
+            {"area": "Dependencies", "item": "old-dep", "change": "removed", "evidence": "removed"},
+            {"area": "Dependencies", "item": "mature-dep", "change": "added", "evidence": "first published 900 days before",
+             "young": False, "lookalike": None},
+            {"area": "Minified / obfuscated files", "item": "x.min.js", "change": "removed", "evidence": "x.min.js"},
+            {"area": "Provenance", "item": "-", "change": "added", "evidence": "now attested"},
+            {"area": "Publisher", "item": "1 -> 2", "change": "info", "evidence": "identity became available"},
+            {"area": "Release gap (dormancy)", "item": "2", "change": "info", "evidence": "400 days", "long_gap": True,
+             "gap_days": 400}]
+    assert U.verdict(rows, old, new) == {"verdict": U.NO_CHANGES, "items": []}
+
+
+def test_each_trigger_alone_gives_review_and_mentions_a_long_gap():
+    gap = {"area": "Release gap (dormancy)", "item": "2", "change": "info", "evidence": "", "long_gap": True, "gap_days": 400}
+    cases = [
+        ({"area": "Install hooks", "item": "npm preinstall", "change": "added", "evidence": "scripts.preinstall: x"}, "Install hook added"),
+        ({"area": "Dependencies", "item": "d", "change": "added", "evidence": "e", "young": True}, "New dependency d"),
+        ({"area": "Dependencies", "item": "d", "change": "added", "evidence": "e", "lookalike": "lodash"}, "New dependency d"),
+        ({"area": "Publisher", "item": "1 -> 2", "change": "changed", "evidence": "a -> b"}, "Publisher changed"),
+        ({"area": "Provenance", "item": "-", "change": "removed", "evidence": "e"}, "Provenance removed"),
+        ({"area": "Provenance", "item": "-", "change": "mismatch", "evidence": "e"}, "Provenance names another repository"),
+        ({"area": "Minified / obfuscated files", "item": "x.js", "change": "added", "evidence": "x.js"}, "New minified / obfuscated file"),
+        ({"area": "Maintainer email domain", "item": "d.io", "change": "info", "evidence": "e", "flag": "domain not registered"},
+         "Maintainer email domain d.io"),
+    ]
+    for row, head in cases:
+        v = U.verdict([row, gap], _ev("1"), _ev("2"))
+        assert v["verdict"] == U.REVIEW and v["items"] == [f"{head} after a 400-day silence: {row['evidence']}"], head
+        short = U.verdict([row], _ev("1"), _ev("2"))
+        assert short["items"] == [f"{head}: {row['evidence']}"]
+    v = U.verdict([], _ev("1"), _ev("2", {"Filesystem persistence": {"p.py": "p.py:1 cron"}}))
+    assert v == {"verdict": U.REVIEW, "items": ["New capability category: Filesystem persistence (p.py:1 cron)"]}
+    both = U.verdict([], _ev("1", {"Process spawn": {"a.py": "a"}}), _ev("2", {"Process spawn": {"a.py": "a", "b.py": "b"}}))
+    assert both["verdict"] == U.NO_CHANGES          # another file in a category that already existed: not a new category

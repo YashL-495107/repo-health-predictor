@@ -103,6 +103,7 @@ detector or the verdict, and none of it was measured: there is no recall or fals
   and the kill-chain strip lights stages from existing findings only. Post-freeze, unvalidated, no benchmark number,
   no Trust score; it compares only what the artifacts' read limits let it read (5 MB per artifact), and the replay
   selector is replay, not held-out evidence.
+- **Upgrade check verdict rule adjusted after a manual control check** (post-freeze, unvalidated): the control package requests 2.32.3 -> 2.32.4 (no known issue) got "Review before upgrading" only because of a 376-day release gap. Now a long gap alone is an info row; "Review before upgrading" needs an added or changed trigger (install hook added, new capability category, very new or lookalike dependency, publisher changed, provenance removed or naming another repository, new minified / obfuscated file, maintainer-domain flag), and a gap of 365 days or more is mentioned in that trigger. Removed items are never triggers. This is one control case, not a measurement.
 - **Verdict meaning panel:** the numbers next to the verdict are read from `benchmark/results/run2/` (artifact-mode
   recall and false positives, repository-mode false positives); repository-mode known-bad recall is not measured.
 

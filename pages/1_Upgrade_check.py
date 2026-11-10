@@ -101,4 +101,8 @@ if st.session_state.uc_go and name:
             "- **Publisher, release gap, maintainer email domains** (current registry contacts, RDAP; takeover-risk "
             "indicator, not proof), **provenance** per version (signature not cryptographically verified here), size, "
             "new minified files.\n"
+            "- **Verdict:** \"Review before upgrading\" only when something risk-relevant is added or changed (install "
+            "hook added, new capability category, very new or lookalike dependency, publisher changed, provenance "
+            "removed or naming another repository, new minified file, maintainer-domain flag). A long release gap alone "
+            "is shown as information; removed items never count.\n"
             "- Nothing is installed, imported or run. No Trust score is computed on this page.")
