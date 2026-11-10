@@ -14,7 +14,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PY_FILES = ["app.py", "trust_check.py", "security.py", "pillars.py", "fragility.py", "scoring.py", "analyze_scan_results.py",
             "inspect_repo.py", "scan_batch.py", "benchmark_fixtures.py", "audit.py", "intelligence.py", "repo_scan.py",
             "malware_proof.py", "repo_behavior.py", "verify_full_stack.py", "releases.py", "http_cache.py"] + \
-           [os.path.relpath(p, ROOT) for p in glob.glob(os.path.join(ROOT, "pages", "*.py"))] + \
+           [os.path.relpath(p, ROOT) for p in glob.glob(os.path.join(ROOT, "app_pages", "*.py"))] + \
            [os.path.relpath(p, ROOT) for p in glob.glob(os.path.join(ROOT, "detectors", "*.py"))] + \
            [os.path.relpath(p, ROOT) for p in glob.glob(os.path.join(ROOT, "benchmark", "*.py"))]
 DOC_FILES = ["README.md", "PROJECT_CAPABILITIES.md", "METHOD.md", "LIMITS.md"] + \

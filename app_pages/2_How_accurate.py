@@ -67,7 +67,7 @@ with st.container(border=True):
     if M.available():
         st.markdown(M.headline(M.load())["line"])
     st.caption(M.CAVEAT + " The frozen rules above remain the official result.")
-    st.page_link("pages/3_Learned_combiner.py", label="Learned combiner (experimental): details", icon="🧪")
+    st.page_link("app_pages/3_Learned_combiner.py", label="Learned combiner (experimental): details", icon="🧪")
 
 with st.container(border=True):
     st.markdown("#### How it was measured")

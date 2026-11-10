@@ -114,7 +114,7 @@ def test_app_does_not_use_the_model():
     assert "scikit-learn" not in req and "sklearn" not in req
     assert "scikit-learn==" in (ROOT / "requirements-dev.txt").read_text()
     for p in [ROOT / "app.py", ROOT / "trust_check.py", ROOT / "upgrade_check.py", ROOT / "ml_results.py",
-              ROOT / "accuracy.py", *(ROOT / "pages").glob("*.py")]:
+              ROOT / "accuracy.py", *(ROOT / "app_pages").glob("*.py")]:
         t = p.read_text(encoding="utf-8")
         assert not re.search(r"^\s*(?:import|from)\s+(?:sklearn|ml_combiner)\b", t, re.M), p.name
     for p in (ROOT / "trust_check.py", ROOT / "upgrade_check.py", ROOT / "pillars.py", ROOT / "security.py"):
@@ -124,7 +124,7 @@ def test_app_does_not_use_the_model():
 def test_pages_render_and_show_the_csv_numbers():
     from streamlit.testing.v1 import AppTest
     at = AppTest.from_file(str(ROOT / "app.py"), default_timeout=30).run()
-    at.switch_page("pages/3_Learned_combiner.py").run()
+    at.switch_page("app_pages/3_Learned_combiner.py").run()
     assert not at.exception, at.exception
     assert at.title[0].value == "Learned combiner (experimental)"
     assert any(w.value == M.CAVEAT for w in at.warning)
@@ -134,7 +134,7 @@ def test_pages_render_and_show_the_csv_numbers():
     res = next(t.value for t in at.table if t.value.index.name == "Feature set")
     assert list(res["ROC AUC"])[:8] == [M.auc_text(s) for s in rows("ml_summary.csv")]
     assert "not trusted (dataset bias)" in text
-    at.switch_page("pages/2_How_accurate.py").run()
+    at.switch_page("app_pages/2_How_accurate.py").run()
     assert not at.exception, at.exception
     assert any(m.value == h["line"] for m in at.markdown)
     assert any("Learned combiner (experimental): a post-freeze research model" in m.value for m in at.markdown)

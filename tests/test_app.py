@@ -59,17 +59,19 @@ if __name__ == "__main__":
 
 def test_navigation_names_the_main_page_trust_check():
     """app.py stays the entrypoint (Streamlit Cloud) and only routes: the sidebar label of the main page is
-    "Trust check"; the two pages in pages/ are listed explicitly and keep their addresses."""
+    "Trust check"; the pages in app_pages/ are listed explicitly and keep their addresses. There is no pages/ folder
+    (Streamlit would auto-discover it and a fresh session on a page URL would bypass the router)."""
+    assert not os.path.isdir(os.path.join(os.path.dirname(__file__), "..", "pages"))
     src = open(os.path.join(os.path.dirname(__file__), "..", "app.py"), encoding="utf-8").read()
     assert 'st.Page("trust_check.py", title="Trust check", icon="🩺", default=True)' in src
-    assert 'st.Page("pages/1_Dependency_Audit.py", title="Dependency Audit", url_path="Dependency_Audit")' in src
-    assert 'st.Page("pages/1_Upgrade_check.py", title="Upgrade check", url_path="Upgrade_check")' in src
+    assert 'st.Page("app_pages/1_Dependency_Audit.py", title="Dependency Audit", url_path="Dependency_Audit")' in src
+    assert 'st.Page("app_pages/1_Upgrade_check.py", title="Upgrade check", url_path="Upgrade_check")' in src
     assert "st.navigation(PAGES).run()" in src
-    for p in ("trust_check.py", "pages/1_Dependency_Audit.py", "pages/1_Upgrade_check.py"):
+    for p in ("trust_check.py", "app_pages/1_Dependency_Audit.py", "app_pages/1_Upgrade_check.py"):
         assert os.path.isfile(os.path.join(os.path.dirname(__file__), "..", p)), p
     at = AppTest.from_file(os.path.join(os.path.dirname(__file__), "..", "app.py"), default_timeout=30).run()
     assert not at.exception and at.title[0].value == "Repository & Package Trust Check"   # default page = Trust check
-    at.switch_page("pages/1_Upgrade_check.py").run()
+    at.switch_page("app_pages/1_Upgrade_check.py").run()
     assert not at.exception and at.title[0].value == "Upgrade check (is this update safe?)"
-    at.switch_page("pages/1_Dependency_Audit.py").run()
+    at.switch_page("app_pages/1_Dependency_Audit.py").run()
     assert not at.exception, at.exception
