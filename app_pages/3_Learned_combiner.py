@@ -39,9 +39,10 @@ with st.container(border=True):
                 "benchmark's own items. The app's Trust score and verdicts do not use it.")
 
 with st.container(border=True):
-    st.markdown(f"#### Headline: feature set {h['set']}, {M.MODEL_LABEL[h['model']]}")
-    st.markdown(f"- ROC AUC **{h['auc']}**\n- Recall {h['recall_5']} (target 5%)\n- Recall {h['recall_15']} "
-                f"(target 15%)\n- Recall {h['recall_0']} (target 0%)\n- Frozen rules: " + "; ".join(h["rules"]))
+    st.markdown("#### Headline: logistic regression and random forest side by side")
+    table(M.comparison_table(d))
+    st.caption(M.COMPARE_NOTE)
+    st.markdown("**Frozen rules (official result):** " + "; ".join(h["rules"]))
 
 with st.container(border=True):
     st.markdown("#### Method")

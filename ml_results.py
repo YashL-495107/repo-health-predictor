@@ -82,6 +82,35 @@ def headline(d: dict) -> dict:
                      + "; ".join(rules_text(d)) + ".")}
 
 
+COMPARE_MODEL_LABEL = {("A_strict", "logistic_regression"): "logistic regression (explainable weights)",
+                       ("A_strict", "random_forest"): "random forest (best performer)",
+                       ("B", "logistic_regression"): "logistic regression",
+                       ("B", "random_forest"): "random forest"}
+COMPARE_SET_LABEL = {"A_strict": "A-strict (headline): detector/capability features without source indicators",
+                     "B": "B: adds install-hook and inflated-version metadata; more source-bias risk"}
+COMPARE_NOTE = ("\"Best performer\" refers to ROC AUC; compare the recall columns at each false-positive target. "
+                "Feature set C is not shown here: not trusted (dataset bias).")
+
+
+def _cell(r: dict) -> str:
+    return (f"{p(r['recall'])} ({p(r['recall_ci_low'])}-{p(r['recall_ci_high'])}); "
+            f"realized FP {p(r['realized_fp'])}")
+
+
+def comparison_table(d: dict) -> list[dict]:
+    """Logistic regression and random forest side by side for feature sets A-strict and B: ROC AUC and recall at
+    0 / 5 / 15 % target false positives with 95% CIs and the realized rate, read from ml_summary / ml_recall_at_fp."""
+    out = []
+    for fs in ("A_strict", "B"):
+        for model in ("logistic_regression", "random_forest"):
+            s = next(x for x in d["summary"] if x["feature_set"] == fs and x["model"] == model)
+            out.append({"Feature set": COMPARE_SET_LABEL[fs], "Model": COMPARE_MODEL_LABEL[(fs, model)],
+                        "ROC AUC (95% CI)": auc_text(s).replace(" (95% CI ", " ("),
+                        **{f"Recall @ {int(t * 100)}% FP (95% CI)": _cell(recall_for(d, fs, model, t))
+                           for t in (0.0, 0.05, 0.15)}})
+    return out
+
+
 def results_table(d: dict) -> list[dict]:
     rows = []
     for s in d["summary"]:
@@ -191,4 +220,8 @@ def markdown(d: dict | None = None) -> str:
           "- Dataset bias: known-bad items are DataDog samples (inert text), known-good items registry archives; "
           "set C shows how a model exploits that. Even A-strict may keep source effects that this data cannot separate.",
           "- Post-freeze, unvalidated, never used for the Trust score or any verdict.", ""]
-    return "\n".join(L)
+    cmp = comparison_table(d)
+    side = ["## Side by side: logistic regression and random forest (feature sets A-strict and B)", "",
+            "| " + " | ".join(cmp[0]) + " |", "|" + "---|" * len(cmp[0])]
+    side += ["| " + " | ".join(r.values()) + " |" for r in cmp] + ["", COMPARE_NOTE, ""]
+    return "\n".join(L).replace("\n## Method\n", "\n" + "\n".join(side) + "\n## Method\n", 1)

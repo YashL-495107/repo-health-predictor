@@ -14,6 +14,17 @@ A simple model that combines the frozen ruleset's own outputs for each item (fin
 - Recall 67.5% (95% CI 62.3%-72.6%) at a realized 14.2% false-positive rate (target 15%).
 - Frozen rules: strict: 12.4% (39/314) at 0/117 false positives (0.0%); lenient: 50.0% (157/314) at 17/117 false positives (14.5%).
 
+## Side by side: logistic regression and random forest (feature sets A-strict and B)
+
+| Feature set | Model | ROC AUC (95% CI) | Recall @ 0% FP (95% CI) | Recall @ 5% FP (95% CI) | Recall @ 15% FP (95% CI) |
+|---|---|---|---|---|---|
+| A-strict (headline): detector/capability features without source indicators | logistic regression (explainable weights) | 0.746 (0.693-0.795) | 6.9% (4.5%-9.7%); realized FP 0.2% | 29.2% (24.1%-34.0%); realized FP 3.9% | 67.5% (62.3%-72.6%); realized FP 14.2% |
+| A-strict (headline): detector/capability features without source indicators | random forest (best performer) | 0.823 (0.782-0.862) | 1.9% (1.3%-2.6%); realized FP 0.3% | 42.7% (37.6%-48.1%); realized FP 3.2% | 73.3% (68.9%-78.1%); realized FP 14.0% |
+| B: adds install-hook and inflated-version metadata; more source-bias risk | logistic regression | 0.820 (0.774-0.864) | 5.0% (3.3%-7.1%); realized FP 0.7% | 29.7% (25.0%-34.8%); realized FP 4.3% | 78.3% (73.6%-82.8%); realized FP 14.9% |
+| B: adds install-hook and inflated-version metadata; more source-bias risk | random forest | 0.874 (0.839-0.908) | 13.1% (11.1%-15.0%); realized FP 0.7% | 59.7% (54.5%-64.9%); realized FP 2.6% | 81.6% (77.4%-85.9%); realized FP 13.5% |
+
+"Best performer" refers to ROC AUC; compare the recall columns at each false-positive target. Feature set C is not shown here: not trusted (dataset bias).
+
 ## Method
 
 - Data: benchmark run 2, `benchmark/results/run2/features.csv` (from `benchmark/extract_features.py`): 314 scored known-bad (positives) vs 117 random known-good (negatives); scary and dormant items only scored, by models trained on all positives and negatives.

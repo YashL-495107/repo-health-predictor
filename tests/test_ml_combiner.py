@@ -130,11 +130,45 @@ def test_pages_render_and_show_the_csv_numbers():
     assert any(w.value == M.CAVEAT for w in at.warning)
     text = " ".join(m.value for m in at.markdown)
     h = M.headline(D)
-    assert h["auc"] in text and h["recall_5"] in text
-    res = next(t.value for t in at.table if t.value.index.name == "Feature set")
+    cmp = next(t.value for t in at.table if "Recall @ 0% FP (95% CI)" in t.value.columns)
+    assert list(cmp["Model"]) == [c["Model"] for c in M.comparison_table(D)]
+    assert list(cmp["ROC AUC (95% CI)"]) == [c["ROC AUC (95% CI)"] for c in M.comparison_table(D)]
+    assert M.COMPARE_NOTE in [c.value for c in at.caption]
+    res = next(t.value for t in at.table if "Trusted" in t.value.columns)
     assert list(res["ROC AUC"])[:8] == [M.auc_text(s) for s in rows("ml_summary.csv")]
     assert "not trusted (dataset bias)" in text
     at.switch_page("app_pages/2_How_accurate.py").run()
     assert not at.exception, at.exception
-    assert any(m.value == h["line"] for m in at.markdown)
+    acc = next(t.value for t in at.table if "Recall @ 0% FP (95% CI)" in t.value.columns)
+    assert list(acc["Recall @ 5% FP (95% CI)"]) == [c["Recall @ 5% FP (95% CI)"] for c in M.comparison_table(D)]
+    assert any(c.value.startswith(M.COMPARE_NOTE) and "Frozen rules: strict: 12.4% (39/314)" in c.value for c in at.caption)
     assert any("Learned combiner (experimental): a post-freeze research model" in m.value for m in at.markdown)
+
+
+def test_side_by_side_comparison_reads_the_csvs():
+    cmp = M.comparison_table(D)
+    assert [(c["Feature set"].split(":")[0], c["Model"]) for c in cmp] == [
+        ("A-strict (headline)", "logistic regression (explainable weights)"),
+        ("A-strict (headline)", "random forest (best performer)"),
+        ("B", "logistic regression"), ("B", "random forest")]
+    assert cmp[2]["Feature set"] == "B: adds install-hook and inflated-version metadata; more source-bias risk"
+    summ = {(r["feature_set"], r["model"]): r for r in rows("ml_summary.csv")}
+    rec = {(r["feature_set"], r["model"], r["target_fp"]): r for r in rows("ml_recall_at_fp.csv")}
+
+    def pc(x):
+        return f"{100 * float(x):.1f}%"
+    for c, (fs, model) in zip(cmp, [("A_strict", "logistic_regression"), ("A_strict", "random_forest"),
+                                    ("B", "logistic_regression"), ("B", "random_forest")]):
+        s = summ[(fs, model)]
+        assert c["ROC AUC (95% CI)"] == f"{float(s['auc']):.3f} ({float(s['auc_ci_low']):.3f}-{float(s['auc_ci_high']):.3f})"
+        for t, col in (("0.000000", "Recall @ 0% FP (95% CI)"), ("0.050000", "Recall @ 5% FP (95% CI)"),
+                       ("0.150000", "Recall @ 15% FP (95% CI)")):
+            r = rec[(fs, model, t)]
+            assert c[col] == (f"{pc(r['recall'])} ({pc(r['recall_ci_low'])}-{pc(r['recall_ci_high'])}); "
+                              f"realized FP {pc(r['realized_fp'])}")
+    assert not any(c["Feature set"].startswith("C") for c in cmp) and "not trusted (dataset bias)" in M.COMPARE_NOTE
+    assert any(r["Trusted"] == "no: dataset bias" and r["Feature set"].startswith("C:") for r in M.results_table(D))
+    md = M.markdown(D)
+    assert "## Side by side: logistic regression and random forest (feature sets A-strict and B)" in md
+    assert all("| " + " | ".join(c.values()) + " |" in md for c in cmp)
+    assert md.index("## Side by side") < md.index("## Method")

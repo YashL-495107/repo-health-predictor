@@ -65,7 +65,10 @@ with st.container(border=True):
     import ml_results as M
     st.markdown("#### Learned combiner (experimental)")
     if M.available():
-        st.markdown(M.headline(M.load())["line"])
+        _ml = M.load()
+        _cmp = pd.DataFrame(M.comparison_table(_ml))
+        st.table(_cmp.set_index(_cmp.columns[0]))
+        st.caption(M.COMPARE_NOTE + " Frozen rules: " + "; ".join(M.headline(_ml)["rules"]) + ".")
     st.caption(M.CAVEAT + " The frozen rules above remain the official result.")
     st.page_link("app_pages/3_Learned_combiner.py", label="Learned combiner (experimental): details", icon="🧪")
 
