@@ -1,4 +1,5 @@
 [theme]
+base = "dark"
 primaryColor = "#1a9850"
 
 [browser]

@@ -20,7 +20,7 @@ from repo_scan import scan_repo
 from bus_factor import run_bus_factor_analysis
 import hashlib
 from intelligence import build_ai_cards, SuccessCache, gather_repo_intel, run_ai_layer, _configured_model, resolve_gemini_key, _MISSING
-from ui_text import (APP_CSS, NEUTRAL_COLOR, TRUST_DISCLAIMER, app_version, assessment_gaps, blast_display, evidence_receipt,
+from ui_text import (APP_CSS, NEUTRAL_COLOR, TRUST_DISCLAIMER, app_version, chip_text_color, assessment_gaps, blast_display, evidence_receipt,
                      filter_findings, headline_label, partial_badge, result_json, trust_drivers)
 import additional_signals as AS
 import killchain
@@ -475,7 +475,7 @@ if go_clicked or (target and st.session_state.get("analyzed") == target):
         with left:
             badge_html = (f"<span class='rh-badge' title='{html.escape(badge['reason'], quote=True)}'>⚠ {html.escape(badge['label'])}</span>"
                           if badge else "")
-            st.markdown(f"<div class='rh-card' style='border-left:8px solid {trust_color}'><div class='rh-muted' style='font-size:14px'>Trust score <span style='font-size:12px'>(indicators, not proof)</span>{badge_html}</div><div style='font-size:60px;font-weight:700;line-height:1.1'>{trust_val}<span class='rh-muted' style='font-size:20px'> / 100</span></div><div><span class='rh-muted' style='font-size:13px;font-weight:400'>{TRUST_DISCLAIMER}</span></div><span class='rh-chip' style='background:{trust_color}'>{html.escape(shown_label)}</span></div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='rh-card' style='border-left:8px solid {trust_color}'><div class='rh-muted' style='font-size:14px'>Trust score <span style='font-size:12px'>(indicators, not proof)</span>{badge_html}</div><div style='font-size:60px;font-weight:700;line-height:1.1'>{trust_val}<span class='rh-muted' style='font-size:20px'> / 100</span></div><div><span class='rh-muted' style='font-size:13px;font-weight:400'>{TRUST_DISCLAIMER}</span></div><span class='rh-chip' style='background:{trust_color};color:{chip_text_color(trust_color)}'>{html.escape(shown_label)}</span></div>", unsafe_allow_html=True)
             if gaps: st.caption(_md_escape("Partial: " + "; ".join(gaps) + "."))
             elif badge: st.caption(_md_escape("Partial: " + badge["reason"] + "."))
             if res.get("limiting_reason"): st.caption(_md_escape(res["limiting_reason"]))

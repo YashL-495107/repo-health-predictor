@@ -252,3 +252,25 @@ div[data-testid="stTabs"] button p{font-size:15px}
 .rh-kc-mark{font-size:12px}
 .rh-kc-arrow{align-self:center;opacity:.6}
 </style>"""
+
+
+def _luminance(hex_color: str) -> float:
+    h = hex_color.lstrip("#")
+    if len(h) == 3:
+        h = "".join(c * 2 for c in h)
+    def ch(v):
+        c = int(v, 16) / 255
+        return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+    r, g, b = (ch(h[i:i + 2]) for i in (0, 2, 4))
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def contrast(a: str, b: str) -> float:
+    """WCAG contrast ratio of two hex colours."""
+    la, lb = sorted((_luminance(a), _luminance(b)), reverse=True)
+    return (la + 0.05) / (lb + 0.05)
+
+
+def chip_text_color(bg: str) -> str:
+    """Text colour for a chip on a tier colour: white or near-black, whichever contrasts more (display only)."""
+    return "#ffffff" if contrast("#ffffff", bg) >= contrast("#111111", bg) else "#111111"
