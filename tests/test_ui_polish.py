@@ -11,7 +11,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from ui_text import PARTIAL_BADGE, filter_findings, partial_badge, result_json  # noqa: E402
 
-APP = os.path.join(ROOT, "app.py")
+APP = os.path.join(ROOT, "app.py")                  # entrypoint (router)
+MAIN_PAGE = os.path.join(ROOT, "trust_check.py")    # the main page's code
 
 
 def _pillars(**status):
@@ -98,7 +99,7 @@ def test_app_tabs_badge_filter_download_and_examples():
 
 
 def test_download_button_and_tooltips_in_source():
-    src = open(APP, encoding="utf-8").read()
+    src = open(MAIN_PAGE, encoding="utf-8").read()
     assert 'download_button("Download result (JSON)", data=result_json(export, [token, user_token, gemini_key, gemini_key_input])' in src
     assert 'export = {**data, "receipt": receipt, "additional_signals": sig}' in src
     assert 'hovertemplate="%{theta}: %{r:.0f} / 100<extra></extra>"' in src                 # radar: factor and value
@@ -141,3 +142,24 @@ def test_findings_filter_widgets_in_the_app():
         at.multiselect(key="find_sev").set_value(["Low"]).run()
         frame = next(df.value for df in at.dataframe if "Open" in df.value.columns)
         assert list(frame["Level"]) == ["Low"] and frame["Open"].iloc[0].startswith("https://github.com/")
+
+
+def test_title_subtitle_and_guessed_package_message():
+    import test_app as T
+    from streamlit.testing.v1 import AppTest
+    from github_client import GitHubClient
+    src = open(MAIN_PAGE, encoding="utf-8").read()
+    assert 'st.title("Repository & Package Trust Check")' in src
+    assert ('st.caption("Trust score from code, package and supply-chain evidence. Indicators, not proof. '
+            'Maintenance shown separately.")') in src
+    with patch("github_client.fetch_features", T.fake_fetch), patch.object(GitHubClient, "__init__", T._fake_init):
+        at = AppTest.from_file(APP, default_timeout=30).run()
+        assert at.title[0].value == "Repository & Package Trust Check"
+        at.text_input(key="repo_input").set_value("o/r-guessed-name")
+        at.button[0].click().run()
+        assert not at.exception, at.exception
+        guessed = any("package name guessed from the repository name" in c.value for c in at.caption)
+        msg = ("Not checked: no package manifest in the repository root. The npm/PyPI name shown above is guessed "
+               "from the repository name and is not used for these checks.")
+        assert guessed == any(i.value == msg for i in at.info)       # shown exactly when blast radius guessed a name
+        assert guessed, "fixture repository has no root manifest, so blast radius guesses the name"

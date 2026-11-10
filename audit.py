@@ -12,6 +12,8 @@ from github_client import GitHubClient, GitHubError, RateLimitError
 from security import OSV_VULN, action_verdict, osv_scan, parse_package_lock
 
 MAX_PACKAGES = 40
+# "Load an example" on the Dependency Audit page (restored: removed in 28f028f while the page still imports it)
+EXAMPLE = "requests==2.19.0\nflask==2.0.0\nurllib3==1.25.0\nPyYAML==5.3\njinja2==2.10\nnumpy>=1.24\n"
 ACTIVE_DAYS, SLOW_DAYS = 180, 730
 RANK = ["Replace it", "Review urgently", "Upgrade or review", "Plan to migrate", "Watch it", "Not enough data", "Maintenance looks fine, security not assessed", "Actively maintained, no unpatched issues found"]
 GH_RE = re.compile(r"github\.com[/:]([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)")

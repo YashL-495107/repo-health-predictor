@@ -129,7 +129,7 @@ def test_ai_prompt_injection_wrapped():
 
 def test_app_cache_decorator():
     import ast
-    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "app.py"), encoding="utf-8") as fh:
+    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "trust_check.py"), encoding="utf-8") as fh:
         tree = ast.parse(fh.read())
     funcs = {n.name: n for n in ast.walk(tree) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
     def names(fn):
@@ -141,7 +141,7 @@ def test_app_cache_decorator():
     analyze = names(funcs["analyze"]) if "analyze" in funcs else []
     esc = names(funcs["_md_escape"]) if "_md_escape" in funcs else []
     ok = "st.cache_data" in analyze and not any("cache_data" in d for d in esc)
-    _record("app.py: analyze() is cached, _md_escape is not", ok, f"analyze={analyze} _md_escape={esc}")
+    _record("trust_check.py (main page): analyze() is cached, _md_escape is not", ok, f"analyze={analyze} _md_escape={esc}")
 
 def test_no_stale_malware_wording():
     root = os.path.dirname(os.path.abspath(__file__))
@@ -334,7 +334,7 @@ def test_gemini_key_caption():
           and short == "Gemini key from: sidebar (set)"
           and not any(ch in c for c in shown for ch in (key[-4:], key[:8], other[-4:], "39", "chars", "ends")))
     _record("Key diagnostic never shows any part of a key (no length, no characters); app does not display it",
-            ok and "describe_gemini_key" not in open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "app.py"),
+            ok and "describe_gemini_key" not in open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "trust_check.py"),
                                                     encoding="utf-8").read(), "\n".join(shown))
 
 def test_sdk_error_status_message_scrubbed():

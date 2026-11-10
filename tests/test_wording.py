@@ -11,7 +11,7 @@ import re
 import tokenize
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PY_FILES = ["app.py", "security.py", "pillars.py", "fragility.py", "scoring.py", "analyze_scan_results.py",
+PY_FILES = ["app.py", "trust_check.py", "security.py", "pillars.py", "fragility.py", "scoring.py", "analyze_scan_results.py",
             "inspect_repo.py", "scan_batch.py", "benchmark_fixtures.py", "audit.py", "intelligence.py", "repo_scan.py",
             "malware_proof.py", "repo_behavior.py", "verify_full_stack.py", "releases.py", "http_cache.py"] + \
            [os.path.relpath(p, ROOT) for p in glob.glob(os.path.join(ROOT, "pages", "*.py"))] + \
@@ -26,7 +26,8 @@ FORBIDDEN = re.compile(r"\b(?:un)?safe(?:r|st|ly|ty)?\b|\bsecure[ds]?\b|\bclean(
 NEGATION = re.compile(r"\b(?:not|never|no|cannot)\b[^.;:!?]{0,40}$", re.I)
 # quoted third-party names, and the storage-note marker the benchmark owner asked for ("unsafe name, obtained via
 # <method>": a dataset FILE NAME that Windows cannot hold, not a verdict on a package)
-ALLOWED_LITERALS = ("SecureCodingDojo", "unsafe name, obtained via")
+# ...and the Upgrade check page title the owner asked for: a question the page answers with indicators, not a verdict
+ALLOWED_LITERALS = ("SecureCodingDojo", "unsafe name, obtained via", "is this update safe?")
 
 
 def violations(text: str) -> list[str]:

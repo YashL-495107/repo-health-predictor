@@ -55,3 +55,21 @@ def test_sample_button_autoruns():
 
 if __name__ == "__main__":
     test_app_renders_result(); test_app_bad_input(); test_sample_button_autoruns()
+
+
+def test_navigation_names_the_main_page_trust_check():
+    """app.py stays the entrypoint (Streamlit Cloud) and only routes: the sidebar label of the main page is
+    "Trust check"; the two pages in pages/ are listed explicitly and keep their addresses."""
+    src = open(os.path.join(os.path.dirname(__file__), "..", "app.py"), encoding="utf-8").read()
+    assert 'st.Page("trust_check.py", title="Trust check", icon="🩺", default=True)' in src
+    assert 'st.Page("pages/1_Dependency_Audit.py", title="Dependency Audit", url_path="Dependency_Audit")' in src
+    assert 'st.Page("pages/1_Upgrade_check.py", title="Upgrade check", url_path="Upgrade_check")' in src
+    assert "st.navigation(PAGES).run()" in src
+    for p in ("trust_check.py", "pages/1_Dependency_Audit.py", "pages/1_Upgrade_check.py"):
+        assert os.path.isfile(os.path.join(os.path.dirname(__file__), "..", p)), p
+    at = AppTest.from_file(os.path.join(os.path.dirname(__file__), "..", "app.py"), default_timeout=30).run()
+    assert not at.exception and at.title[0].value == "Repository & Package Trust Check"   # default page = Trust check
+    at.switch_page("pages/1_Upgrade_check.py").run()
+    assert not at.exception and at.title[0].value == "Upgrade check (is this update safe?)"
+    at.switch_page("pages/1_Dependency_Audit.py").run()
+    assert not at.exception, at.exception

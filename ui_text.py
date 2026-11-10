@@ -234,3 +234,43 @@ def evidence_receipt(data: dict, ruleset_version: str, app_ver: dict, full_commi
             "scanned_commit": commit, "ruleset_version": ruleset_version, "app_version": app_ver,
             "metadata_fetched_at": f.get("fetched_at"), "receipt_generated_at_utc": now_utc,
             "note": "Trust score: indicators, not proof; not a safety guarantee."}
+
+
+# Light styling for the app and its pages: spacing, chip / badge shapes and the kill-chain strip. Colours come from the
+# theme (currentColor, translucent fills) or the existing tier colours, so light and dark themes both work.
+APP_CSS = """<style>
+.rh-card{border:1px solid rgba(128,128,128,.35);border-radius:12px;padding:14px 18px;margin-bottom:.5rem}
+.rh-muted{opacity:.7}
+.rh-chip{display:inline-block;padding:4px 12px;border-radius:10px;line-height:1.35;color:#fff;font-weight:600;font-size:15px;margin-top:6px}
+.rh-badge{display:inline-block;padding:2px 10px;border-radius:999px;border:1px dashed currentColor;font-size:13px;
+ font-weight:600;margin-left:8px;vertical-align:middle;cursor:help}
+div[data-testid="stTabs"] button p{font-size:15px}
+.rh-kc-row{display:flex;flex-wrap:wrap;align-items:stretch;gap:6px;margin:6px 0 2px}
+.rh-kc{flex:1 1 140px;border:1px solid rgba(128,128,128,.45);border-radius:10px;padding:8px 10px;font-size:13px;
+ opacity:.65;cursor:help}
+.rh-kc-on{opacity:1;border-color:#e66101;background:rgba(230,97,1,.18);font-weight:600}
+.rh-kc-mark{font-size:12px}
+.rh-kc-arrow{align-self:center;opacity:.6}
+</style>"""
+
+
+def _luminance(hex_color: str) -> float:
+    h = hex_color.lstrip("#")
+    if len(h) == 3:
+        h = "".join(c * 2 for c in h)
+    def ch(v):
+        c = int(v, 16) / 255
+        return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+    r, g, b = (ch(h[i:i + 2]) for i in (0, 2, 4))
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def contrast(a: str, b: str) -> float:
+    """WCAG contrast ratio of two hex colours."""
+    la, lb = sorted((_luminance(a), _luminance(b)), reverse=True)
+    return (la + 0.05) / (lb + 0.05)
+
+
+def chip_text_color(bg: str) -> str:
+    """Text colour for a chip on a tier colour: white or near-black, whichever contrasts more (display only)."""
+    return "#ffffff" if contrast("#ffffff", bg) >= contrast("#111111", bg) else "#111111"

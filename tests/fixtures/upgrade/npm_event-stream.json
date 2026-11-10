@@ -1,0 +1,81 @@
+{
+ "_recorded": "registry.npmjs.org/event-stream, 2026-11-10; trimmed to versions 3.3.3-3.3.5 and the fields the upgrade check reads; e-mail local parts redacted; tarballs NOT recorded (tests use stand-ins)",
+ "dist-tags": {
+  "latest": "3.3.5"
+ },
+ "maintainers": [
+  {
+   "email": "redacted@npmjs.com",
+   "name": "npm"
+  }
+ ],
+ "name": "event-stream",
+ "time": {
+  "3.3.3": "2016-06-18T23:39:10.007Z",
+  "3.3.4": "2016-07-17T07:24:09.767Z",
+  "3.3.5": "2018-09-05T05:27:47.219Z",
+  "created": "2011-08-22T05:26:46.363Z"
+ },
+ "versions": {
+  "3.3.3": {
+   "_npmUser": {
+    "name": "dominictarr"
+   },
+   "dependencies": {
+    "duplexer": "~0.1.1",
+    "from": "~0",
+    "map-stream": "~0.1.0",
+    "pause-stream": "0.0.11",
+    "split": "0.3",
+    "stream-combiner": "~0.0.4",
+    "through": "~2.3.1"
+   },
+   "dist": {
+    "tarball": "https://registry.npmjs.org/event-stream/-/event-stream-3.3.3.tgz",
+    "unpackedSize": null
+   },
+   "scripts": {},
+   "version": "3.3.3"
+  },
+  "3.3.4": {
+   "_npmUser": {
+    "name": "dominictarr"
+   },
+   "dependencies": {
+    "duplexer": "~0.1.1",
+    "from": "~0",
+    "map-stream": "~0.1.0",
+    "pause-stream": "0.0.11",
+    "split": "0.3",
+    "stream-combiner": "~0.0.4",
+    "through": "~2.3.1"
+   },
+   "dist": {
+    "tarball": "https://registry.npmjs.org/event-stream/-/event-stream-3.3.4.tgz",
+    "unpackedSize": null
+   },
+   "scripts": {},
+   "version": "3.3.4"
+  },
+  "3.3.5": {
+   "_npmUser": {
+    "name": "right9ctrl"
+   },
+   "dependencies": {
+    "duplexer": "^0.1.1",
+    "from": "^0.1.7",
+    "map-stream": "0.0.7",
+    "pause-stream": "^0.0.11",
+    "split": "^1.0.1",
+    "stream-combiner": "^0.2.2",
+    "through": "^2.3.8"
+   },
+   "dist": {
+    "tarball": "https://registry.npmjs.org/event-stream/-/event-stream-3.3.5.tgz",
+    "unpackedSize": 45567
+   },
+   "scripts": {},
+   "version": "3.3.5"
+  }
+ }
+}
