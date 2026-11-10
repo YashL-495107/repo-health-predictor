@@ -318,7 +318,7 @@ def render_verdict_meaning(label_base: str | None):
     """One or two lines on what this verdict meant in benchmark run 2 (accuracy.compact_verdict, read from the run-2
     CSVs), and a link to the full "How accurate is it?" page."""
     st.caption(_md_escape(compact_verdict(label_base)))
-    st.page_link("pages/2_How_accurate.py", label="How accurate is it? (all benchmark numbers)", icon="📊")
+    st.page_link("app_pages/2_How_accurate.py", label="How accurate is it? (all benchmark numbers)", icon="📊")
 
 
 DOMAIN_STATUS = {"registered": "registered", "not_registered": "not registered", "could_not_check": AS.COULD_NOT_CHECK}

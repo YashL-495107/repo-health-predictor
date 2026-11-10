@@ -130,6 +130,8 @@ def load(run_dir: Path = RUN2, results_md: Path = RESULTS_MD, error_md: Path = E
                 + ", ".join(f"{k} {v}" for k, v in history.items()) + f" of {n_bad} scored known-bad items: unproven.",
                 "Upgrade check page and Additional signals: added after the freeze, unvalidated, no benchmark number.",
                 "AI section: advisory, off in the benchmark, never changes a score.",
+                "Learned combiner (experimental): a post-freeze research model, cross-validated on the same items the "
+                "rules were frozen against (not a fresh held-out test); never used for the Trust score or a verdict.",
             ]}
 
 

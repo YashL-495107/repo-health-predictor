@@ -141,10 +141,11 @@ def test_readme_headline_table():
 def test_sidebar_page_order():
     src = (ROOT / "app.py").read_text(encoding="utf-8")
     titles = re.findall(r'st\.Page\([^)]*title="([^"]+)"', src)
-    assert titles == ["Trust check", "Dependency Audit", "Upgrade check", "How accurate is it?"]
+    assert titles == ["Trust check", "Dependency Audit", "Upgrade check", "How accurate is it?",
+                      "Learned combiner (experimental)"]
     from streamlit.testing.v1 import AppTest
     at = AppTest.from_file(str(ROOT / "app.py"), default_timeout=30).run()
-    at.switch_page("pages/2_How_accurate.py").run()
+    at.switch_page("app_pages/2_How_accurate.py").run()
     assert not at.exception, at.exception
     assert at.title[0].value == "How accurate is it?"
     assert any(m.value == f"**{A.SUMMARY}**" for m in at.markdown)
@@ -155,7 +156,7 @@ def test_sidebar_page_order():
     heads = [m.value for m in at.markdown if m.value.startswith("#### ")]
     assert heads == ["#### Layered detection (known-bad samples, artifact mode)", "#### False positives",
                      "#### Precision (at the benchmark's class ratio)", "#### Per detector", "#### Why it misses",
-                     "#### How it was measured", "#### What is NOT measured"]
+                     "#### Learned combiner (experimental)", "#### How it was measured", "#### What is NOT measured"]
 
 
 def _md_escape(text):
@@ -176,4 +177,4 @@ def test_trust_check_shows_the_compact_summary_and_link():
         labels = (LABEL_REVIEW, LABEL_HIGH_RISK, LABEL_NO_FINDINGS, "Fragile / unmaintained", "Not assessed")
         assert any(c in {_md_escape(A.compact_verdict(l)) for l in labels} for c in caps)
         assert not any(list(df.value.columns) == ["Mode", "Measure", "Measured"] for df in at.dataframe)
-        assert "pages/2_How_accurate.py" in (ROOT / "trust_check.py").read_text(encoding="utf-8")
+        assert "app_pages/2_How_accurate.py" in (ROOT / "trust_check.py").read_text(encoding="utf-8")

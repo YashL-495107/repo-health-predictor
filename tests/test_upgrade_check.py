@@ -226,7 +226,7 @@ def test_killchain_strip_lists_findings_on_hover():
 def test_upgrade_page_renders_with_recorded_registry():
     import streamlit as st
     from streamlit.testing.v1 import AppTest
-    page = str(ROOT / "pages" / "1_Upgrade_check.py")
+    page = str(ROOT / "app_pages" / "1_Upgrade_check.py")
     st.cache_data.clear()
     pk = demo_packument()
     lodahs = {"name": "lodahs", "time": {"created": "2026-09-28T00:00:00.000Z"}, "versions": {}}
